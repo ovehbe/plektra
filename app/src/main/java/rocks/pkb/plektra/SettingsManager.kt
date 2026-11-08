@@ -6434,6 +6434,7 @@ object SettingsManager {
 
     // Exact Typing (raw mode): apps in which the smart-typing features are switched off.
     private const val KEY_APP_RAW_MODE_PACKAGES = "app_raw_mode_packages"
+    private const val KEY_BAR_EXCLUDED_APPS = "bar_excluded_apps" // Per-app list where bar is never shown
 
     fun getRawModePackages(context: Context): Set<String> {
         return getPreferences(context).getStringSet(KEY_APP_RAW_MODE_PACKAGES, emptySet()) ?: emptySet()
@@ -6491,5 +6492,23 @@ object SettingsManager {
             ENTER_ADDITIONAL_SEND_SHORTCUT_SYM_ENTER -> shortcut
             else -> ENTER_ADDITIONAL_SEND_SHORTCUT_NONE
         }
+    }
+}
+
+    /**
+     * Get list of apps where status bar should never be shown.
+     * These apps will have keyboard functionality but no visible bar.
+     */
+    fun getBarExcludedApps(context: Context): Set<String> {
+        return getPreferences(context).getStringSet(KEY_BAR_EXCLUDED_APPS, emptySet()) ?: emptySet()
+    }
+
+    /**
+     * Set list of apps where status bar should never be shown.
+     */
+    fun setBarExcludedApps(context: Context, packages: Set<String>) {
+        getPreferences(context).edit()
+            .putStringSet(KEY_BAR_EXCLUDED_APPS, packages)
+            .apply()
     }
 }
