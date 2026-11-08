@@ -481,6 +481,33 @@ class InputEventRouter(
             return EditableFieldRoutingResult.Consume
         }
 
+        // FIX: Check Ctrl BEFORE Alt to give Ctrl shortcuts priority
+        // when both modifiers are active. This ensures Ctrl+A works for select-all
+        // even when Alt is latched/one-shot (which would otherwise map A to '*').
+        if (event?.isCtrlPressed == true || params.ctrlLatchActive || params.ctrlOneShot || (params.isNumericField && effectiveCtrlActive)) {
+            if (
+                handleCtrlModifiedKey(
+                    keyCode = keyCode,
+                    event = event,
+                    inputConnection = ic,
+                    ctrlKeyMap = params.ctrlKeyMap,
+                    ctrlLatchFromNavMode = params.ctrlLatchFromNavMode,
+                    ctrlOneShot = params.ctrlOneShot,
+                    ctrlPhysicallyPressed = params.ctrlPressed || params.ctrlPhysicallyPressed,
+                    selectionShiftActive = params.shiftPressed || event?.isShiftPressed == true,
+                    forceBasicContextMenuActions = params.isNumericField,
+                    clearCtrlOneShot = {
+                        callbacks.clearCtrlOneShot()
+                    },
+                    updateStatusBar = callbacks.updateStatusBar,
+                    callSuper = callbacks.callSuper,
+                    toggleMinimalUi = callbacks.toggleMinimalUi
+                )
+            ) {
+                return EditableFieldRoutingResult.Consume
+            }
+        }
+
         if (!passThroughAltBoundary && (event?.isAltPressed == true || altLatchActive || altOneShotActive)) {
             controllers.alternateCharacterManager.cancelPendingLongPress(keyCode)
             if (altOneShotActive) {
@@ -502,30 +529,6 @@ class InputEventRouter(
                     altMappingsOverride = params.altMappingsOverride,
                     updateStatusBar = callbacks.updateStatusBar,
                     callSuperWithKey = callbacks.callSuperWithKey
-                )
-            ) {
-                return EditableFieldRoutingResult.Consume
-            }
-        }
-
-        if (event?.isCtrlPressed == true || params.ctrlLatchActive || params.ctrlOneShot || (params.isNumericField && effectiveCtrlActive)) {
-            if (
-                handleCtrlModifiedKey(
-                    keyCode = keyCode,
-                    event = event,
-                    inputConnection = ic,
-                    ctrlKeyMap = params.ctrlKeyMap,
-                    ctrlLatchFromNavMode = params.ctrlLatchFromNavMode,
-                    ctrlOneShot = params.ctrlOneShot,
-                    ctrlPhysicallyPressed = params.ctrlPressed || params.ctrlPhysicallyPressed,
-                    selectionShiftActive = params.shiftPressed || event?.isShiftPressed == true,
-                    forceBasicContextMenuActions = params.isNumericField,
-                    clearCtrlOneShot = {
-                        callbacks.clearCtrlOneShot()
-                    },
-                    updateStatusBar = callbacks.updateStatusBar,
-                    callSuper = callbacks.callSuper,
-                    toggleMinimalUi = callbacks.toggleMinimalUi
                 )
             ) {
                 return EditableFieldRoutingResult.Consume

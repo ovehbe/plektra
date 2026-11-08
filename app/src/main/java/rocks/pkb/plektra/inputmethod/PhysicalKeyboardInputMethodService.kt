@@ -2299,7 +2299,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             refreshStatusBar = {
                 invalidateRenderedStatusSnapshot()
                 refreshStatusBar()
-            }
+            },
+            getCurrentPackageName = { currentPackageName }
         )
         inputManager = getSystemService(InputManager::class.java)
         InputDevice.getDeviceIds().forEach { deviceId ->
@@ -3058,6 +3059,18 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         super.onComputeInsets(outInsets)
         val decor = window?.window?.decorView ?: return
         outInsets ?: return
+        
+        // Check if current app is in the bar exclusion list
+        val excludedApps = SettingsManager.getBarExcludedApps(this)
+        if (currentPackageName != null && excludedApps.contains(currentPackageName)) {
+            // Force zero-height insets for excluded apps - completely hide the bar
+            outInsets.contentTopInsets = 0
+            outInsets.visibleTopInsets = 0
+            outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_CONTENT
+            outInsets.touchableRegion.setEmpty()
+            return
+        }
+        
         if (!isFullscreenMode && ::candidatesBarController.isInitialized) {
             // Content and touch geometry come from the same attached, visible child. Neither
             // a requested surface nor Android's cached candidates-started flag is sufficient.

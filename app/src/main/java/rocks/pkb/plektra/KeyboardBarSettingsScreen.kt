@@ -87,6 +87,8 @@ internal fun KeyboardBarSettingsScreen(
             }
         )
     }
+    var excludedApps by remember { mutableStateOf(SettingsManager.getBarExcludedApps(context)) }
+    var showAppPickerDialog by remember { mutableStateOf(false) }
 
     var slimProfile by remember { mutableStateOf(KeyboardBarConfiguration.read(context).slimProfile) }
     var arrangement by remember { mutableStateOf(KeyboardBarConfiguration.read(context).arrangement) }
@@ -246,6 +248,39 @@ internal fun KeyboardBarSettingsScreen(
             KeyboardBarCheckRow(stringResource(R.string.keyboard_bar_show_on_launcher), showOnLauncher,
                 "status_bar.show_on_launcher", stringResource(R.string.keyboard_bar_show_on_launcher_description)) {
                 showOnLauncher = it; SettingsManager.setShowKeyboardBarOnLauncher(context, it)
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth().settingRow("keyboard_bar.excluded_apps")
+                    .clickable { showAppPickerDialog = true }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(stringResource(R.string.keyboard_bar_excluded_apps),
+                        style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        if (excludedApps.isEmpty()) 
+                            stringResource(R.string.keyboard_bar_excluded_apps_none)
+                        else 
+                            stringResource(R.string.keyboard_bar_excluded_apps_count, excludedApps.size),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+            }
+            
+            if (showAppPickerDialog) {
+                AppPickerDialog(
+                    selectedApps = excludedApps,
+                    onDismiss = { showAppPickerDialog = false },
+                    onConfirm = { selected ->
+                        excludedApps = selected
+                        SettingsManager.setBarExcludedApps(context, selected)
+                        showAppPickerDialog = false
+                    }
+                )
             }
         }
         if (page == KeyboardBarSettingsPage.Buttons) {
@@ -453,3 +488,4 @@ internal fun KeyboardBarNavigationRow(icon: androidx.compose.ui.graphics.vector.
         supportingContent = summary?.let { { Text(it) } },
         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) })
 }
+

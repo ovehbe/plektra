@@ -32,9 +32,15 @@ class KeyboardVisibilityController(
     private val requestShowInputView: () -> Unit,
     private val refreshStatusBar: () -> Unit,
     private val trace: (String) -> Unit = {},
-    private val allowsPersistentSurface: () -> Boolean = { true }
+    private val allowsPersistentSurface: () -> Boolean = { true },
+    private val getCurrentPackageName: () -> String? = { null }
 ) {
     enum class RenderedSurface { HIDDEN, FULL_INPUT_VIEW, CANDIDATES_VIEW }
+
+    private fun isCurrentAppBarExcluded(): Boolean {
+        val packageName = getCurrentPackageName() ?: return false
+        return SettingsManager.getBarExcludedApps(context).contains(packageName)
+    }
 
     private var generation = 0
     private var pending = false
@@ -78,8 +84,8 @@ class KeyboardVisibilityController(
         return !usesCandidatesView() && hasConfiguredContent()
     }
 
-    fun allowsSurface(): Boolean = allowsPersistentSurface() ||
-        symLayoutController.currentSymPage() > 0 || candidatesBarController.hasTransientContent()
+    fun allowsSurface(): Boolean = !isCurrentAppBarExcluded() && (allowsPersistentSurface() ||
+        symLayoutController.currentSymPage() > 0 || candidatesBarController.hasTransientContent())
 
     private fun hasConfiguredContent(): Boolean = allowsSurface() && (rocks.pkb.plektra.KeyboardBarConfiguration.read(context)
             .presentation(candidatesBarController.isSlimModeActive()).hasPersistentContent ||
