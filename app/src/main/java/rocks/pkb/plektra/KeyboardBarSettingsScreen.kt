@@ -87,6 +87,8 @@ internal fun KeyboardBarSettingsScreen(
             }
         )
     }
+    var excludedApps by remember { mutableStateOf(SettingsManager.getBarExcludedApps(context)) }
+    var showAppPickerDialog by remember { mutableStateOf(false) }
 
     var slimProfile by remember { mutableStateOf(KeyboardBarConfiguration.read(context).slimProfile) }
     var arrangement by remember { mutableStateOf(KeyboardBarConfiguration.read(context).arrangement) }
@@ -248,9 +250,6 @@ internal fun KeyboardBarSettingsScreen(
                 showOnLauncher = it; SettingsManager.setShowKeyboardBarOnLauncher(context, it)
             }
             
-            var excludedApps by remember { mutableStateOf(SettingsManager.getBarExcludedApps(context)) }
-            var showAppPickerDialog by remember { mutableStateOf(false) }
-            
             Row(
                 modifier = Modifier.fillMaxWidth().settingRow("keyboard_bar.excluded_apps")
                     .clickable { showAppPickerDialog = true }
@@ -268,7 +267,7 @@ internal fun KeyboardBarSettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                </Column>
+                }
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
             }
             
@@ -490,136 +489,3 @@ internal fun KeyboardBarNavigationRow(icon: androidx.compose.ui.graphics.vector.
         trailingContent = { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) })
 }
 
-@Composable
-private fun AppPickerDialog(
-    selectedApps: Set<String>,
-    onDismiss: () -> Unit,
-    onConfirm: (Set<String>) -> Unit
-) {
-    val context = LocalContext.current
-    val packageManager = context.packageManager
-    
-    val installedApps = remember {
-        packageManager.getInstalledApplications(android.content.pm.PackageManager.GET_META_DATA)
-            .filter { appInfo ->
-                packageManager.getLaunchIntentForPackage(appInfo.packageName) != null
-            }
-            .map { appInfo ->
-                AppInfo(
-                    packageName = appInfo.packageName,
-                    label = packageManager.getApplicationLabel(appInfo).toString(),
-                    icon = packageManager.getApplicationIcon(appInfo)
-                )
-            }
-            .sortedBy { it.label.lowercase() }
-    }
-    
-    var searchQuery by remember { mutableStateOf("") }
-    var tempSelected by remember { mutableStateOf(selectedApps) }
-    
-    val filteredApps = remember(searchQuery, installedApps) {
-        if (searchQuery.isBlank()) installedApps
-        else installedApps.filter {
-            it.label.contains(searchQuery, ignoreCase = true) ||
-            it.packageName.contains(searchQuery, ignoreCase = true)
-        }
-    }
-    
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(0.9f).fillMaxHeight(0.8f),
-            shape = MaterialTheme.shapes.large,
-            tonalElevation = 6.dp
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(R.string.keyboard_bar_excluded_apps_dialog_title),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Close")
-                    }
-                }
-                
-                TextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    placeholder = { Text(stringResource(R.string.keyboard_bar_excluded_apps_search)) },
-                    singleLine = true
-                )
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(filteredApps.size) { index ->
-                        val app = filteredApps[index]
-                        val isSelected = app.packageName in tempSelected
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth()
-                                .clickable {
-                                    tempSelected = if (isSelected) tempSelected - app.packageName
-                                    else tempSelected + app.packageName
-                                }
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            androidx.compose.foundation.Image(
-                                painter = rememberDrawablePainter(app.icon),
-                                contentDescription = null,
-                                modifier = Modifier.size(40.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(app.label, style = MaterialTheme.typography.bodyLarge)
-                                Text(app.packageName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Checkbox(checked = isSelected, onCheckedChange = null)
-                        }
-                    }
-                }
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = { onConfirm(tempSelected) }) { Text("OK") }
-                }
-            }
-        }
-    }
-}
-
-private data class AppInfo(
-    val packageName: String,
-    val label: String,
-    val icon: android.graphics.drawable.Drawable
-)
-
-@Composable
-private fun rememberDrawablePainter(drawable: android.graphics.drawable.Drawable): androidx.compose.ui.graphics.painter.Painter {
-    return remember(drawable) {
-        val bitmap = android.graphics.Bitmap.createBitmap(
-            drawable.intrinsicWidth.coerceAtLeast(1),
-            drawable.intrinsicHeight.coerceAtLeast(1),
-            android.graphics.Bitmap.Config.ARGB_8888
-        )
-        val canvas = android.graphics.Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        androidx.compose.ui.graphics.painter.BitmapPainter(bitmap.asImageBitmap())
-    }
-}
