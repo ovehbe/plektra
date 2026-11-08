@@ -1826,6 +1826,12 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="keyboard_bar_reset_action">Reset</string>
     <string name="keyboard_bar_layout_section">Layout</string>
     <string name="keyboard_bar_visibility_section">Visibility</string>
+    <string name="keyboard_bar_excluded_apps">Never show bar in specific apps</string>
+    <string name="keyboard_bar_excluded_apps_summary">Select apps where the keyboard bar will be completely hidden</string>
+    <string name="keyboard_bar_excluded_apps_none">No apps selected</string>
+    <string name="keyboard_bar_excluded_apps_count">%d apps excluded</string>
+    <string name="keyboard_bar_excluded_apps_dialog_title">Exclude apps from bar</string>
+    <string name="keyboard_bar_excluded_apps_search">Search apps...</string>
     <string name="keyboard_bar_buttons_summary">Left: %1$s · Right: %2$s</string>
     <string name="keyboard_bar_variations_summary">Characters, number of slots and sizing</string>
     <string name="keyboard_bar_requires_suggestions">Requires suggestions</string>
