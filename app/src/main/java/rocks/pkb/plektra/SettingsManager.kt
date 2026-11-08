@@ -6493,7 +6493,6 @@ object SettingsManager {
             else -> ENTER_ADDITIONAL_SEND_SHORTCUT_NONE
         }
     }
-}
 
     /**
      * Get list of apps where status bar should never be shown.
