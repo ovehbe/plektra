@@ -942,6 +942,7 @@ object SettingLinkRegistry {
 
         entry(
             "status_bar.show_on_launcher",
+            "keyboard_bar.excluded_apps",
             R.string.keyboard_bar_show_on_launcher,
             R.string.keyboard_bar_show_on_launcher_description,
             destination = SettingsDestination.Customization,

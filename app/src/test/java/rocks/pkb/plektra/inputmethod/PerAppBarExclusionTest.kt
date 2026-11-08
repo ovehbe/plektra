@@ -2,12 +2,13 @@ package rocks.pkb.plektra.inputmethod
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 import rocks.pkb.plektra.SettingsManager
 
 /**
@@ -19,6 +20,7 @@ import rocks.pkb.plektra.SettingsManager
  * - Empty default behavior
  */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
 class PerAppBarExclusionTest {
     
     private lateinit var context: Context
@@ -26,7 +28,7 @@ class PerAppBarExclusionTest {
     
     @Before
     fun setup() {
-        context = ApplicationProvider.getApplicationContext()
+        context = RuntimeEnvironment.getApplication()
         prefs = SettingsManager.getPreferences(context)
         // Clear any existing excluded apps
         prefs.edit().remove("bar_excluded_apps").apply()
