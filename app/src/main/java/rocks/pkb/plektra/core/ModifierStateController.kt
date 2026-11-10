@@ -295,13 +295,7 @@ class ModifierStateController(
 
     var ctrlOneShot: Boolean
         get() = ctrlState.oneShot
-        set(value) {
-            ctrlState.oneShot = value
-            // Clear timing window when one-shot is cleared (but not when upgrading to latch)
-            if (!value && !ctrlState.latchActive) {
-                ctrlState.lastReleaseTime = 0
-            }
-        }
+        set(value) { ctrlState.oneShot = value }
 
     var ctrlLatchFromNavMode: Boolean
         get() = ctrlState.latchFromNavMode
@@ -325,13 +319,7 @@ class ModifierStateController(
 
     var altOneShot: Boolean
         get() = altState.oneShot
-        set(value) {
-            altState.oneShot = value
-            // Clear timing window when one-shot is cleared (but not when upgrading to latch)
-            if (!value && !altState.latchActive) {
-                altState.lastReleaseTime = 0
-            }
-        }
+        set(value) { altState.oneShot = value }
 
     fun snapshot(): Snapshot {
         return Snapshot(
