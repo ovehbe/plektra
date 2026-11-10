@@ -1475,7 +1475,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private val keyEventTextOutput = KeyEventTextOutput()
 
     private fun handleKeyEventInput(keyCode: Int, event: KeyEvent?): Boolean {
-        println("[handleKeyEventInput] ENTRY keyCode=$keyCode, altActive=${altActive(event)}")
         if (keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
             inputEventRouter.handleAltModifierKeyDown(
                 keyCode, event, modifierStateController, symLayoutController,
@@ -1487,7 +1486,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ctrlPressed || ctrlLatchActive || ctrlOneShot || navModeController.isNavModeActive()) return false
         val ic = currentInputConnection ?: return false
         keyEventTextOutput.textForRepeat(keyCode, event)?.let {
-            println("[textForRepeat] keyCode=$keyCode produced text, consuming altOneShot")
             // Consume Alt one-shot HERE - this is where letter keys get Alt-mapped!
             altOneShot = false
             return keyEventTextOutput.sendText(keyCode, it, ic)
@@ -4678,14 +4676,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     private fun remapHardwareEvent(keyCode: Int, event: KeyEvent?): ClicksPowerButtonEventMapper.Result {
-        println("[SERVICE.remap] BEFORE: keyCode=$keyCode")
         val remapped = DeviceSpecific.remapHardwareKeyEvent(
             keyCode,
             event,
             physicalKeyboardProfileOverride,
             this
         )
-        println("[SERVICE.remap] AFTER DeviceSpecific: keyCode=${remapped.keyCode}")
         val isClicksPowerKeyboard = !dispatchingClicksAccessibilityKeyEvent &&
             (event
                 ?.takeIf { it.deviceId >= 0 }
@@ -4703,7 +4699,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             altButtonMode = SettingsManager.getClicksAltButtonMode(this),
             microphoneButtonMode = SettingsManager.getClicksMicrophoneButtonMode(this)
         )
-        println("[SERVICE.remap] FINAL: keyCode=${result.keyCode}, consume=${result.consume}")
         return result.copy(symWasRemappedFromAlt = remapped.symWasRemappedFromAlt)
     }
 
@@ -4863,7 +4858,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
-        println("[SERVICE.onKeyDown] ENTRY: keyCode=$keyCode_, altOneShot=$altOneShot")
         if (liveSpeechEditor != null && (event_?.unicodeChar?.let { it != 0 } == true ||
             keyCode_ in listOf(KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_ENTER,
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN))) {

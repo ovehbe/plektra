@@ -360,7 +360,6 @@ class InputEventRouter(
         controllers: EditableFieldKeyDownControllers,
         callbacks: EditableFieldKeyDownHandlingCallbacks
     ): EditableFieldRoutingResult {
-        println("[ROUTER.ENTRY] keyCode=$keyCode, params.altOneShot=${params.altOneShot}")
         var shiftOneShotActive = params.shiftOneShot
         var altLatchActive = params.altLatchActive
         var altOneShotActive = params.altOneShot
@@ -1364,7 +1363,6 @@ class InputEventRouter(
     ): Boolean {
         // Consume Alt one-shot FIRST - this is where Alt mappings are applied
         consumeAltOneShot?.invoke()
-        println("[handleAltModifiedKey] keyCode=$keyCode, consumed oneShot")
         val ic = inputConnection ?: return false
 
         if (textOutput != null) {
