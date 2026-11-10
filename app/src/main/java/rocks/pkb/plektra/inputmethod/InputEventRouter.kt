@@ -297,7 +297,8 @@ class InputEventRouter(
         val capsLockEnabled: Boolean,
         val cursorUpdateDelayMs: Long,
         val altMappingsOverride: Map<Int, String>? = null,
-        val shouldDisableSmartFeatures: Boolean = false
+        val shouldDisableSmartFeatures: Boolean = false,
+        val symWasRemappedFromAlt: Boolean = false
     )
 
     data class EditableFieldKeyDownControllers(
@@ -370,7 +371,7 @@ class InputEventRouter(
         val altBinding = SettingsManager.getAltModifierBinding(context)
         val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || 
                        keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
-                       (keyCode == KeyEvent.KEYCODE_SYM && altBinding == AltModifierBinding.DeviceSym)
+                       (keyCode == KeyEvent.KEYCODE_SYM && params.symWasRemappedFromAlt)
         val hadAltOneShot = altOneShotActive
         if (!isAltKey && altOneShotActive) {
             callbacks.clearAltOneShotAndSymToggle()
@@ -451,10 +452,10 @@ class InputEventRouter(
             return EditableFieldRoutingResult.Consume
         }
 
-        // On Q25 and similar devices, physical SYM key gets remapped to KEYCODE_SYM,
-        // but when AltModifierBinding is DeviceSym, we need to treat it as Alt.
-        if (keyCode == KeyEvent.KEYCODE_SYM && altBinding == AltModifierBinding.DeviceSym) {
-            // Treat SYM as Alt when binding is DeviceSym.
+        // On Q25, the physical Alt key (labeled "SYM") gets remapped to KEYCODE_SYM.
+        // Only treat KEYCODE_SYM as Alt when it was actually remapped from an Alt key.
+        if (keyCode == KeyEvent.KEYCODE_SYM && params.symWasRemappedFromAlt) {
+            // This SYM was remapped from a physical Alt key - treat it as Alt.
             // Normalize keyCode to ALT_LEFT so ModifierKeyHandler accepts it.
             handleAltModifierKeyDown(
                 KeyEvent.KEYCODE_ALT_LEFT, event, controllers.modifierStateController, controllers.symLayoutController,

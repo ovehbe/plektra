@@ -5064,8 +5064,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
 
         // Adapted from Mircea Horea IONICĂ (mionica), pastiera 12ce0a35c1.
-        // Skip this check when processing Alt or SYM modifier keys to avoid clearing one-shot
-        val isAltOrSymKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || keyCode == KeyEvent.KEYCODE_SYM
+        // Skip this check when processing Alt keys (or remapped SYM) to avoid clearing one-shot
+        val isAltOrSymKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || 
+            (keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt)
         val isBlackberry = DeviceSpecific.hasBlackberryKeyboard(DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId)
         if (!isAltOrSymKey &&
             hasEditableField && event?.repeatCount == 0 && keyCode == KeyEvent.KEYCODE_0 &&
@@ -5596,6 +5597,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 shiftOneShot = shiftOneShot,
                 capsLockEnabled = capsLockEnabled,
                 cursorUpdateDelayMs = CURSOR_UPDATE_DELAY,
+                symWasRemappedFromAlt = remapped.symWasRemappedFromAlt,
                 altMappingsOverride = if (dispatchingSoftwareKeyboardKey) {
                     AltModifierMappingResolver.resolve(assets, this)
                 } else {
