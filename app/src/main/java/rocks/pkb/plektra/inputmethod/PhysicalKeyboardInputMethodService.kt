@@ -4994,7 +4994,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Let the picker handle text-editing shortcuts before the generic Ctrl router can
         // touch the app editor selection.
         var emojiSearchTextCommitted = false
-        println("[SERVICE] CHECKPOINT D: keyCode=$keyCode, emojiSearchCandidateActive=$emojiSearchCandidateActive")
+        println("[SERVICE] CHECKPOINT D: keyCode=$keyCode, emojiSearchCandidateActive=$emojiSearchCandidateActive, hasEditableField=$hasEditableField, altActive=${altActive(event)}")
         if (
             emojiSearchCandidateActive &&
             candidatesBarController.isEmojiPickerSearchInputActive() &&
@@ -5114,6 +5114,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return true
         }
 
+        println("[SERVICE] CHECKPOINT P: keyCode=$keyCode right before N")
+        println("[SERVICE] CHECKPOINT N: keyCode=$keyCode, symTogglePendingOnKeyUp=$symTogglePendingOnKeyUp")
         if (
             hasEditableField &&
             (symTogglePendingOnKeyUp || event?.isSymPressed == true) &&
@@ -5122,6 +5124,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             SettingsManager.getLauncherShortcut(this, keyCode) != null &&
             event?.repeatCount == 0
         ) {
+            println("[SERVICE] EARLY RETURN: SYM+launcher shortcut for keyCode=$keyCode")
+            // BUG FIX: consume Alt one-shot AND clear symTogglePendingOnKeyUp!
+            altOneShot = false
+            symTogglePendingOnKeyUp = false
             symChordUsedSinceKeyDown = true
             if (launcherShortcutController.handleLauncherShortcut(keyCode)) {
                 return true
@@ -5152,7 +5158,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             }
         }
 
-        println("[SERVICE] CHECKPOINT I: keyCode=$keyCode after launcher check")
+        println("[SERVICE] CHECKPOINT I: keyCode=$keyCode after launcher check, symTogglePendingOnKeyUp=$symTogglePendingOnKeyUp")
         if (
             hasEditableField &&
             symTogglePendingOnKeyUp &&
@@ -5160,12 +5166,18 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             event?.repeatCount == 0 &&
             !isPureModifierKey(keyCode)
         ) {
+            println("[SERVICE] Entering SYM chord block for keyCode=$keyCode")
             symChordUsedSinceKeyDown = true
             val symChar = symLayoutController.resolveChordSymbol(
                 keyCode = keyCode,
                 shiftPressed = event.isShiftPressed || shiftOneShot || capsLockEnabled
             )
+            println("[SERVICE] SYM chord resolved to '$symChar'")
             if (!symChar.isNullOrEmpty()) {
+                println("[SERVICE] EARLY RETURN: SYM chord commits '$symChar'")
+                // BUG FIX: consume Alt one-shot AND clear symTogglePendingOnKeyUp!
+                altOneShot = false
+                symTogglePendingOnKeyUp = false
                 val inputConnection = currentInputConnection
                 val committed = handleBoundaryTextBeforeCommit(symChar, inputConnection) ||
                     inputConnection?.commitText(symChar, 1) == true
