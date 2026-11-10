@@ -48,7 +48,7 @@ class ModifierKeyHandler(
          * [android.os.SystemClock.uptimeMillis], the base of [KeyEvent.getEventTime].
          */
         fun isWithinDoubleTap(now: Long, lastReleaseTime: Long, threshold: Long): Boolean =
-            lastReleaseTime > 0 && now - lastReleaseTime in 0 until threshold
+            lastReleaseTime > 0 && now - lastReleaseTime in 0..threshold
     }
 
     // ========== Ctrl Handling ==========
