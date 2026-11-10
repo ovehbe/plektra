@@ -233,6 +233,25 @@ android {
             buildConfigField("String", "APK_VARIANT", "\"no-accessibility\"")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_SERVICE", "false")
         }
+        create("sideload") {
+            dimension = "channel"
+            applicationIdSuffix = ".test"
+            manifestPlaceholders["appLabel"] = "Plektra Test"
+            manifestPlaceholders["imeLabel"] = "Plektra Test"
+            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
+            manifestPlaceholders["appRoundIcon"] = "@mipmap/ic_launcher_round"
+            manifestPlaceholders["closedOrangeLauncherEnabled"] = "true"
+            manifestPlaceholders["openOrangeLauncherEnabled"] = "false"
+            manifestPlaceholders["closedBlueLauncherEnabled"] = "false"
+            manifestPlaceholders["openBlueLauncherEnabled"] = "false"
+            buildConfigField("String", "RELEASE_CHANNEL", "\"sideload\"")
+            buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"direct\"")
+            buildConfigField("boolean", "IS_FDROID_BUILD", "false")
+            buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", "false")
+            buildConfigField("String", "APK_VARIANT", "\"full\"")
+            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_SERVICE", "true")
+            // Sideload flavor always unsigned for local signing
+        }
         create("playStable") {
             dimension = "channel"
             applicationIdSuffix = ".unsovereign"
@@ -391,7 +410,7 @@ android {
 }
 
 // Release packages carry their runtime dependencies and bundled third-party assets.
-listOf("stable", "stableNoAccessibility", "nightly", "nightlyNoAccessibility", "playStable", "playNightly").forEach { flavor ->
+listOf("stable", "stableNoAccessibility", "nightly", "nightlyNoAccessibility", "playStable", "playNightly", "sideload").forEach { flavor ->
     val nightlyFlavor = flavor.startsWith("nightly", ignoreCase = true) || flavor == "playNightly"
     val flavorTitle = flavor.replaceFirstChar { it.uppercase() }
     val sbomAssets = layout.buildDirectory.dir("generated/sbom/${flavor}Release/assets")
