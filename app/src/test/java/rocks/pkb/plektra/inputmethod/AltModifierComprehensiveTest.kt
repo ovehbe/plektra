@@ -553,7 +553,7 @@ class AltModifierComprehensiveTest {
             
             ExpectedBehavior.HELD_ONLY -> {
                 // First character (while holding) should have Alt, subsequent should not
-                if (commits.size < 2) {
+                return if (commits.size < 2) {
                     TestResult(testCase, false, "Expected 2 commits", "INSUFFICIENT")
                 } else {
                     val first = commits[0]
@@ -569,9 +569,6 @@ class AltModifierComprehensiveTest {
                 }
             }
         }
-        
-        // Should never reach here - all enum cases covered
-        throw IllegalStateException("Unhandled expected behavior: ${testCase.expectedBehavior}")
     }
 
     // Helper functions
