@@ -295,7 +295,13 @@ class ModifierStateController(
 
     var ctrlOneShot: Boolean
         get() = ctrlState.oneShot
-        set(value) { ctrlState.oneShot = value }
+        set(value) {
+            ctrlState.oneShot = value
+            // Clear timing window when one-shot is cleared to prevent tap-letter-tap locking
+            if (!value) {
+                ctrlState.lastReleaseTime = 0
+            }
+        }
 
     var ctrlLatchFromNavMode: Boolean
         get() = ctrlState.latchFromNavMode
@@ -319,7 +325,13 @@ class ModifierStateController(
 
     var altOneShot: Boolean
         get() = altState.oneShot
-        set(value) { altState.oneShot = value }
+        set(value) {
+            altState.oneShot = value
+            // Clear timing window when one-shot is cleared to prevent tap-letter-tap locking
+            if (!value) {
+                altState.lastReleaseTime = 0
+            }
+        }
 
     fun snapshot(): Snapshot {
         return Snapshot(
