@@ -10,6 +10,7 @@ import android.util.Log
 import android.view.inputmethod.InputConnection
 import rocks.pkb.plektra.R
 import rocks.pkb.plektra.SettingsManager
+import rocks.pkb.plektra.AltModifierBinding
 import rocks.pkb.plektra.core.NavModeController
 import rocks.pkb.plektra.data.mappings.KeyMappingLoader
 import android.os.Handler
@@ -330,6 +331,21 @@ class InputEventRouter(
         var shiftOneShotActive = params.shiftOneShot
         var altLatchActive = params.altLatchActive
         var altOneShotActive = params.altOneShot
+        
+        // BUG FIX: Alt one-shot must be consumed by ANY key (except Alt itself).
+        // Clear it immediately, but keep a flag so Alt-handling block still processes this key.
+        // On Q25, SYM acts as Alt when AltModifierBinding is DeviceSym.
+        val altBinding = SettingsManager.getAltModifierBinding(context)
+        val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || 
+                       keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
+                       (keyCode == KeyEvent.KEYCODE_SYM && altBinding == AltModifierBinding.DeviceSym)
+        val hadAltOneShot = altOneShotActive
+        if (!isAltKey && altOneShotActive) {
+            callbacks.clearAltOneShot()
+            callbacks.refreshStatusBar()
+            altOneShotActive = false  // Update local var so it's used correctly throughout
+        }
+        
         val ic = params.inputConnection
         val effectiveCtrlActive = event?.isCtrlPressed == true ||
             params.ctrlPressed ||
@@ -393,6 +409,18 @@ class InputEventRouter(
             return EditableFieldRoutingResult.Consume
         }
 
+        // On Q25 and similar devices, physical SYM key gets remapped to KEYCODE_SYM,
+        // but when AltModifierBinding is DeviceSym, we need to treat it as Alt.
+        if (keyCode == KeyEvent.KEYCODE_SYM && altBinding == AltModifierBinding.DeviceSym) {
+            // Treat SYM as Alt when binding is DeviceSym.
+            // Normalize keyCode to ALT_LEFT so ModifierKeyHandler accepts it.
+            handleAltModifierKeyDown(
+                KeyEvent.KEYCODE_ALT_LEFT, event, controllers.modifierStateController, controllers.symLayoutController,
+                callbacks.updateStatusBar, callbacks.startSpeechRecognition
+            )
+            return EditableFieldRoutingResult.Consume
+        }
+
         if (keyCode == KeyEvent.KEYCODE_SYM) {
             // Reset Alt state if physically pressed when Sym is pressed.
             // Alt+Sym is Android's language switch shortcut, so we reset Alt to prevent
@@ -432,17 +460,6 @@ class InputEventRouter(
 
         if (controllers.alternateCharacterManager.hasPendingPress(keyCode)) {
             return EditableFieldRoutingResult.Consume
-        }
-
-        // BUG FIX: Alt one-shot must be consumed by ANY key press (except Alt itself).
-        // Previously, one-shot was only cleared inside the Alt-handling block, but special keys
-        // (Space, Enter, Backspace, etc.) that are handled earlier never reached that code,
-        // causing Alt to persist incorrectly ("always latches" bug).
-        val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT
-        if (!isAltKey && altOneShotActive) {
-            callbacks.clearAltOneShot()
-            callbacks.refreshStatusBar()
-            altOneShotActive = false
         }
 
         var passThroughAltBoundary = false
@@ -519,11 +536,10 @@ class InputEventRouter(
             }
         }
 
-        if (!passThroughAltBoundary && (event?.isAltPressed == true || altLatchActive || altOneShotActive)) {
+        if (!passThroughAltBoundary && (event?.isAltPressed == true || altLatchActive || hadAltOneShot)) {
             controllers.alternateCharacterManager.cancelPendingLongPress(keyCode)
-            // Note: Alt one-shot is now cleared earlier (before any key handling) to ensure
-            // special keys like Space/Enter/Backspace also consume it. This block only handles
-            // Alt-modified key mappings. Alt latch persists until manually cancelled.
+            // Alt one-shot is cleared immediately at function start (hadAltOneShot flag tracks it).
+            // This block handles Alt-modified key mappings. Alt latch persists until manually cancelled.
 
             if (keyCode == KeyEvent.KEYCODE_BACK) {
                 return EditableFieldRoutingResult.CallSuper

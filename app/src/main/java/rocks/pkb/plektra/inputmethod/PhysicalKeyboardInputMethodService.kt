@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import rocks.pkb.plektra.AppBroadcastActions
+import rocks.pkb.plektra.AltModifierBinding
 import rocks.pkb.plektra.ClicksPowerKeyboardController
 import rocks.pkb.plektra.SettingsManager
 import rocks.pkb.plektra.inputmethod.speech.*
@@ -4833,6 +4834,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
+        println("[SERVICE.onKeyDown] START: keyCode=$keyCode_, altOneShot=$altOneShot, altLatchActive=$altLatchActive")
         if (liveSpeechEditor != null && (event_?.unicodeChar?.let { it != 0 } == true ||
             keyCode_ in listOf(KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_ENTER,
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN))) {
@@ -5583,6 +5585,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 onShiftOneShotToggledOff = { suppressAutoCapRenderingAtCursorIfNeeded() }
             )
         )
+        println("[SERVICE] After routing: keyCode=$keyCode, altOneShot=$altOneShot, altLatchActive=$altLatchActive, altPressed=$altPressed, altPhysicallyPressed=$altPhysicallyPressed")
 
         val navModeAfter = navModeController.isNavModeActive()
         if (navModeBefore != navModeAfter) {
@@ -5863,6 +5866,13 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Handle Alt release for double-tap
         if (keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
             handleAltModifierKeyUp(keyCode, event, allowVisualLayer = true)
+            return super.onKeyUp(keyCode, event)
+        }
+
+        // On Q25, SYM acts as Alt when AltModifierBinding is DeviceSym
+        if (keyCode == KEYCODE_SYM && SettingsManager.getAltModifierBinding(this) == AltModifierBinding.DeviceSym) {
+            // Normalize to ALT_LEFT so ModifierKeyHandler accepts it
+            handleAltModifierKeyUp(KeyEvent.KEYCODE_ALT_LEFT, event, allowVisualLayer = true)
             return super.onKeyUp(keyCode, event)
         }
 
