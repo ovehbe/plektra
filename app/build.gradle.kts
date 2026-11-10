@@ -248,9 +248,9 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"direct\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", "false")
-            buildConfigField("String", "APK_VARIANT", "\"full\"")
-            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_SERVICE", "true")
-            // Sideload flavor always unsigned for local signing
+            buildConfigField("String", "APK_VARIANT", "\"no-accessibility\"")
+            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_SERVICE", "false")
+            // Sideload flavor always unsigned for local signing, NoAccessibility variant
         }
         create("playStable") {
             dimension = "channel"
