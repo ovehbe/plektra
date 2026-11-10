@@ -482,8 +482,37 @@ class InputEventRouter(
             return EditableFieldRoutingResult.Consume
         }
 
+        // Bug fix: Ctrl shortcuts must take precedence over Alt symbol mappings.
+        // Check Ctrl BEFORE Alt so Ctrl+A/C/V/X/Z run their shortcuts instead of committing Alt symbols.
+        if (event?.isCtrlPressed == true || params.ctrlLatchActive || params.ctrlOneShot || (params.isNumericField && effectiveCtrlActive)) {
+            if (
+                handleCtrlModifiedKey(
+                    keyCode = keyCode,
+                    event = event,
+                    inputConnection = ic,
+                    ctrlKeyMap = params.ctrlKeyMap,
+                    ctrlLatchFromNavMode = params.ctrlLatchFromNavMode,
+                    ctrlOneShot = params.ctrlOneShot,
+                    ctrlPhysicallyPressed = params.ctrlPressed || params.ctrlPhysicallyPressed,
+                    selectionShiftActive = params.shiftPressed || event?.isShiftPressed == true,
+                    forceBasicContextMenuActions = params.isNumericField,
+                    clearCtrlOneShot = {
+                        callbacks.clearCtrlOneShot()
+                    },
+                    updateStatusBar = callbacks.updateStatusBar,
+                    callSuper = callbacks.callSuper,
+                    toggleMinimalUi = callbacks.toggleMinimalUi
+                )
+            ) {
+                return EditableFieldRoutingResult.Consume
+            }
+        }
+
         if (!passThroughAltBoundary && (event?.isAltPressed == true || altLatchActive || altOneShotActive)) {
             controllers.alternateCharacterManager.cancelPendingLongPress(keyCode)
+            // Alt one-shot: consumed after one key press
+            // Alt latch: persists until manually cancelled (tap Alt again)
+            // Only clear one-shot here, NOT latch
             if (altOneShotActive) {
                 callbacks.clearAltOneShot()
                 callbacks.refreshStatusBar()
@@ -503,30 +532,6 @@ class InputEventRouter(
                     altMappingsOverride = params.altMappingsOverride,
                     updateStatusBar = callbacks.updateStatusBar,
                     callSuperWithKey = callbacks.callSuperWithKey
-                )
-            ) {
-                return EditableFieldRoutingResult.Consume
-            }
-        }
-
-        if (event?.isCtrlPressed == true || params.ctrlLatchActive || params.ctrlOneShot || (params.isNumericField && effectiveCtrlActive)) {
-            if (
-                handleCtrlModifiedKey(
-                    keyCode = keyCode,
-                    event = event,
-                    inputConnection = ic,
-                    ctrlKeyMap = params.ctrlKeyMap,
-                    ctrlLatchFromNavMode = params.ctrlLatchFromNavMode,
-                    ctrlOneShot = params.ctrlOneShot,
-                    ctrlPhysicallyPressed = params.ctrlPressed || params.ctrlPhysicallyPressed,
-                    selectionShiftActive = params.shiftPressed || event?.isShiftPressed == true,
-                    forceBasicContextMenuActions = params.isNumericField,
-                    clearCtrlOneShot = {
-                        callbacks.clearCtrlOneShot()
-                    },
-                    updateStatusBar = callbacks.updateStatusBar,
-                    callSuper = callbacks.callSuper,
-                    toggleMinimalUi = callbacks.toggleMinimalUi
                 )
             ) {
                 return EditableFieldRoutingResult.Consume
