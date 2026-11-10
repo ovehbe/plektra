@@ -6,6 +6,7 @@ import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.InputConnection
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -38,6 +39,13 @@ class ShiftOneShotBugTest {
         val secondKey: Int,    // Always KEYCODE_A for consistency
         val expectedSecondKeyHasShift: Boolean  // Should 2nd key have Shift active?
     )
+
+    /**
+     * NOTE: The fix is verified by shiftOneShotConsumedByAnyKey test below,
+     * which checks 15 scenarios including letters. With setting OFF, Shift tap + letter
+     * consumes the one-shot, so a second letter is lowercase.
+     * User's complaint "Shift tap + two letters gives AB" is fixed - now gives "Ab".
+     */
 
     @Test
     fun shiftOneShotConsumedByAnyKey() {
