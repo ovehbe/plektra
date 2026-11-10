@@ -395,7 +395,10 @@ class InputEventRouter(
         if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
             if (!params.shiftPressed) {
                 val wasShiftOneShot = controllers.modifierStateController.shiftOneShot
-                val result = controllers.modifierStateController.handleShiftKeyDown(keyCode)
+                val result = controllers.modifierStateController.handleShiftKeyDown(
+                    keyCode,
+                    ModifierKeyHandler.eventTimeOrUptime(event)
+                )
                 if (wasShiftOneShot && !controllers.modifierStateController.shiftOneShot) {
                     callbacks.onShiftOneShotToggledOff()
                 }

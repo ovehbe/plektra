@@ -333,7 +333,7 @@ class ModifierStateController(
         )
     }
 
-    fun handleShiftKeyDown(keyCode: Int): ModifierKeyHandler.ModifierKeyResult {
+    fun handleShiftKeyDown(keyCode: Int, now: Long = System.currentTimeMillis()): ModifierKeyHandler.ModifierKeyResult {
         if (keyCode != KeyEvent.KEYCODE_SHIFT_LEFT &&
             keyCode != KeyEvent.KEYCODE_SHIFT_RIGHT
         ) {
@@ -349,6 +349,7 @@ class ModifierStateController(
         val previous = shiftStateMachine.state
         val isConsecutiveTap = registerModifierTap(keyCode)
         val current = shiftStateMachine.tap(
+            now = now,
             isConsecutiveTap = isConsecutiveTap,
             singleTapLatches = shiftTapLatches
         )
