@@ -156,7 +156,8 @@ class AltModifierComprehensiveTest {
             ))
             
             // ON scenarios (verify latch persists)
-            for (keySeq in listOf(KeySequence.TAP_THEN_1_LETTER, KeySequence.TAP_THEN_2_LETTERS, KeySequence.DOUBLE_TAP)) {
+            // Note: DOUBLE_TAP excluded - with toggle behavior, second tap unlatches (per upstream semantics)
+            for (keySeq in listOf(KeySequence.TAP_THEN_1_LETTER, KeySequence.TAP_THEN_2_LETTERS)) {
                 cases.add(TestCase(
                     name = "ON_FIRST_LAUNCH_${keySeq}_CLEAN_RIGHT",
                     setting = Setting.ON,
