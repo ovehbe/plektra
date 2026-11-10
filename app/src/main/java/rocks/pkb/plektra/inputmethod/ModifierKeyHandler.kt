@@ -173,9 +173,11 @@ class ModifierKeyHandler(
 
         when {
             state.latchActive -> {
-                // Latch active: single tap disables it
-                state.latchActive = false
-                state.lastReleaseTime = 0
+                // Latch active: single tap disables it (unless single-tap-latches, then it's a no-op)
+                if (!singleTapLatches) {
+                    state.latchActive = false
+                    state.lastReleaseTime = 0
+                }
                 return ModifierKeyResult(shouldUpdateStatusBar = true)
             }
             state.oneShot -> {

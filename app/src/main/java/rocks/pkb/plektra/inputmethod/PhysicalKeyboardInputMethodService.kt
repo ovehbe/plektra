@@ -5167,6 +5167,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             if (!symChar.isNullOrEmpty()) {
                 // BUG FIX: consume Alt one-shot!
                 altOneShot = false
+                // Register non-modifier key to clear double-tap timing windows
+                modifierStateController.registerNonModifierKey()
                 val inputConnection = currentInputConnection
                 val committed = handleBoundaryTextBeforeCommit(symChar, inputConnection) ||
                     inputConnection?.commitText(symChar, 1) == true

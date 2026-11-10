@@ -385,6 +385,11 @@ class InputEventRouter(
             shiftOneShotActive = false
         }
         
+        // Register non-modifier keys to clear double-tap timing windows
+        if (!isModifierKey) {
+            controllers.modifierStateController.registerNonModifierKey()
+        }
+        
         val ic = params.inputConnection
         val effectiveCtrlActive = event?.isCtrlPressed == true ||
             params.ctrlPressed ||
