@@ -71,10 +71,7 @@ class ModifierKeyHandler(
         }
 
         state.physicallyPressed = true
-        val allowDoubleTap = isConsecutiveTap
-        if (!allowDoubleTap) {
-            state.lastReleaseTime = 0
-        }
+        // Don't clear lastReleaseTime - let time-based double-tap detection work across non-modifier keys
 
         when {
             state.latchActive -> {
@@ -101,7 +98,7 @@ class ModifierKeyHandler(
             }
             state.oneShot -> {
                 // One-shot active: check for double-tap
-                if (allowDoubleTap && isDoubleTap(now, state.lastReleaseTime)) {
+                if (isDoubleTap(now, state.lastReleaseTime)) {
                     state.oneShot = false
                     state.latchActive = true
                     state.lastReleaseTime = 0
@@ -119,8 +116,8 @@ class ModifierKeyHandler(
                     state.lastReleaseTime = 0
                     return ModifierKeyResult(shouldUpdateStatusBar = true)
                 }
-                // Check for double-tap to enable latch
-                if (allowDoubleTap && isDoubleTap(now, state.lastReleaseTime)) {
+                // Check for double-tap to enable latch (time-based only)
+                if (isDoubleTap(now, state.lastReleaseTime)) {
                     state.latchActive = true
                     state.lastReleaseTime = 0
                     return ModifierKeyResult(shouldUpdateStatusBar = true)
@@ -169,10 +166,7 @@ class ModifierKeyHandler(
         }
 
         state.physicallyPressed = true
-        val allowDoubleTap = isConsecutiveTap
-        if (!allowDoubleTap) {
-            state.lastReleaseTime = 0
-        }
+        // Don't clear lastReleaseTime - let time-based double-tap detection work across non-modifier keys
 
         when {
             state.latchActive -> {
@@ -183,7 +177,7 @@ class ModifierKeyHandler(
             }
             state.oneShot -> {
                 // One-shot active: check for double-tap
-                if (allowDoubleTap && isDoubleTap(now, state.lastReleaseTime)) {
+                if (isDoubleTap(now, state.lastReleaseTime)) {
                     state.oneShot = false
                     state.latchActive = true
                     state.lastReleaseTime = 0
@@ -201,8 +195,8 @@ class ModifierKeyHandler(
                     state.lastReleaseTime = 0
                     return ModifierKeyResult(shouldUpdateStatusBar = true)
                 }
-                // Check for double-tap to enable latch
-                if (allowDoubleTap && isDoubleTap(now, state.lastReleaseTime)) {
+                // Check for double-tap to enable latch (time-based only)
+                if (isDoubleTap(now, state.lastReleaseTime)) {
                     state.latchActive = true
                     state.lastReleaseTime = 0
                     return ModifierKeyResult(shouldUpdateStatusBar = true)

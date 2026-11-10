@@ -39,7 +39,8 @@ class ModifierStateController(
             isConsecutiveTap: Boolean,
             singleTapLatches: Boolean = false
         ): ShiftState {
-            val doubleTap = isConsecutiveTap && now - lastTapTime < doubleTapThreshold
+            // Time-based double-tap detection (no consecutive requirement)
+            val doubleTap = lastTapTime > 0 && now - lastTapTime < doubleTapThreshold
             lastTapTime = now
             state = when {
                 doubleTap -> if (state == ShiftState.CAPS) ShiftState.OFF else ShiftState.CAPS
