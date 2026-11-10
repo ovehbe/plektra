@@ -297,8 +297,8 @@ class ModifierStateController(
         get() = ctrlState.oneShot
         set(value) {
             ctrlState.oneShot = value
-            // Clear timing window when one-shot is cleared to prevent tap-letter-tap locking
-            if (!value) {
+            // Clear timing window when one-shot is cleared (but not when upgrading to latch)
+            if (!value && !ctrlState.latchActive) {
                 ctrlState.lastReleaseTime = 0
             }
         }
@@ -327,8 +327,8 @@ class ModifierStateController(
         get() = altState.oneShot
         set(value) {
             altState.oneShot = value
-            // Clear timing window when one-shot is cleared to prevent tap-letter-tap locking
-            if (!value) {
+            // Clear timing window when one-shot is cleared (but not when upgrading to latch)
+            if (!value && !altState.latchActive) {
                 altState.lastReleaseTime = 0
             }
         }
