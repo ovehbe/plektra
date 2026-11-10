@@ -400,7 +400,9 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             // Gradle's 512 MB default runs out on the full Robolectric suite (OutOfMemoryError mid-run).
-            it.maxHeapSize = "2g"
+            // Cloud agents with the full suite need more headroom than a local 2g worker.
+            it.maxHeapSize = "3g"
+            it.maxParallelForks = 1
             // Load instrumentation at startup instead of relying on OS/JDK self-attach support.
             it.jvmArgumentProviders.add(objects.newInstance<MockitoInstrumentationArguments>().apply {
                 agent.from(mockitoInstrumentation.filter { file -> file.name.startsWith("byte-buddy-agent-") })
