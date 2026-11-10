@@ -5026,7 +5026,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 clearCtrlOneShot = { ctrlOneShot = false },
                 updateStatusBar = { updateStatusBarText() },
                 callSuper = { false },
-                toggleMinimalUi = { keyboardVisibilityController.toggleSlimMode() }
+                toggleMinimalUi = { keyboardVisibilityController.toggleSlimMode() },
+                physicalProfileOverride = physicalKeyboardProfileOverride
             )
             if (handled) {
                 // The router used up a Ctrl one-shot itself
@@ -5597,7 +5598,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 } else {
                     null
                 },
-                shouldDisableSmartFeatures = shouldDisableSmartFeatures
+                shouldDisableSmartFeatures = shouldDisableSmartFeatures,
+                physicalProfileOverride = physicalKeyboardProfileOverride
             ),
             controllers = InputEventRouter.EditableFieldKeyDownControllers(
                 modifierStateController = modifierStateController,

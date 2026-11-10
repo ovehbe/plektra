@@ -58,6 +58,9 @@ class InputEventRouter(
         altLatchActive: Boolean,
         altOneShot: Boolean
     ): Boolean {
+        // Check both state machine AND event metastate.
+        // State machine tracks remapped Alt (e.g., Q25 SYM key).
+        // Event metastate is set on letter keys pressed while Alt is physically held.
         return event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
     }
 
@@ -291,7 +294,8 @@ class InputEventRouter(
         val cursorUpdateDelayMs: Long,
         val altMappingsOverride: Map<Int, String>? = null,
         val shouldDisableSmartFeatures: Boolean = false,
-        val symWasRemappedFromAlt: Boolean = false
+        val symWasRemappedFromAlt: Boolean = false,
+        val physicalProfileOverride: String? = null
     )
 
     data class EditableFieldKeyDownControllers(
@@ -566,7 +570,10 @@ class InputEventRouter(
                     },
                     updateStatusBar = callbacks.updateStatusBar,
                     callSuper = callbacks.callSuper,
-                    toggleMinimalUi = callbacks.toggleMinimalUi
+                    toggleMinimalUi = callbacks.toggleMinimalUi,
+                    alternateCharacterManager = controllers.alternateCharacterManager,
+                    altMappingsOverride = params.altMappingsOverride,
+                    physicalProfileOverride = params.physicalProfileOverride
                 )
             ) {
                 return EditableFieldRoutingResult.Consume
@@ -1413,7 +1420,10 @@ class InputEventRouter(
         clearCtrlOneShot: () -> Unit,
         updateStatusBar: () -> Unit,
         callSuper: () -> Boolean,
-        toggleMinimalUi: () -> Unit
+        toggleMinimalUi: () -> Unit,
+        alternateCharacterManager: AlternateCharacterManager? = null,
+        altMappingsOverride: Map<Int, String>? = null,
+        physicalProfileOverride: String? = null
     ): Boolean {
         // Software Ctrl uses the same meta-state, but invokes the displayed Plektra mapping.
         // Only physical chords should prefer the editor's native shortcuts.
@@ -1449,7 +1459,13 @@ class InputEventRouter(
 
         // When Ctrl is physically held, prefer native app shortcuts (rich-text editors, IDEs, etc.).
         // This must take precedence over one-shot, because a physical press sets one-shot internally.
-        if (isPhysicalCtrlCombo && !ctrlLatchFromNavMode && !useNavModeForHeldCtrl && !shouldForceContextMenuAction) {
+        // EXCEPTION: On BlackBerry keyboards (Q25, KEY2) with device-specific Alt mappings, handle
+        // in Plektra to ensure Ctrl shortcuts work reliably and Ctrl beats Alt.
+        val isBlackberry = DeviceSpecific.hasBlackberryKeyboard(physicalProfileOverride)
+        val keyHasAltMapping = isBlackberry && alternateCharacterManager?.let {
+            (altMappingsOverride ?: it.getAltModifierMappings())[keyCode] != null
+        } ?: false
+        if (isPhysicalCtrlCombo && !ctrlLatchFromNavMode && !useNavModeForHeldCtrl && !shouldForceContextMenuAction && !keyHasAltMapping) {
             return passThroughCtrlCombo()
         }
 
