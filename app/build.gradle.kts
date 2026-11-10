@@ -403,6 +403,8 @@ android {
             // Cloud agents with the full suite need more headroom than a local 2g worker.
             it.maxHeapSize = "3g"
             it.maxParallelForks = 1
+            // Recycle Robolectric workers periodically so heavy UI tests do not accumulate heap.
+            it.forkEvery = 100
             // Load instrumentation at startup instead of relying on OS/JDK self-attach support.
             it.jvmArgumentProviders.add(objects.newInstance<MockitoInstrumentationArguments>().apply {
                 agent.from(mockitoInstrumentation.filter { file -> file.name.startsWith("byte-buddy-agent-") })
