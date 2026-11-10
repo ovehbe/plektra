@@ -573,9 +573,7 @@ class InputEventRouter(
                     },
                     updateStatusBar = callbacks.updateStatusBar,
                     callSuper = callbacks.callSuper,
-                    toggleMinimalUi = callbacks.toggleMinimalUi,
-                    alternateCharacterManager = controllers.alternateCharacterManager,
-                    altMappingsOverride = params.altMappingsOverride
+                    toggleMinimalUi = callbacks.toggleMinimalUi
                 )
             ) {
                 return EditableFieldRoutingResult.Consume
@@ -1422,9 +1420,7 @@ class InputEventRouter(
         clearCtrlOneShot: () -> Unit,
         updateStatusBar: () -> Unit,
         callSuper: () -> Boolean,
-        toggleMinimalUi: () -> Unit,
-        alternateCharacterManager: AlternateCharacterManager? = null,
-        altMappingsOverride: Map<Int, String>? = null
+        toggleMinimalUi: () -> Unit
     ): Boolean {
         // Software Ctrl uses the same meta-state, but invokes the displayed Plektra mapping.
         // Only physical chords should prefer the editor's native shortcuts.
@@ -1460,12 +1456,7 @@ class InputEventRouter(
 
         // When Ctrl is physically held, prefer native app shortcuts (rich-text editors, IDEs, etc.).
         // This must take precedence over one-shot, because a physical press sets one-shot internally.
-        // EXCEPTION: If the key has an Alt mapping, Plektra must handle the Ctrl shortcut so that
-        // Ctrl beats Alt (e.g., Ctrl+A should select all, not commit Alt+A symbol).
-        val keyHasAltMapping = alternateCharacterManager?.let {
-            (altMappingsOverride ?: it.getAltModifierMappings())[keyCode] != null
-        } ?: false
-        if (isPhysicalCtrlCombo && !ctrlLatchFromNavMode && !useNavModeForHeldCtrl && !shouldForceContextMenuAction && !keyHasAltMapping) {
+        if (isPhysicalCtrlCombo && !ctrlLatchFromNavMode && !useNavModeForHeldCtrl && !shouldForceContextMenuAction) {
             return passThroughCtrlCombo()
         }
 

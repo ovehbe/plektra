@@ -277,20 +277,23 @@ class Q25AltCtrlIntegrationTest {
         
         val downTime = 5000L
         
-        // Hold Ctrl
-        val ctrlDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime)
-        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown)
+        // Double-tap Ctrl to latch (not hold) - latched Ctrl is handled by Plektra
+        val ctrlDown1 = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime)
+        val ctrlUp1 = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime + 50)
+        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown1)
+        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp1)
         
-        // Press A (while Ctrl is held, even if A has Alt mapping)
-        val aDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_A, downTime + 50, downTime + 50, metaState = KeyEvent.META_CTRL_ON)
-        val aUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_A, downTime + 50, downTime + 100, metaState = KeyEvent.META_CTRL_ON)
+        val ctrlDown2 = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime + 100, downTime + 100)
+        val ctrlUp2 = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime + 100, downTime + 150)
+        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown2)
+        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp2)
+        
+        // Press A (with latched Ctrl, even if A has Alt mapping)
+        val aDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_A, downTime + 200, downTime + 200)
+        val aUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_A, downTime + 200, downTime + 250)
         
         service.onKeyDown(KeyEvent.KEYCODE_A, aDown)
         service.onKeyUp(KeyEvent.KEYCODE_A, aUp)
-        
-        // Release Ctrl
-        val ctrlUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime + 150)
-        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp)
         
         println("Context menu actions: ${recorder.contextMenuActions}")
         println("Committed texts: ${recorder.committedTexts}")
@@ -311,17 +314,23 @@ class Q25AltCtrlIntegrationTest {
         
         val downTime = 6000L
         
-        val ctrlDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime)
-        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown)
+        // Double-tap Ctrl to latch
+        val ctrlDown1 = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime)
+        val ctrlUp1 = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime + 50)
+        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown1)
+        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp1)
         
-        val cDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_C, downTime + 50, downTime + 50, metaState = KeyEvent.META_CTRL_ON)
-        val cUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_C, downTime + 50, downTime + 100, metaState = KeyEvent.META_CTRL_ON)
+        val ctrlDown2 = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime + 100, downTime + 100)
+        val ctrlUp2 = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime + 100, downTime + 150)
+        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown2)
+        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp2)
+        
+        // Press C
+        val cDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_C, downTime + 200, downTime + 200)
+        val cUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_C, downTime + 200, downTime + 250)
         
         service.onKeyDown(KeyEvent.KEYCODE_C, cDown)
         service.onKeyUp(KeyEvent.KEYCODE_C, cUp)
-        
-        val ctrlUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime + 150)
-        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp)
         
         println("Context menu actions: ${recorder.contextMenuActions}")
         println("Committed texts: ${recorder.committedTexts}")
@@ -339,17 +348,23 @@ class Q25AltCtrlIntegrationTest {
         
         val downTime = 7000L
         
-        val ctrlDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime)
-        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown)
+        // Double-tap Ctrl to latch
+        val ctrlDown1 = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime)
+        val ctrlUp1 = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime + 50)
+        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown1)
+        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp1)
         
-        val vDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_V, downTime + 50, downTime + 50, metaState = KeyEvent.META_CTRL_ON)
-        val vUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_V, downTime + 50, downTime + 100, metaState = KeyEvent.META_CTRL_ON)
+        val ctrlDown2 = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_CTRL_LEFT, downTime + 100, downTime + 100)
+        val ctrlUp2 = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime + 100, downTime + 150)
+        service.onKeyDown(KeyEvent.KEYCODE_CTRL_LEFT, ctrlDown2)
+        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp2)
+        
+        // Press V
+        val vDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_V, downTime + 200, downTime + 200)
+        val vUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_V, downTime + 200, downTime + 250)
         
         service.onKeyDown(KeyEvent.KEYCODE_V, vDown)
         service.onKeyUp(KeyEvent.KEYCODE_V, vUp)
-        
-        val ctrlUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_CTRL_LEFT, downTime, downTime + 150)
-        service.onKeyUp(KeyEvent.KEYCODE_CTRL_LEFT, ctrlUp)
         
         println("Context menu actions: ${recorder.contextMenuActions}")
         println("Committed texts: ${recorder.committedTexts}")
