@@ -434,6 +434,17 @@ class InputEventRouter(
             return EditableFieldRoutingResult.Consume
         }
 
+        // BUG FIX: Alt one-shot must be consumed by ANY key press (except Alt itself).
+        // Previously, one-shot was only cleared inside the Alt-handling block, but special keys
+        // (Space, Enter, Backspace, etc.) that are handled earlier never reached that code,
+        // causing Alt to persist incorrectly ("always latches" bug).
+        val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT
+        if (!isAltKey && altOneShotActive) {
+            callbacks.clearAltOneShot()
+            callbacks.refreshStatusBar()
+            altOneShotActive = false
+        }
+
         var passThroughAltBoundary = false
         if (
             params.clearAltOnSpaceEnabled &&
@@ -510,14 +521,9 @@ class InputEventRouter(
 
         if (!passThroughAltBoundary && (event?.isAltPressed == true || altLatchActive || altOneShotActive)) {
             controllers.alternateCharacterManager.cancelPendingLongPress(keyCode)
-            // Alt one-shot: consumed after one key press
-            // Alt latch: persists until manually cancelled (tap Alt again)
-            // Only clear one-shot here, NOT latch
-            if (altOneShotActive) {
-                callbacks.clearAltOneShot()
-                callbacks.refreshStatusBar()
-                altOneShotActive = false
-            }
+            // Note: Alt one-shot is now cleared earlier (before any key handling) to ensure
+            // special keys like Space/Enter/Backspace also consume it. This block only handles
+            // Alt-modified key mappings. Alt latch persists until manually cancelled.
 
             if (keyCode == KeyEvent.KEYCODE_BACK) {
                 return EditableFieldRoutingResult.CallSuper
