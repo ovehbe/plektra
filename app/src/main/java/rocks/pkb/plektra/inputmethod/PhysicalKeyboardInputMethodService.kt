@@ -5928,6 +5928,15 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (keyCode == KEYCODE_SYM && SettingsManager.getAltModifierBinding(this) == AltModifierBinding.DeviceSym) {
             // Normalize to ALT_LEFT so ModifierKeyHandler accepts it
             handleAltModifierKeyUp(KeyEvent.KEYCODE_ALT_LEFT, event, allowVisualLayer = true)
+            // BUG FIX: Don't pass SYM key UP to framework if it was used in a chord (e.g., launcher shortcut)
+            // This prevents the Android stock SYM picker from appearing when launcher shortcut is used
+            if (symChordUsedSinceKeyDown) {
+                // Chord was used - consume the SYM key UP to prevent stock SYM picker
+                symPhysicallyPressed = false
+                symTogglePendingOnKeyUp = false
+                symChordUsedSinceKeyDown = false
+                return true
+            }
             return super.onKeyUp(keyCode, event)
         }
 
