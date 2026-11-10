@@ -351,6 +351,25 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private val clicksPowerButtonEventMapper = ClicksPowerButtonEventMapper()
     private var dispatchingClicksAccessibilityKeyEvent = false
     private var replayingProtectedNumberKey = false
+
+    /**
+     * Single source of truth for Alt modifier state.
+     * Returns true if Alt is active (held, one-shot, or locked).
+     * 
+     * When AltModifierBinding is DeviceSym, relies exclusively on the state machine.
+     * For other bindings, falls back to event.isAltPressed.
+     */
+    private fun altActive(event: KeyEvent?): Boolean {
+        val binding = SettingsManager.getAltModifierBinding(this)
+        return if (binding == AltModifierBinding.DeviceSym) {
+            // DeviceSym: state machine is the single source of truth
+            altPressed || altPhysicallyPressed || altLatchActive || altOneShot
+        } else {
+            // Other bindings: include hardware metastate
+            event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
+        }
+    }
+
     private val uiHandler = Handler(Looper.getMainLooper())
     // Modifier badge beside the text cursor, and the state of its cursor-update request
     private val caretBadgeController by lazy {
@@ -1470,7 +1489,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return keyEventTextOutput.sendText(keyCode, it, ic)
         }
         clearAltOnBoundaryIfNeeded(keyCode) { updateStatusBarText() }
-        if (!event.isAltPressed && !altPressed && !altLatchActive && !altOneShot) return false
+        if (!altActive(event)) return false
         val handled = inputEventRouter.handleAltModifiedKey(
             keyCode = keyCode,
             event = event,
@@ -4657,7 +4676,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val remapped = DeviceSpecific.remapHardwareKeyEvent(
             keyCode,
             event,
-            physicalKeyboardProfileOverride
+            physicalKeyboardProfileOverride,
+            this
         )
         val isClicksPowerKeyboard = !dispatchingClicksAccessibilityKeyEvent &&
             (event
@@ -4834,7 +4854,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
-        println("[SERVICE.onKeyDown] START: keyCode=$keyCode_, altOneShot=$altOneShot, altLatchActive=$altLatchActive")
         if (liveSpeechEditor != null && (event_?.unicodeChar?.let { it != 0 } == true ||
             keyCode_ in listOf(KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_ENTER,
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN))) {
@@ -4909,7 +4928,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         else if (keyCode_ in consumedLanguageSwitchKeys) return true
         val languageCtrl = event?.isCtrlPressed == true || ctrlPressed || ctrlPhysicallyPressed ||
             ctrlLatchActive || ctrlOneShot || ctrlLatchFromNavMode
-        val languageAlt = event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
+        val languageAlt = altActive(event)
         val reverseAltSpace = keyCode == KeyEvent.KEYCODE_SPACE && languageAlt && !languageCtrl &&
             event?.isSymPressed != true && !symPhysicallyPressed &&
             SettingsManager.isAltSpacePreviousLanguageEnabled(this)
@@ -5015,7 +5034,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
 
         val expansionShortcutModifierActive = event?.isCtrlPressed == true ||
-            event?.isAltPressed == true || event?.isMetaPressed == true || event?.isShiftPressed == true ||
+            altActive(event) || event?.isMetaPressed == true || event?.isShiftPressed == true ||
             ctrlPressed || ctrlPhysicallyPressed || ctrlLatchActive || ctrlOneShot || ctrlLatchFromNavMode ||
             altPressed || altPhysicallyPressed || altLatchActive || altOneShot ||
             shiftPressed || modifierStateController.shiftPhysicallyPressed || shiftLayerLatched || shiftOneShot
@@ -5036,7 +5055,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Adapted from Mircea Horea IONICĂ (mionica), pastiera 12ce0a35c1.
         if (hasEditableField && event?.repeatCount == 0 && keyCode == KeyEvent.KEYCODE_0 &&
             DeviceSpecific.hasBlackberryKeyboard(DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId) &&
-            (event.isAltPressed || altPhysicallyPressed || altLatchActive || altOneShot) &&
+            altActive(event) &&
             !event.isCtrlPressed && !ctrlPressed && !ctrlLatchActive && !ctrlOneShot &&
             SettingsManager.getAltCtrlSpeechShortcutEnabled(this)) {
             modifierStateController.clearAltState(resetPressedState = true)
@@ -5047,7 +5066,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
         // Minimal Phone dedicated keys (skip while Alt is active so its configured mapping can run)
         // Gate this behavior to Minimal Phone devices only.
-        val altActiveForDedicatedKeys = event?.isAltPressed == true || altLatchActive || altOneShot
+        val altActiveForDedicatedKeys = altActive(event)
         if (
             hasEditableField &&
             isMinimalPhoneHardwareActive() &&
@@ -5097,7 +5116,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             SettingsManager.getQuickLauncherAltShortcutsInTextFields(this) &&
             (keyCode != KeyEvent.KEYCODE_SPACE || SettingsManager.getQuickLauncherAltSpaceInTextFields(this)) &&
             SettingsManager.getLauncherShortcut(this, keyCode) != null &&
-            (event.isAltPressed || altPressed || altPhysicallyPressed || altLatchActive || altOneShot)
+            altActive(event)
         ) {
             modifierStateController.clearAltState()
             updateStatusBarText()
@@ -5278,7 +5297,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             event.repeatCount == 0 &&
             SettingsManager.isAltShiftLayoutSwitchEnabled(this) &&
             (((keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) &&
-                (event.isAltPressed || altPhysicallyPressed)) ||
+                altActive(event)) ||
                 ((keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) &&
                     (event.isShiftPressed || shiftPhysicallyPressed)))
         ) {
@@ -5315,7 +5334,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             SettingsManager.isAltEnterLayoutSwitchEnabled(this) &&
             !languageCtrl && event.isMetaPressed.not() && event.isSymPressed.not() && !symPhysicallyPressed &&
             (keyCode == KeyEvent.KEYCODE_ENTER &&
-                    (event.isAltPressed || altPhysicallyPressed))
+                    altActive(event))
         ) {
             consumeAltEnterUntilKeyUp = true
             modifierStateController.clearAltState(resetPressedState = true)
@@ -5413,7 +5432,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return true
         }
         
-        val altActiveNow = event?.isAltPressed == true || altLatchActive || altOneShot
+        val altActiveNow = altActive(event)
         val debugUnicodeOverride = resolveAltMappedUnicodeForDebug(
             keyCode = keyCode,
             altActive = altActiveNow
@@ -5585,7 +5604,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 onShiftOneShotToggledOff = { suppressAutoCapRenderingAtCursorIfNeeded() }
             )
         )
-        println("[SERVICE] After routing: keyCode=$keyCode, altOneShot=$altOneShot, altLatchActive=$altLatchActive, altPressed=$altPressed, altPhysicallyPressed=$altPhysicallyPressed")
 
         val navModeAfter = navModeController.isNavModeActive()
         if (navModeBefore != navModeAfter) {

@@ -97,14 +97,16 @@ object DeviceSpecific {
     fun remapHardwareKeyEvent(
         keyCode: Int,
         event: KeyEvent?,
-        physicalProfileOverride: String? = null
+        physicalProfileOverride: String? = null,
+        context: android.content.Context? = null
     ): RemappedHardwareEvent {
         val model = resolveKeyboardModel(event, physicalProfileOverride)
         val positionNormalized = normalizePhysicalKeyPosition(model, keyCode, event)
         return when (model) {
             KeyboardModel.Q25 -> remapQ25KeyEvent(
                 positionNormalized.keyCode,
-                positionNormalized.event
+                positionNormalized.event,
+                context
             )
             else -> positionNormalized
         }
@@ -141,7 +143,7 @@ object DeviceSpecific {
         return remapped.keyCode to remapped.event
     }
 
-    private fun remapQ25KeyEvent(keyCode: Int, event: KeyEvent?): RemappedHardwareEvent {
+    private fun remapQ25KeyEvent(keyCode: Int, event: KeyEvent?, context: android.content.Context?): RemappedHardwareEvent {
         if (!shouldRemapQ25Event(keyCode, event)) {
             return RemappedHardwareEvent(keyCode, event)
         }
@@ -152,9 +154,14 @@ object DeviceSpecific {
             else -> keyCode
         }
 
+        // When AltModifierBinding is DeviceSym, strip Alt metastate so the state machine
+        // becomes the single source of truth for Alt modifier state
+        val stripAltForDeviceSym = context != null && 
+            rocks.pkb.plektra.SettingsManager.getAltModifierBinding(context) == rocks.pkb.plektra.AltModifierBinding.DeviceSym
+
         return RemappedHardwareEvent(
             keyCode = normalizedKeyCode,
-            event = patchQ25MetaState(event)
+            event = patchQ25MetaState(event, stripAltForDeviceSym)
         )
     }
 
@@ -195,7 +202,7 @@ object DeviceSpecific {
         return (combinedMetaState and META_Q25_CTRL_OR_SYM) != 0
     }
 
-    private fun patchQ25MetaState(event: KeyEvent?): KeyEvent? {
+    private fun patchQ25MetaState(event: KeyEvent?, stripAltForDeviceSym: Boolean = false): KeyEvent? {
         if (event == null) {
             return null
         }
@@ -208,7 +215,7 @@ object DeviceSpecific {
         }
         lastQ25MetaState = currentMetaState
 
-        val normalizedMetaState = rebuildNormalizedMetaState(currentMetaState)
+        val normalizedMetaState = rebuildNormalizedMetaState(currentMetaState, stripAltForDeviceSym)
         val normalizedKeyCode = when (event.keyCode) {
             KEYCODE_Q25_CTRL -> KEYCODE_CTRL
             KEYCODE_Q25_SYM -> KEYCODE_SYM
@@ -242,13 +249,20 @@ object DeviceSpecific {
         )
     }
 
-    private fun rebuildNormalizedMetaState(metaState: Int): Int {
+    private fun rebuildNormalizedMetaState(metaState: Int, stripAltForDeviceSym: Boolean = false): Int {
         val mappedShift = if ((metaState and META_Q25_SHIFT) != 0) META_SHIFT else 0
         val mappedCtrl = if ((metaState and META_Q25_CTRL) != 0) META_CTRL else 0
-        val mappedAlt = if ((metaState and META_Q25_ALT) != 0) META_ALT else 0
+        // When AltModifierBinding is DeviceSym, strip META_ALT_* bits entirely so hardware
+        // metastate never means "Alt held". The state machine becomes the single source of truth.
+        val mappedAlt = if (stripAltForDeviceSym) {
+            println("[Q25] Stripping Alt metastate for DeviceSym binding")
+            0
+        } else if ((metaState and META_Q25_ALT) != 0) META_ALT else 0
         val mappedSym = if ((metaState and META_Q25_SYM) != 0) META_SYM else 0
         val mappedMetaState = mappedShift or mappedCtrl or mappedAlt or mappedSym
-        return (metaState and RELOADABLE_META_MASK.inv()) or mappedMetaState
+        val result = (metaState and RELOADABLE_META_MASK.inv()) or mappedMetaState
+        println("[Q25] rebuildNormalizedMetaState: stripAltForDeviceSym=$stripAltForDeviceSym, input=${metaState.toString(2)}, output=${result.toString(2)}, isAltPressed=${(result and KeyEvent.META_ALT_MASK) != 0}")
+        return result
     }
 
     private data class BuildFingerprint(

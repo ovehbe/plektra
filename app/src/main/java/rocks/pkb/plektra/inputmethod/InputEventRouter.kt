@@ -44,6 +44,30 @@ class InputEventRouter(
     var suggestionController: rocks.pkb.plektra.core.suggestions.SuggestionController? = null
     var onCommitText: (() -> Unit)? = null
 
+    /**
+     * Single source of truth for Alt modifier state.
+     * Returns true if Alt is active (held, one-shot, or locked).
+     * 
+     * When AltModifierBinding is DeviceSym, relies exclusively on the state machine.
+     * For other bindings, falls back to event.isAltPressed.
+     */
+    private fun altActive(
+        event: KeyEvent?,
+        altPressed: Boolean,
+        altPhysicallyPressed: Boolean,
+        altLatchActive: Boolean,
+        altOneShot: Boolean
+    ): Boolean {
+        val binding = SettingsManager.getAltModifierBinding(context)
+        return if (binding == AltModifierBinding.DeviceSym) {
+            // DeviceSym: state machine is the single source of truth
+            altPressed || altPhysicallyPressed || altLatchActive || altOneShot
+        } else {
+            // Other bindings: include hardware metastate
+            event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
+        }
+    }
+
     private fun isSuggestionDebugLoggingEnabled(): Boolean =
         SettingsManager.isSuggestionDebugLoggingEnabled(context)
 
@@ -159,6 +183,8 @@ class InputEventRouter(
             }
         }
 
+        // For no-editable-field context, we don't have full alt state params.
+        // Just check event metastate. DeviceSym binding's single-source-of-truth applies to editable fields.
         if (
             !ctrlLatchActive &&
             event?.isAltPressed == true &&
@@ -307,9 +333,10 @@ class InputEventRouter(
         modifiers: ModifierStateController,
         symLayout: SymLayoutController,
         updateStatusBar: () -> Unit,
-        startSpeechRecognition: () -> Unit
+        startSpeechRecognition: () -> Unit,
+        ctrlPressed: Boolean = false
     ) {
-        if (event?.isCtrlPressed == true && !modifiers.altPressed &&
+        if (event?.isCtrlPressed == true || ctrlPressed && !modifiers.altPressed &&
             SettingsManager.getAltCtrlSpeechShortcutEnabled(context)) {
             startSpeechRecognition()
             return
@@ -373,7 +400,8 @@ class InputEventRouter(
         if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
             // Check if Alt is physically pressed (not latch) - if so, trigger speech recognition (if enabled)
             // Only trigger if both keys are physically pressed simultaneously, not if one is in latch
-            if (event?.isAltPressed == true && 
+            // Note: altPhysicallyPressed not in params, so we approximate with altPressed
+            if (altActive(event, params.altPressed, params.altPressed, params.altLatchActive, params.altOneShot) && 
                 !params.ctrlPressed &&
                 SettingsManager.getAltCtrlSpeechShortcutEnabled(context)) {
                 callbacks.startSpeechRecognition()
@@ -425,7 +453,8 @@ class InputEventRouter(
             // Reset Alt state if physically pressed when Sym is pressed.
             // Alt+Sym is Android's language switch shortcut, so we reset Alt to prevent
             // the one-shot state from being applied after the user switches languages.
-            if (event?.isAltPressed == true) {
+            // Note: altPhysicallyPressed not in params, so we approximate with altPressed
+            if (altActive(event, params.altPressed, params.altPressed, params.altLatchActive, params.altOneShot)) {
                 controllers.modifierStateController.clearAltState(resetPressedState = true)
                 callbacks.updateStatusBar()
             }
@@ -536,7 +565,7 @@ class InputEventRouter(
             }
         }
 
-        if (!passThroughAltBoundary && (event?.isAltPressed == true || altLatchActive || hadAltOneShot)) {
+        if (!passThroughAltBoundary && (altActive(event, params.altPressed, params.altPressed, altLatchActive, hadAltOneShot))) {
             controllers.alternateCharacterManager.cancelPendingLongPress(keyCode)
             // Alt one-shot is cleared immediately at function start (hadAltOneShot flag tracks it).
             // This block handles Alt-modified key mappings. Alt latch persists until manually cancelled.
