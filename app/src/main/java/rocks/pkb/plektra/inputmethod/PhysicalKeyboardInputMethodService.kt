@@ -5209,7 +5209,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             keyCode == KeyEvent.KEYCODE_CTRL_LEFT ||
             keyCode == KeyEvent.KEYCODE_CTRL_RIGHT ||
             keyCode == KeyEvent.KEYCODE_ALT_LEFT ||
-            keyCode == KeyEvent.KEYCODE_ALT_RIGHT
+            keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
+            keyCode == KEYCODE_SYM
 
         if (event?.repeatCount == 0 && isModifierKey) {
             // Pressing a latched key again cancels the visual latch and restores logical state.
