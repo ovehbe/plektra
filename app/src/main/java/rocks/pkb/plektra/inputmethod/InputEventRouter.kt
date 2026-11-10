@@ -361,23 +361,24 @@ class InputEventRouter(
         var altLatchActive = params.altLatchActive
         var altOneShotActive = params.altOneShot
         
-        // BUG FIX: Alt one-shot must be consumed by ANY key (except Alt itself).
-        // Clear it immediately, but keep a flag so Alt-handling block still processes this key.
-        // On Q25, SYM acts as Alt when AltModifierBinding is DeviceSym.
-        val altBinding = SettingsManager.getAltModifierBinding(context)
+        // Define modifier keys
+        val isShiftKey = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT
+        val isCtrlKey = keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT
         val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || 
                        keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
                        (keyCode == KeyEvent.KEYCODE_SYM && params.symWasRemappedFromAlt)
+        val isModifierKey = isShiftKey || isCtrlKey || isAltKey
+        
+        // Alt one-shot is consumed by non-modifier keys only (letters, space, etc.)
+        // Pressing Shift/Ctrl should not consume Alt one-shot
         val hadAltOneShot = altOneShotActive
-        if (!isAltKey && altOneShotActive) {
+        if (!isModifierKey && altOneShotActive) {
             callbacks.clearAltOneShotAndSymToggle()
             callbacks.refreshStatusBar()
-            altOneShotActive = false  // Update local var so it's used correctly throughout
-        } else if (!isAltKey) {
+            altOneShotActive = false
         }
         
         // Clear Shift one-shot on ANY non-Shift key (not just letters)
-        val isShiftKey = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT
         if (!isShiftKey && shiftOneShotActive) {
             callbacks.disableShiftOneShot()
             callbacks.refreshStatusBar()

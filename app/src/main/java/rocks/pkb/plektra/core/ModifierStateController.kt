@@ -120,6 +120,9 @@ class ModifierStateController(
     fun registerNonModifierKey() {
         lastKeyWasModifier = false
         lastModifierKeyCode = 0
+        // Clear double-tap timing window for all modifiers to prevent tap-letter-tap from locking
+        ctrlState.lastReleaseTime = 0
+        altState.lastReleaseTime = 0
     }
 
     data class Snapshot(
