@@ -4995,6 +4995,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // touch the app editor selection.
         var emojiSearchTextCommitted = false
         println("[SERVICE] CHECKPOINT D: keyCode=$keyCode, emojiSearchCandidateActive=$emojiSearchCandidateActive, hasEditableField=$hasEditableField, altActive=${altActive(event)}")
+        println("[SERVICE] CHECKPOINT D1: after D")
         if (
             emojiSearchCandidateActive &&
             candidatesBarController.isEmojiPickerSearchInputActive() &&
@@ -5020,6 +5021,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ensureEmojiSearchCursorAnchorMonitoring(initialInputConnection)
             return true
         }
+        println("[SERVICE] CHECKPOINT D2: after emoji search block 1")
         val emojiSearchInputConnection =
             if (emojiSearchCandidateActive && candidatesBarController.isEmojiPickerSearchInputActive()) {
                 candidatesBarController.createEmojiPickerSearchInputConnection()
@@ -5048,18 +5050,24 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 return true
             }
         }
+        println("[SERVICE] CHECKPOINT D3: after emoji search block 2")
 
         val expansionShortcutModifierActive = event?.isCtrlPressed == true ||
             altActive(event) || event?.isMetaPressed == true || event?.isShiftPressed == true ||
             ctrlPressed || ctrlPhysicallyPressed || ctrlLatchActive || ctrlOneShot || ctrlLatchFromNavMode ||
             altPressed || altPhysicallyPressed || altLatchActive || altOneShot ||
             shiftPressed || modifierStateController.shiftPhysicallyPressed || shiftLayerLatched || shiftOneShot
-        if (hasEditableField && !expansionShortcutModifierActive &&
+        println("[SERVICE] CHECKPOINT Q: keyCode=$keyCode, expansionShortcutModifierActive=$expansionShortcutModifierActive, hasEditableField=$hasEditableField")
+        val shouldCheckTextExpansion = hasEditableField && !expansionShortcutModifierActive
+        println("[SERVICE] shouldCheckTextExpansion=$shouldCheckTextExpansion")
+        if (shouldCheckTextExpansion &&
             ::textExpansionController.isInitialized &&
             textExpansionController.handleKeyDown(keyCode)
         ) {
+            println("[SERVICE] EARLY RETURN: textExpansion handled keyCode=$keyCode")
             return true
         }
+        println("[SERVICE] CHECKPOINT R: after textExpansion, keyCode=$keyCode")
 
         if (hasEditableField && keyCode == KEYCODE_SYM && event?.repeatCount == 0) {
             symTogglePendingOnKeyUp = true
@@ -5071,17 +5079,24 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Adapted from Mircea Horea IONICĂ (mionica), pastiera 12ce0a35c1.
         // Skip this check when processing Alt or SYM modifier keys to avoid clearing one-shot
         val isAltOrSymKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || keyCode == KeyEvent.KEYCODE_SYM
+        val isBlackberry = DeviceSpecific.hasBlackberryKeyboard(DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId)
+        println("[SERVICE] CHECKPOINT S: keyCode=$keyCode, isAltOrSymKey=$isAltOrSymKey, keyCode==0=${keyCode == KeyEvent.KEYCODE_0}, isBlackberry=$isBlackberry")
         if (!isAltOrSymKey &&
             hasEditableField && event?.repeatCount == 0 && keyCode == KeyEvent.KEYCODE_0 &&
-            DeviceSpecific.hasBlackberryKeyboard(DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId) &&
+            isBlackberry &&
             altActive(event) &&
             !event.isCtrlPressed && !ctrlPressed && !ctrlLatchActive && !ctrlOneShot &&
             SettingsManager.getAltCtrlSpeechShortcutEnabled(this)) {
+            println("[SERVICE] ENTERING Alt+0 speech block")
+            // BUG FIX: consume Alt one-shot!
+            altOneShot = false
             modifierStateController.clearAltState(resetPressedState = true)
             updateStatusBarText()
             startSpeechRecognition()
+            println("[SERVICE] EARLY RETURN: Alt+0 speech shortcut")
             return true
         }
+        println("[SERVICE] CHECKPOINT T: after Alt+0 check, keyCode=$keyCode")
 
         // Minimal Phone dedicated keys (skip while Alt is active so its configured mapping can run)
         // Gate this behavior to Minimal Phone devices only.
