@@ -166,6 +166,8 @@ class AltOneShotBugTest {
     )
 
     private fun runScenario(scenario: TestScenario): TestResult {
+        System.setProperty("test.mode", "trace")
+        println("[TEST] Set test.mode=trace, value=${System.getProperty("test.mode")}")
         val context = RuntimeEnvironment.getApplication()
         
         // Configure setting

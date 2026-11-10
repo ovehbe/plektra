@@ -314,6 +314,7 @@ class InputEventRouter(
         val disableShiftOneShot: () -> Unit,
         val clearAltOneShot: () -> Unit,
         val clearCtrlOneShot: () -> Unit,
+        val resetOtherKeyInteracted: () -> Unit,
         val getCharacterFromLayout: (Int, KeyEvent?, Boolean) -> Char?,
         val isAlphabeticKey: (Int) -> Boolean,
         val callSuper: () -> Boolean,
@@ -334,8 +335,10 @@ class InputEventRouter(
         symLayout: SymLayoutController,
         updateStatusBar: () -> Unit,
         startSpeechRecognition: () -> Unit,
-        ctrlPressed: Boolean = false
+        ctrlPressed: Boolean = false,
+        resetOtherKeyInteractedFlag: (() -> Unit)? = null
     ) {
+        resetOtherKeyInteractedFlag?.invoke()
         if (event?.isCtrlPressed == true || ctrlPressed && !modifiers.altPressed &&
             SettingsManager.getAltCtrlSpeechShortcutEnabled(context)) {
             startSpeechRecognition()
@@ -444,7 +447,8 @@ class InputEventRouter(
             // Normalize keyCode to ALT_LEFT so ModifierKeyHandler accepts it.
             handleAltModifierKeyDown(
                 KeyEvent.KEYCODE_ALT_LEFT, event, controllers.modifierStateController, controllers.symLayoutController,
-                callbacks.updateStatusBar, callbacks.startSpeechRecognition
+                callbacks.updateStatusBar, callbacks.startSpeechRecognition,
+                resetOtherKeyInteractedFlag = callbacks.resetOtherKeyInteracted
             )
             return EditableFieldRoutingResult.Consume
         }

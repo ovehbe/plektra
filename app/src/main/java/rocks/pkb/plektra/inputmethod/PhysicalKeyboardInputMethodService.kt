@@ -5053,7 +5053,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
 
         // Adapted from Mircea Horea IONICĂ (mionica), pastiera 12ce0a35c1.
-        if (hasEditableField && event?.repeatCount == 0 && keyCode == KeyEvent.KEYCODE_0 &&
+        // Skip this check when processing Alt or SYM modifier keys to avoid clearing one-shot
+        val isAltOrSymKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || keyCode == KeyEvent.KEYCODE_SYM
+        if (!isAltOrSymKey &&
+            hasEditableField && event?.repeatCount == 0 && keyCode == KeyEvent.KEYCODE_0 &&
             DeviceSpecific.hasBlackberryKeyboard(DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId) &&
             altActive(event) &&
             !event.isCtrlPressed && !ctrlPressed && !ctrlLatchActive && !ctrlOneShot &&
@@ -5601,7 +5604,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 handleBoundaryText = { text, inputConnection ->
                     handleBoundaryTextBeforeCommit(text, inputConnection)
                 },
-                onShiftOneShotToggledOff = { suppressAutoCapRenderingAtCursorIfNeeded() }
+                onShiftOneShotToggledOff = { suppressAutoCapRenderingAtCursorIfNeeded() },
+                resetOtherKeyInteracted = { otherKeyInteractedDuringHold = false }
             )
         )
 

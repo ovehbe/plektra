@@ -1093,7 +1093,9 @@ class InputEventRouterModifierE2ETest {
                 handleMultiTapCommit = multiTapCommitHandler,
                 isLongPressSuppressed = { false },
                 toggleMinimalUi = { },
-                handleBoundaryText = boundaryTextHandler
+                handleBoundaryText = boundaryTextHandler,
+                onShiftOneShotToggledOff = {},
+                resetOtherKeyInteracted = {}
             )
         }
     }
