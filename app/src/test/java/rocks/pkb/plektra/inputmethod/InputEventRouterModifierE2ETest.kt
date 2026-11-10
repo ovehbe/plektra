@@ -1080,6 +1080,10 @@ class InputEventRouterModifierE2ETest {
                     clearAltOneShotCalls++
                     modifierStateController.altOneShot = false
                 },
+                clearAltOneShotAndSymToggle = {
+                    clearAltOneShotCalls++
+                    modifierStateController.altOneShot = false
+                },
                 clearCtrlOneShot = {
                     clearCtrlOneShotCalls++
                     modifierStateController.ctrlOneShot = false

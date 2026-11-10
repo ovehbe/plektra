@@ -189,7 +189,8 @@ class AltOneShotBugTest {
         val recorder = RecordingInputConnection()
         val inputConnection = recorder.asProxy()
         val editorInfo = EditorInfo().apply {
-            inputType = InputType.TYPE_CLASS_TEXT
+            // Disable auto-cap: use TYPE_TEXT_VARIATION_NORMAL without CAP flags
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
             packageName = "rocks.pkb.plektra.test"
         }
         
@@ -219,7 +220,9 @@ class AltOneShotBugTest {
             ""
         }
         
-        val secondKeyHasAlt = secondKeyText != "a"
+        // Check if Alt is active: A+Alt produces '*' on Q25
+        // Note: "A" (uppercase) means Shift is active (e.g., auto-cap after Enter), not Alt
+        val secondKeyHasAlt = secondKeyText == "*"
         
         val passed = secondKeyHasAlt == scenario.expectedSecondKeyHasAlt
         

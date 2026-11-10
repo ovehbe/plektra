@@ -4890,16 +4890,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             }
         }
         val remapped = remapHardwareEvent(keyCode_, event_)
-        println("[SERVICE] remapped.consume=${remapped.consume} for keyCode=${remapped.keyCode}")
         if (remapped.consume) {
-            println("[SERVICE] EARLY RETURN: remapped.consume=true")
             remapped.directAction?.let { ClicksButtonDirectActionExecutor.execute(this, it) }
             return true
         }
-        println("[SERVICE] CHECKPOINT A")
         val keyCode = remapped.keyCode
         val event = remapped.event
-        println("[SERVICE] CHECKPOINT B: keyCode=$keyCode")
         clicksPowerShiftTapFilter.shouldConsumeKeyDown(
             isClicksPowerKeyboard = DeviceSpecific.resolveInputProfile(
                 event,
@@ -4908,7 +4904,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             keyCode = keyCode,
             event = event
         )?.let { suppressed ->
-            println("[SERVICE] EARLY RETURN: clicksPowerShiftTapFilter consumed")
             notifyDebugKeyEvent(
                 keyCode = keyCode,
                 event = event,
@@ -4994,8 +4989,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Let the picker handle text-editing shortcuts before the generic Ctrl router can
         // touch the app editor selection.
         var emojiSearchTextCommitted = false
-        println("[SERVICE] CHECKPOINT D: keyCode=$keyCode, emojiSearchCandidateActive=$emojiSearchCandidateActive, hasEditableField=$hasEditableField, altActive=${altActive(event)}")
-        println("[SERVICE] CHECKPOINT D1: after D")
         if (
             emojiSearchCandidateActive &&
             candidatesBarController.isEmojiPickerSearchInputActive() &&
@@ -5021,7 +5014,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ensureEmojiSearchCursorAnchorMonitoring(initialInputConnection)
             return true
         }
-        println("[SERVICE] CHECKPOINT D2: after emoji search block 1")
         val emojiSearchInputConnection =
             if (emojiSearchCandidateActive && candidatesBarController.isEmojiPickerSearchInputActive()) {
                 candidatesBarController.createEmojiPickerSearchInputConnection()
@@ -5050,24 +5042,19 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 return true
             }
         }
-        println("[SERVICE] CHECKPOINT D3: after emoji search block 2")
 
         val expansionShortcutModifierActive = event?.isCtrlPressed == true ||
             altActive(event) || event?.isMetaPressed == true || event?.isShiftPressed == true ||
             ctrlPressed || ctrlPhysicallyPressed || ctrlLatchActive || ctrlOneShot || ctrlLatchFromNavMode ||
             altPressed || altPhysicallyPressed || altLatchActive || altOneShot ||
             shiftPressed || modifierStateController.shiftPhysicallyPressed || shiftLayerLatched || shiftOneShot
-        println("[SERVICE] CHECKPOINT Q: keyCode=$keyCode, expansionShortcutModifierActive=$expansionShortcutModifierActive, hasEditableField=$hasEditableField")
         val shouldCheckTextExpansion = hasEditableField && !expansionShortcutModifierActive
-        println("[SERVICE] shouldCheckTextExpansion=$shouldCheckTextExpansion")
         if (shouldCheckTextExpansion &&
             ::textExpansionController.isInitialized &&
             textExpansionController.handleKeyDown(keyCode)
         ) {
-            println("[SERVICE] EARLY RETURN: textExpansion handled keyCode=$keyCode")
             return true
         }
-        println("[SERVICE] CHECKPOINT R: after textExpansion, keyCode=$keyCode")
 
         if (hasEditableField && keyCode == KEYCODE_SYM && event?.repeatCount == 0) {
             symTogglePendingOnKeyUp = true
@@ -5080,23 +5067,20 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Skip this check when processing Alt or SYM modifier keys to avoid clearing one-shot
         val isAltOrSymKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || keyCode == KeyEvent.KEYCODE_SYM
         val isBlackberry = DeviceSpecific.hasBlackberryKeyboard(DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId)
-        println("[SERVICE] CHECKPOINT S: keyCode=$keyCode, isAltOrSymKey=$isAltOrSymKey, keyCode==0=${keyCode == KeyEvent.KEYCODE_0}, isBlackberry=$isBlackberry")
         if (!isAltOrSymKey &&
             hasEditableField && event?.repeatCount == 0 && keyCode == KeyEvent.KEYCODE_0 &&
             isBlackberry &&
             altActive(event) &&
             !event.isCtrlPressed && !ctrlPressed && !ctrlLatchActive && !ctrlOneShot &&
             SettingsManager.getAltCtrlSpeechShortcutEnabled(this)) {
-            println("[SERVICE] ENTERING Alt+0 speech block")
-            // BUG FIX: consume Alt one-shot!
+            // BUG FIX: consume Alt one-shot AND clear symTogglePendingOnKeyUp!
             altOneShot = false
+            symTogglePendingOnKeyUp = false
             modifierStateController.clearAltState(resetPressedState = true)
             updateStatusBarText()
             startSpeechRecognition()
-            println("[SERVICE] EARLY RETURN: Alt+0 speech shortcut")
             return true
         }
-        println("[SERVICE] CHECKPOINT T: after Alt+0 check, keyCode=$keyCode")
 
         // Minimal Phone dedicated keys (skip while Alt is active so its configured mapping can run)
         // Gate this behavior to Minimal Phone devices only.
@@ -5129,8 +5113,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return true
         }
 
-        println("[SERVICE] CHECKPOINT P: keyCode=$keyCode right before N")
-        println("[SERVICE] CHECKPOINT N: keyCode=$keyCode, symTogglePendingOnKeyUp=$symTogglePendingOnKeyUp")
         if (
             hasEditableField &&
             (symTogglePendingOnKeyUp || event?.isSymPressed == true) &&
@@ -5139,17 +5121,16 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             SettingsManager.getLauncherShortcut(this, keyCode) != null &&
             event?.repeatCount == 0
         ) {
-            println("[SERVICE] EARLY RETURN: SYM+launcher shortcut for keyCode=$keyCode")
             // BUG FIX: consume Alt one-shot AND clear symTogglePendingOnKeyUp!
             altOneShot = false
             symTogglePendingOnKeyUp = false
             symChordUsedSinceKeyDown = true
-            if (launcherShortcutController.handleLauncherShortcut(keyCode)) {
+            val handled = launcherShortcutController.handleLauncherShortcut(keyCode)
+            if (handled) {
                 return true
             }
         }
 
-        println("[SERVICE] CHECKPOINT H: keyCode=$keyCode, altActive=${altActive(event)}")
         if (
             hasEditableField &&
             event?.repeatCount == 0 &&
@@ -5159,21 +5140,16 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             SettingsManager.getLauncherShortcut(this, keyCode) != null &&
             altActive(event)
         ) {
-            println("[SERVICE] ENTERING launcher shortcut block for Alt+$keyCode")
             // BUG FIX: consume Alt one-shot BEFORE clearing Alt state!
             altOneShot = false
             modifierStateController.clearAltState()
             updateStatusBarText()
-            println("[SERVICE] calling handleLauncherShortcut($keyCode)")
             val handled = launcherShortcutController.handleLauncherShortcut(keyCode)
-            println("[SERVICE] handleLauncherShortcut returned $handled")
             if (handled) {
-                println("[SERVICE] EARLY RETURN: launcher shortcut handled")
                 return true
             }
         }
 
-        println("[SERVICE] CHECKPOINT I: keyCode=$keyCode after launcher check, symTogglePendingOnKeyUp=$symTogglePendingOnKeyUp")
         if (
             hasEditableField &&
             symTogglePendingOnKeyUp &&
@@ -5181,18 +5157,19 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             event?.repeatCount == 0 &&
             !isPureModifierKey(keyCode)
         ) {
-            println("[SERVICE] Entering SYM chord block for keyCode=$keyCode")
             symChordUsedSinceKeyDown = true
+            // BUG FIX: Clear symTogglePendingOnKeyUp if NOT latched
+            // When Alt tap latches, symTogglePendingOnKeyUp should persist for next keys
+            if (!altLatchActive) {
+                symTogglePendingOnKeyUp = false
+            }
             val symChar = symLayoutController.resolveChordSymbol(
                 keyCode = keyCode,
                 shiftPressed = event.isShiftPressed || shiftOneShot || capsLockEnabled
             )
-            println("[SERVICE] SYM chord resolved to '$symChar'")
             if (!symChar.isNullOrEmpty()) {
-                println("[SERVICE] EARLY RETURN: SYM chord commits '$symChar'")
-                // BUG FIX: consume Alt one-shot AND clear symTogglePendingOnKeyUp!
+                // BUG FIX: consume Alt one-shot!
                 altOneShot = false
-                symTogglePendingOnKeyUp = false
                 val inputConnection = currentInputConnection
                 val committed = handleBoundaryTextBeforeCommit(symChar, inputConnection) ||
                     inputConnection?.commitText(symChar, 1) == true
@@ -5287,7 +5264,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (!isModifierKey) {
             modifierStateController.registerNonModifierKey()
         }
-        println("[SERVICE] CHECKPOINT C: keyCode=$keyCode, hasEditableField=$hasEditableField")
         
         // If NO editable field is active, handle ONLY nav mode
         if (!hasEditableField) {
@@ -5407,7 +5383,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return true
         }
 
-        println("[SERVICE] CHECKPOINT J: keyCode=$keyCode before Ctrl+Space check")
         // Handle Ctrl+Space for subtype cycling
         if (
             hasEditableField &&
@@ -5594,7 +5569,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return true
         }
 
-        println("[SERVICE] CHECKPOINT JUST BEFORE ROUTER: keyCode=$keyCode, altOneShot=$altOneShot")
         val routingDecision = inputEventRouter.routeEditableFieldKeyDown(
             keyCode = keyCode,
             event = event,
@@ -5638,6 +5612,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     modifierStateController.consumeShiftOneShot()
                 },
                 clearAltOneShot = { altOneShot = false },
+                clearAltOneShotAndSymToggle = { 
+                    altOneShot = false
+                    symTogglePendingOnKeyUp = false
+                },
                 clearCtrlOneShot = { ctrlOneShot = false },
                 getCharacterFromLayout = { code, keyEvent, isShiftPressed ->
                     getCharacterFromLayout(code, keyEvent, isShiftPressed)

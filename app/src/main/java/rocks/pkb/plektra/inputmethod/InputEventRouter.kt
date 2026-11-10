@@ -313,6 +313,7 @@ class InputEventRouter(
         val refreshStatusBar: () -> Unit,
         val disableShiftOneShot: () -> Unit,
         val clearAltOneShot: () -> Unit,
+        val clearAltOneShotAndSymToggle: () -> Unit,
         val clearCtrlOneShot: () -> Unit,
         val resetOtherKeyInteracted: () -> Unit,
         val getCharacterFromLayout: (Int, KeyEvent?, Boolean) -> Char?,
@@ -372,12 +373,10 @@ class InputEventRouter(
                        (keyCode == KeyEvent.KEYCODE_SYM && altBinding == AltModifierBinding.DeviceSym)
         val hadAltOneShot = altOneShotActive
         if (!isAltKey && altOneShotActive) {
-            println("[ROUTER] Consuming altOneShot for keyCode=$keyCode")
-            callbacks.clearAltOneShot()
+            callbacks.clearAltOneShotAndSymToggle()
             callbacks.refreshStatusBar()
             altOneShotActive = false  // Update local var so it's used correctly throughout
         } else if (!isAltKey) {
-            println("[ROUTER] altOneShot NOT active for keyCode=$keyCode (params.altOneShot=${params.altOneShot})")
         }
         
         val ic = params.inputConnection
