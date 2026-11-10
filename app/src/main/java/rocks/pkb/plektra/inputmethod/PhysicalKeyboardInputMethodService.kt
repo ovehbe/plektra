@@ -1475,6 +1475,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private val keyEventTextOutput = KeyEventTextOutput()
 
     private fun handleKeyEventInput(keyCode: Int, event: KeyEvent?): Boolean {
+        println("[handleKeyEventInput] ENTRY keyCode=$keyCode, altActive=${altActive(event)}")
         if (keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
             inputEventRouter.handleAltModifierKeyDown(
                 keyCode, event, modifierStateController, symLayoutController,
@@ -1486,6 +1487,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ctrlPressed || ctrlLatchActive || ctrlOneShot || navModeController.isNavModeActive()) return false
         val ic = currentInputConnection ?: return false
         keyEventTextOutput.textForRepeat(keyCode, event)?.let {
+            println("[textForRepeat] keyCode=$keyCode produced text, consuming altOneShot")
+            // Consume Alt one-shot HERE - this is where letter keys get Alt-mapped!
+            altOneShot = false
             return keyEventTextOutput.sendText(keyCode, it, ic)
         }
         clearAltOnBoundaryIfNeeded(keyCode) { updateStatusBarText() }
@@ -1497,7 +1501,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             alternateCharacterManager = alternateCharacterManager,
             updateStatusBar = { updateStatusBarText() },
             textOutput = { keyEventTextOutput.sendText(keyCode, it, ic) },
-            callSuperWithKey = { _, _ -> false }
+            callSuperWithKey = { _, _ -> false },
+            consumeAltOneShot = { altOneShot = false }
         )
         if (handled) {
             altOneShot = false
@@ -4673,12 +4678,14 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     private fun remapHardwareEvent(keyCode: Int, event: KeyEvent?): ClicksPowerButtonEventMapper.Result {
+        println("[SERVICE.remap] BEFORE: keyCode=$keyCode")
         val remapped = DeviceSpecific.remapHardwareKeyEvent(
             keyCode,
             event,
             physicalKeyboardProfileOverride,
             this
         )
+        println("[SERVICE.remap] AFTER DeviceSpecific: keyCode=${remapped.keyCode}")
         val isClicksPowerKeyboard = !dispatchingClicksAccessibilityKeyEvent &&
             (event
                 ?.takeIf { it.deviceId >= 0 }
@@ -4687,7 +4694,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                         InputDevice.getDevice(inputEvent.deviceId)
                             ?.let(DeviceSpecific::isClicksPowerKeyboard) == true
                 } == true)
-        return clicksPowerButtonEventMapper.map(
+        val result = clicksPowerButtonEventMapper.map(
             keyCode = remapped.keyCode,
             event = remapped.event,
             isClicksPowerKeyboard = isClicksPowerKeyboard,
@@ -4696,6 +4703,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             altButtonMode = SettingsManager.getClicksAltButtonMode(this),
             microphoneButtonMode = SettingsManager.getClicksMicrophoneButtonMode(this)
         )
+        println("[SERVICE.remap] FINAL: keyCode=${result.keyCode}, consume=${result.consume}")
+        return result
     }
 
     override fun dispatchClicksAccessibilityKeyEvent(event: KeyEvent): Boolean {
@@ -4854,6 +4863,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
+        println("[SERVICE.onKeyDown] ENTRY: keyCode=$keyCode_, altOneShot=$altOneShot")
         if (liveSpeechEditor != null && (event_?.unicodeChar?.let { it != 0 } == true ||
             keyCode_ in listOf(KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_ENTER,
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN))) {
@@ -4880,12 +4890,16 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             }
         }
         val remapped = remapHardwareEvent(keyCode_, event_)
+        println("[SERVICE] remapped.consume=${remapped.consume} for keyCode=${remapped.keyCode}")
         if (remapped.consume) {
+            println("[SERVICE] EARLY RETURN: remapped.consume=true")
             remapped.directAction?.let { ClicksButtonDirectActionExecutor.execute(this, it) }
             return true
         }
+        println("[SERVICE] CHECKPOINT A")
         val keyCode = remapped.keyCode
         val event = remapped.event
+        println("[SERVICE] CHECKPOINT B: keyCode=$keyCode")
         clicksPowerShiftTapFilter.shouldConsumeKeyDown(
             isClicksPowerKeyboard = DeviceSpecific.resolveInputProfile(
                 event,
@@ -4894,6 +4908,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             keyCode = keyCode,
             event = event
         )?.let { suppressed ->
+            println("[SERVICE] EARLY RETURN: clicksPowerShiftTapFilter consumed")
             notifyDebugKeyEvent(
                 keyCode = keyCode,
                 event = event,
@@ -4979,6 +4994,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Let the picker handle text-editing shortcuts before the generic Ctrl router can
         // touch the app editor selection.
         var emojiSearchTextCommitted = false
+        println("[SERVICE] CHECKPOINT D: keyCode=$keyCode, emojiSearchCandidateActive=$emojiSearchCandidateActive")
         if (
             emojiSearchCandidateActive &&
             candidatesBarController.isEmojiPickerSearchInputActive() &&
@@ -5112,6 +5128,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             }
         }
 
+        println("[SERVICE] CHECKPOINT H: keyCode=$keyCode, altActive=${altActive(event)}")
         if (
             hasEditableField &&
             event?.repeatCount == 0 &&
@@ -5121,13 +5138,21 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             SettingsManager.getLauncherShortcut(this, keyCode) != null &&
             altActive(event)
         ) {
+            println("[SERVICE] ENTERING launcher shortcut block for Alt+$keyCode")
+            // BUG FIX: consume Alt one-shot BEFORE clearing Alt state!
+            altOneShot = false
             modifierStateController.clearAltState()
             updateStatusBarText()
-            if (launcherShortcutController.handleLauncherShortcut(keyCode)) {
+            println("[SERVICE] calling handleLauncherShortcut($keyCode)")
+            val handled = launcherShortcutController.handleLauncherShortcut(keyCode)
+            println("[SERVICE] handleLauncherShortcut returned $handled")
+            if (handled) {
+                println("[SERVICE] EARLY RETURN: launcher shortcut handled")
                 return true
             }
         }
 
+        println("[SERVICE] CHECKPOINT I: keyCode=$keyCode after launcher check")
         if (
             hasEditableField &&
             symTogglePendingOnKeyUp &&
@@ -5235,6 +5260,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (!isModifierKey) {
             modifierStateController.registerNonModifierKey()
         }
+        println("[SERVICE] CHECKPOINT C: keyCode=$keyCode, hasEditableField=$hasEditableField")
         
         // If NO editable field is active, handle ONLY nav mode
         if (!hasEditableField) {
@@ -5354,6 +5380,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return true
         }
 
+        println("[SERVICE] CHECKPOINT J: keyCode=$keyCode before Ctrl+Space check")
         // Handle Ctrl+Space for subtype cycling
         if (
             hasEditableField &&
@@ -5540,6 +5567,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return true
         }
 
+        println("[SERVICE] CHECKPOINT JUST BEFORE ROUTER: keyCode=$keyCode, altOneShot=$altOneShot")
         val routingDecision = inputEventRouter.routeEditableFieldKeyDown(
             keyCode = keyCode,
             event = event,

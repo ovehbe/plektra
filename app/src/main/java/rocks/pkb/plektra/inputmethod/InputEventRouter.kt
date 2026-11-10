@@ -358,6 +358,7 @@ class InputEventRouter(
         controllers: EditableFieldKeyDownControllers,
         callbacks: EditableFieldKeyDownHandlingCallbacks
     ): EditableFieldRoutingResult {
+        println("[ROUTER.ENTRY] keyCode=$keyCode, params.altOneShot=${params.altOneShot}")
         var shiftOneShotActive = params.shiftOneShot
         var altLatchActive = params.altLatchActive
         var altOneShotActive = params.altOneShot
@@ -371,9 +372,12 @@ class InputEventRouter(
                        (keyCode == KeyEvent.KEYCODE_SYM && altBinding == AltModifierBinding.DeviceSym)
         val hadAltOneShot = altOneShotActive
         if (!isAltKey && altOneShotActive) {
+            println("[ROUTER] Consuming altOneShot for keyCode=$keyCode")
             callbacks.clearAltOneShot()
             callbacks.refreshStatusBar()
             altOneShotActive = false  // Update local var so it's used correctly throughout
+        } else if (!isAltKey) {
+            println("[ROUTER] altOneShot NOT active for keyCode=$keyCode (params.altOneShot=${params.altOneShot})")
         }
         
         val ic = params.inputConnection
@@ -1347,8 +1351,12 @@ class InputEventRouter(
         altMappingsOverride: Map<Int, String>? = null,
         updateStatusBar: () -> Unit,
         textOutput: ((String) -> Boolean)? = null,
-        callSuperWithKey: (Int, KeyEvent?) -> Boolean
+        callSuperWithKey: (Int, KeyEvent?) -> Boolean,
+        consumeAltOneShot: (() -> Unit)? = null
     ): Boolean {
+        // Consume Alt one-shot FIRST - this is where Alt mappings are applied
+        consumeAltOneShot?.invoke()
+        println("[handleAltModifiedKey] keyCode=$keyCode, consumed oneShot")
         val ic = inputConnection ?: return false
 
         if (textOutput != null) {

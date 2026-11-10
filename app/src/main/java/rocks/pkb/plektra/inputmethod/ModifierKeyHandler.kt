@@ -21,21 +21,11 @@ class ModifierKeyHandler(
 
     data class AltState(
         var pressed: Boolean = false,
-        private var _oneShot: Boolean = false,
+        var oneShot: Boolean = false,
         var latchActive: Boolean = false,
         var physicallyPressed: Boolean = false,
         var lastReleaseTime: Long = 0
-    ) {
-        var oneShot: Boolean
-            get() = _oneShot
-            set(value) {
-                if (System.getProperty("test.mode") == "trace") {
-                    val trace = Thread.currentThread().stackTrace.take(8).joinToString("\n  ") { "${it.className}.${it.methodName}:${it.lineNumber}" }
-                    println("[TRACE.AltState.oneShot] = $value\n  $trace")
-                }
-                _oneShot = value
-            }
-    }
+    )
 
     data class ModifierKeyResult(
         val shouldConsume: Boolean = false,
