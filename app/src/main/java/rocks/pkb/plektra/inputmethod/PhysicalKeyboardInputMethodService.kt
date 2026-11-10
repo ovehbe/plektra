@@ -280,7 +280,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private var keyboardBarHiddenInEditor = false
     
     // Constants
-    private val DOUBLE_TAP_THRESHOLD = 500L
+    private val DOUBLE_TAP_THRESHOLD = 300L  // 80-250ms locks, 600ms doesn't
     private val CURSOR_UPDATE_DELAY = 50L
     private val MULTI_TAP_TIMEOUT_MS = 400L
 
@@ -1471,9 +1471,14 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private val keyEventTextOutput = KeyEventTextOutput()
 
     private fun handleKeyEventInput(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
+        val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || 
+            keyCode == KEYCODE_SYM  // On Q25, remapped from physical Alt
+        if (isAltKey) {
+            // Normalize to ALT_LEFT for consistent double-tap tracking
+            // ModifierKeyHandler only recognizes ALT_LEFT/ALT_RIGHT
+            val normalizedKeyCode = KeyEvent.KEYCODE_ALT_LEFT
             inputEventRouter.handleAltModifierKeyDown(
-                keyCode, event, modifierStateController, symLayoutController,
+                normalizedKeyCode, event, modifierStateController, symLayoutController,
                 { updateStatusBarText() }, { startSpeechRecognition() }
             )
             return true
@@ -5264,9 +5269,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         
         // If NO editable field is active, handle ONLY nav mode
         if (!hasEditableField) {
+            // Include KEYCODE_SYM when it was remapped from Alt (Q25)
+            val isAltKeyForInput = keyCode == KeyEvent.KEYCODE_ALT_LEFT || 
+                keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
+                (keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt)
             if (KeyEventInputPolicy.appliesTo(info) && !navModeController.isNavModeActive() &&
-                (languageAlt || keyEventTextOutput.hasPressedKey(keyCode) ||
-                    keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT)) {
+                (languageAlt || keyEventTextOutput.hasPressedKey(keyCode) || isAltKeyForInput)) {
                 return handleKeyEventInput(keyCode, event) || super.onKeyDown(keyCode, event)
             }
             val powerShortcutsEnabled = SettingsManager.getPowerShortcutsEnabled(this)
