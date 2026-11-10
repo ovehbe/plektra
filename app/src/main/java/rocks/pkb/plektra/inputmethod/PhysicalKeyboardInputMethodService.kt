@@ -360,14 +360,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
      * For other bindings, falls back to event.isAltPressed.
      */
     private fun altActive(event: KeyEvent?): Boolean {
-        val binding = SettingsManager.getAltModifierBinding(this)
-        return if (binding == AltModifierBinding.DeviceSym) {
-            // DeviceSym: state machine is the single source of truth
-            altPressed || altPhysicallyPressed || altLatchActive || altOneShot
-        } else {
-            // Other bindings: include hardware metastate
-            event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
-        }
+        // Check both state machine AND event metastate.
+        // State machine tracks remapped Alt (e.g., Q25 SYM key).
+        // Event metastate is set on letter keys pressed while Alt is physically held.
+        return event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
     }
 
     private val uiHandler = Handler(Looper.getMainLooper())
@@ -5330,7 +5326,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             event.repeatCount == 0 &&
             SettingsManager.isAltShiftLayoutSwitchEnabled(this) &&
             (((keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) &&
-                altActive(event)) ||
+                (event.isAltPressed || altPhysicallyPressed)) ||
                 ((keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) &&
                     (event.isShiftPressed || shiftPhysicallyPressed)))
         ) {
@@ -5367,7 +5363,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             SettingsManager.isAltEnterLayoutSwitchEnabled(this) &&
             !languageCtrl && event.isMetaPressed.not() && event.isSymPressed.not() && !symPhysicallyPressed &&
             (keyCode == KeyEvent.KEYCODE_ENTER &&
-                    altActive(event))
+                    (event.isAltPressed || altPhysicallyPressed))
         ) {
             consumeAltEnterUntilKeyUp = true
             modifierStateController.clearAltState(resetPressedState = true)
