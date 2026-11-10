@@ -71,6 +71,11 @@ class ModifierKeyHandler(
         }
 
         state.physicallyPressed = true
+        
+        // Non-consecutive tap: clear the timing window to prevent tap-letter-tap from locking
+        if (!isConsecutiveTap) {
+            state.lastReleaseTime = 0
+        }
 
         when {
             state.latchActive -> {
@@ -165,6 +170,11 @@ class ModifierKeyHandler(
         }
 
         state.physicallyPressed = true
+        
+        // Non-consecutive tap: clear the timing window to prevent tap-letter-tap from locking
+        if (!isConsecutiveTap) {
+            state.lastReleaseTime = 0
+        }
 
         when {
             state.latchActive -> {
