@@ -16,7 +16,8 @@ internal class ClicksPowerButtonEventMapper {
         val keyCode: Int,
         val event: KeyEvent?,
         val consume: Boolean = false,
-        val directAction: ClicksButtonDirectAction? = null
+        val directAction: ClicksButtonDirectAction? = null,
+        val symWasRemappedFromAlt: Boolean = false
     )
 
     private val core = ClicksButtonMappingCore()

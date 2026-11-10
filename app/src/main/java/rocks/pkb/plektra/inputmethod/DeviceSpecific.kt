@@ -31,7 +31,8 @@ object DeviceSpecific {
 
     data class RemappedHardwareEvent(
         val keyCode: Int,
-        val event: KeyEvent?
+        val event: KeyEvent?,
+        val symWasRemappedFromAlt: Boolean = false
     )
 
     private enum class KeyboardFamily {
@@ -159,9 +160,13 @@ object DeviceSpecific {
         val stripAltForDeviceSym = context != null && 
             rocks.pkb.plektra.SettingsManager.getAltModifierBinding(context) == rocks.pkb.plektra.AltModifierBinding.DeviceSym
 
+        // Track when KEYCODE_SYM was remapped from the physical Alt key (KEYCODE_Q25_SYM)
+        val symWasRemappedFromAlt = keyCode == KEYCODE_Q25_SYM && normalizedKeyCode == KEYCODE_SYM
+
         return RemappedHardwareEvent(
             keyCode = normalizedKeyCode,
-            event = patchQ25MetaState(event, stripAltForDeviceSym)
+            event = patchQ25MetaState(event, stripAltForDeviceSym),
+            symWasRemappedFromAlt = symWasRemappedFromAlt
         )
     }
 

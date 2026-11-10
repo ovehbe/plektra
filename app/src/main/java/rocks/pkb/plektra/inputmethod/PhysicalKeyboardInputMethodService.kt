@@ -4704,7 +4704,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             microphoneButtonMode = SettingsManager.getClicksMicrophoneButtonMode(this)
         )
         println("[SERVICE.remap] FINAL: keyCode=${result.keyCode}, consume=${result.consume}")
-        return result
+        return result.copy(symWasRemappedFromAlt = remapped.symWasRemappedFromAlt)
     }
 
     override fun dispatchClicksAccessibilityKeyEvent(event: KeyEvent): Boolean {
@@ -5204,10 +5204,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ctrlOneShot ||
             ctrlLatchFromNavMode
 
-        // KEYCODE_SYM is only a modifier key on Q25, where the physical Alt key is remapped to SYM.
+        // KEYCODE_SYM is only a modifier key when it was remapped from a physical Alt key (Q25).
         // On other devices, it's the SYM key for cycling SYM pages.
-        val profileId = DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId
-        val symIsAltModifier = keyCode == KEYCODE_SYM && profileId == "q25"
+        val symIsAltModifier = keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt
         
         val isModifierKey = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT ||
             keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT ||
@@ -5930,9 +5929,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return super.onKeyUp(keyCode, event)
         }
 
-        // On Q25, SYM acts as Alt (the physical Alt key is remapped to KEYCODE_SYM)
-        val profileIdUp = DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId
-        if (keyCode == KEYCODE_SYM && profileIdUp == "q25") {
+        // When KEYCODE_SYM was remapped from a physical Alt key (Q25), treat it as Alt
+        if (keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt) {
             // Normalize to ALT_LEFT so ModifierKeyHandler accepts it
             handleAltModifierKeyUp(KeyEvent.KEYCODE_ALT_LEFT, event, allowVisualLayer = true)
             // BUG FIX: Don't pass SYM key UP to framework if it was used in a chord (e.g., launcher shortcut)
