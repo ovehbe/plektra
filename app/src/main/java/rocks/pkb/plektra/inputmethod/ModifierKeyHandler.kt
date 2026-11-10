@@ -71,11 +71,6 @@ class ModifierKeyHandler(
         }
 
         state.physicallyPressed = true
-        
-        // Non-consecutive tap: clear the timing window to prevent tap-letter-tap from locking
-        if (!isConsecutiveTap) {
-            state.lastReleaseTime = 0
-        }
 
         when {
             state.latchActive -> {
@@ -115,6 +110,11 @@ class ModifierKeyHandler(
                 }
             }
             else -> {
+                // Clear timing if non-consecutive to prevent tap-letter-tap from locking
+                if (!isConsecutiveTap) {
+                    state.lastReleaseTime = 0
+                }
+                
                 if (singleTapLatches) {
                     state.latchActive = true
                     state.lastReleaseTime = 0
@@ -170,11 +170,6 @@ class ModifierKeyHandler(
         }
 
         state.physicallyPressed = true
-        
-        // Non-consecutive tap: clear the timing window to prevent tap-letter-tap from locking
-        if (!isConsecutiveTap) {
-            state.lastReleaseTime = 0
-        }
 
         when {
             state.latchActive -> {
@@ -191,13 +186,18 @@ class ModifierKeyHandler(
                     state.lastReleaseTime = 0
                     return ModifierKeyResult(shouldUpdateStatusBar = true)
                 } else {
-                    // Single tap: disable one-shot
+                    // Non-consecutive or slow: disable one-shot without locking
                     state.oneShot = false
                     state.lastReleaseTime = 0
                     return ModifierKeyResult(shouldUpdateStatusBar = true)
                 }
             }
             else -> {
+                // Clear timing if non-consecutive to prevent tap-letter-tap from locking
+                if (!isConsecutiveTap) {
+                    state.lastReleaseTime = 0
+                }
+                
                 if (singleTapLatches) {
                     state.latchActive = true
                     state.lastReleaseTime = 0
