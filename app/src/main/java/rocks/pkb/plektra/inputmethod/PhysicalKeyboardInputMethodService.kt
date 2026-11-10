@@ -5204,13 +5204,18 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ctrlOneShot ||
             ctrlLatchFromNavMode
 
+        // KEYCODE_SYM is only a modifier key on Q25, where the physical Alt key is remapped to SYM.
+        // On other devices, it's the SYM key for cycling SYM pages.
+        val profileId = DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId
+        val symIsAltModifier = keyCode == KEYCODE_SYM && profileId == "q25"
+        
         val isModifierKey = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT ||
             keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT ||
             keyCode == KeyEvent.KEYCODE_CTRL_LEFT ||
             keyCode == KeyEvent.KEYCODE_CTRL_RIGHT ||
             keyCode == KeyEvent.KEYCODE_ALT_LEFT ||
             keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
-            keyCode == KEYCODE_SYM
+            symIsAltModifier
 
         if (event?.repeatCount == 0 && isModifierKey) {
             // Pressing a latched key again cancels the visual latch and restores logical state.
@@ -5925,8 +5930,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             return super.onKeyUp(keyCode, event)
         }
 
-        // On Q25, SYM acts as Alt when AltModifierBinding is DeviceSym
-        if (keyCode == KEYCODE_SYM && SettingsManager.getAltModifierBinding(this) == AltModifierBinding.DeviceSym) {
+        // On Q25, SYM acts as Alt (the physical Alt key is remapped to KEYCODE_SYM)
+        val profileIdUp = DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId
+        if (keyCode == KEYCODE_SYM && profileIdUp == "q25") {
             // Normalize to ALT_LEFT so ModifierKeyHandler accepts it
             handleAltModifierKeyUp(KeyEvent.KEYCODE_ALT_LEFT, event, allowVisualLayer = true)
             // BUG FIX: Don't pass SYM key UP to framework if it was used in a chord (e.g., launcher shortcut)
