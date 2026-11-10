@@ -254,15 +254,10 @@ object DeviceSpecific {
         val mappedCtrl = if ((metaState and META_Q25_CTRL) != 0) META_CTRL else 0
         // When AltModifierBinding is DeviceSym, strip META_ALT_* bits entirely so hardware
         // metastate never means "Alt held". The state machine becomes the single source of truth.
-        val mappedAlt = if (stripAltForDeviceSym) {
-            println("[Q25] Stripping Alt metastate for DeviceSym binding")
-            0
-        } else if ((metaState and META_Q25_ALT) != 0) META_ALT else 0
+        val mappedAlt = if (stripAltForDeviceSym) 0 else if ((metaState and META_Q25_ALT) != 0) META_ALT else 0
         val mappedSym = if ((metaState and META_Q25_SYM) != 0) META_SYM else 0
         val mappedMetaState = mappedShift or mappedCtrl or mappedAlt or mappedSym
-        val result = (metaState and RELOADABLE_META_MASK.inv()) or mappedMetaState
-        println("[Q25] rebuildNormalizedMetaState: stripAltForDeviceSym=$stripAltForDeviceSym, input=${metaState.toString(2)}, output=${result.toString(2)}, isAltPressed=${(result and KeyEvent.META_ALT_MASK) != 0}")
-        return result
+        return (metaState and RELOADABLE_META_MASK.inv()) or mappedMetaState
     }
 
     private data class BuildFingerprint(
