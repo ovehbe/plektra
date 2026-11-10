@@ -48,8 +48,8 @@ class InputEventRouter(
      * Single source of truth for Alt modifier state.
      * Returns true if Alt is active (held, one-shot, or locked).
      * 
-     * When AltModifierBinding is DeviceSym, relies exclusively on the state machine.
-     * For other bindings, falls back to event.isAltPressed.
+     * Checks state machine variables AND event metastate. With DeviceSym binding,
+     * event.isAltPressed is still honored (for software keyboard and tests).
      */
     private fun altActive(
         event: KeyEvent?,
@@ -58,14 +58,7 @@ class InputEventRouter(
         altLatchActive: Boolean,
         altOneShot: Boolean
     ): Boolean {
-        val binding = SettingsManager.getAltModifierBinding(context)
-        return if (binding == AltModifierBinding.DeviceSym) {
-            // DeviceSym: state machine is the single source of truth
-            altPressed || altPhysicallyPressed || altLatchActive || altOneShot
-        } else {
-            // Other bindings: include hardware metastate
-            event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
-        }
+        return event?.isAltPressed == true || altPressed || altPhysicallyPressed || altLatchActive || altOneShot
     }
 
     private fun isSuggestionDebugLoggingEnabled(): Boolean =
