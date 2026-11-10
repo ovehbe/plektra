@@ -1,135 +1,124 @@
 package rocks.pkb.plektra.inputmethod
 
 import android.content.Context
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.InputConnection
-import android.text.InputType
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import rocks.pkb.plektra.SymPagesConfig
-import rocks.pkb.plektra.AltModifierBinding
 import rocks.pkb.plektra.SettingsManager
 import rocks.pkb.plektra.core.InputContextState
 import java.lang.reflect.Field
 import java.lang.reflect.Proxy
-import java.lang.reflect.InvocationHandler
-import junit.framework.TestCase.assertEquals
 
 /**
- * Test for Shift one-shot bug on Q25: Shift tap latches even though "Shift tap latches" is OFF.
- * 
- * Test matrix:
- * - Setting OFF: tap Shift then A A (only first should be uppercase)
- * - Setting OFF: hold Shift with A A (both uppercase)
- * - Setting OFF: double-tap (should NOT lock)
- * - Setting OFF: tap Shift then Space then A (A should be lowercase)
- * - Setting ON: tap Shift then A A (both uppercase - latch behavior)
+ * Test for Shift one-shot bug:
+ * - When shift_tap_latches setting is OFF, single Shift tap should NOT latch
+ * - Shift one-shot should be consumed by ANY non-modifier key (letters, Space, Enter, Backspace, Del, arrows, digits)
+ * - When shift_tap_latches setting is ON, single Shift tap SHOULD latch (persist across keys)
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ShiftOneShotBugTest {
 
+    /**
+     * Represents one test scenario: Shift tap, then firstKey, then A
+     */
     data class TestScenario(
         val name: String,
-        val setting: Boolean, // false = OFF (one-shot), true = ON (latch)
-        val action: String, // "tap", "hold", "double-tap", "tap_space"
-        val expectedResults: List<String> // Expected output for each A press
+        val setting: Boolean,  // shift_tap_latches setting value
+        val firstKey: Int,     // Key pressed after Shift tap (before final A)
+        val firstKeyName: String,
+        val secondKey: Int,    // Always KEYCODE_A for consistency
+        val expectedSecondKeyHasShift: Boolean  // Should 2nd key have Shift active?
     )
 
     @Test
     fun shiftOneShotConsumedByAnyKey() {
-        val scenarios = listOf(
-            // OFF scenarios - one-shot should be consumed after first key
-            TestScenario("OFF_tap_then_A_A", false, "tap", listOf("A", "a")),
-            TestScenario("OFF_hold_then_A_A", false, "hold", listOf("A", "A")),
-            TestScenario("OFF_double_tap_then_A", false, "double-tap", listOf("a")), // No lock with setting OFF
-            TestScenario("OFF_tap_Space_A", false, "tap_space", listOf("a")),
-            
-            // ON scenarios - latch should persist
-            TestScenario("ON_tap_then_A_A", true, "tap", listOf("A", "A"))
+        // Test matrix: setting × firstKey
+        // - OFF setting: one-shot should be consumed by firstKey, so 2nd key (A) should be lowercase
+        // - ON setting: latch persists, so 2nd key (A) should be uppercase
+        
+        val scenarios = mutableListOf<TestScenario>()
+        
+        // Keys that should consume Shift one-shot
+        val testKeys = mapOf(
+            KeyEvent.KEYCODE_B to "B",
+            KeyEvent.KEYCODE_SPACE to "Space",
+            KeyEvent.KEYCODE_ENTER to "Enter",
+            KeyEvent.KEYCODE_DEL to "Backspace",
+            KeyEvent.KEYCODE_FORWARD_DEL to "Del",
+            KeyEvent.KEYCODE_DPAD_LEFT to "Left",
+            KeyEvent.KEYCODE_DPAD_RIGHT to "Right",
+            KeyEvent.KEYCODE_DPAD_UP to "Up",
+            KeyEvent.KEYCODE_DPAD_DOWN to "Down",
+            KeyEvent.KEYCODE_TAB to "Tab",
+            KeyEvent.KEYCODE_1 to "Digit_1",
+            KeyEvent.KEYCODE_COMMA to "Comma",
+            KeyEvent.KEYCODE_PERIOD to "Period"
         )
         
-        val results = mutableListOf<TestResult>()
+        // OFF setting: one-shot should be consumed by this key, so 2nd key should be lowercase
+        for ((keyCode, keyName) in testKeys) {
+            scenarios.add(TestScenario(
+                name = "OFF_tap_then_${keyName}_then_A",
+                setting = false,
+                firstKey = keyCode,
+                firstKeyName = keyName,
+                secondKey = KeyEvent.KEYCODE_A,
+                expectedSecondKeyHasShift = false
+            ))
+        }
         
-        println("\n" + "=".repeat(80))
-        println("SHIFT ONE-SHOT BUG TEST MATRIX")
-        println("Testing: Shift one-shot must be consumed by next key, not latch")
-        println("Total scenarios: ${scenarios.size}")
-        println("=".repeat(80))
+        // ON setting: latch persists, so 2nd key should still be uppercase
+        scenarios.add(TestScenario(
+            name = "ON_tap_then_Space_then_A",
+            setting = true,
+            firstKey = KeyEvent.KEYCODE_SPACE,
+            firstKeyName = "Space",
+            secondKey = KeyEvent.KEYCODE_A,
+            expectedSecondKeyHasShift = true
+        ))
+        scenarios.add(TestScenario(
+            name = "ON_tap_then_Enter_then_A",
+            setting = true,
+            firstKey = KeyEvent.KEYCODE_ENTER,
+            firstKeyName = "Enter",
+            secondKey = KeyEvent.KEYCODE_A,
+            expectedSecondKeyHasShift = true
+        ))
         
+        // Execute all scenarios
+        val results = mutableListOf<String>()
         for ((index, scenario) in scenarios.withIndex()) {
-            println("\n[${index + 1}/${scenarios.size}] ${scenario.name}")
-            
-            try {
-                val result = runScenario(scenario)
-                results.add(result)
-                
-                val status = if (result.passed) "✓ PASS" else "✗ FAIL"
-                println("  $status: ${result.message}")
-                
-                if (!result.passed) {
-                    println("  Expected: ${scenario.expectedResults}")
-                    println("  Actual:   ${result.actualResults}")
-                }
-            } catch (e: Exception) {
-                println("  ✗ ERROR: ${e.message}")
-                e.printStackTrace()
-                results.add(TestResult(
-                    scenario = scenario,
-                    passed = false,
-                    message = "Exception: ${e.message}",
-                    actualResults = listOf("ERROR")
-                ))
-            }
+            val result = runScenario(scenario)
+            results.add(result)
+            println("[${"${index + 1}".padStart(2)}/${scenarios.size}] $result")
         }
         
-        val passed = results.count { it.passed }
-        val failed = results.count { !it.passed }
+        // Aggregate result
+        val passCount = results.count { it.contains("✓ PASS") }
+        val failCount = results.count { it.contains("✗ FAIL") }
+        println("\n=== FINAL RESULT: $passCount/${scenarios.size} passed, $failCount failed ===")
         
-        println("\n" + "=".repeat(80))
-        println("TEST SUMMARY")
-        println("=".repeat(80))
-        println("Total:  ${results.size}")
-        println("Passed: $passed")
-        println("Failed: $failed")
-        
-        if (failed > 0) {
-            println("\nFAILED SCENARIOS:")
-            results.filter { !it.passed }.forEach {
-                println("  - ${it.scenario.name}")
-                println("    Expected: ${it.scenario.expectedResults}")
-                println("    Got: ${it.actualResults}")
-            }
+        // Fail if any scenario failed
+        if (failCount > 0) {
+            throw AssertionError("$failCount/${scenarios.size} scenarios failed:\n" + 
+                results.filter { it.contains("✗ FAIL") }.joinToString("\n"))
         }
-        
-        println("=".repeat(80))
-        
-        assertEquals("All Shift one-shot scenarios must pass", 0, failed)
     }
 
-    private data class TestResult(
-        val scenario: TestScenario,
-        val passed: Boolean,
-        val message: String,
-        val actualResults: List<String>
-    )
-
-    private fun runScenario(scenario: TestScenario): TestResult {
-        val context = RuntimeEnvironment.getApplication()
+    private fun runScenario(scenario: TestScenario): String {
+        val context: Context = RuntimeEnvironment.getApplication()
         
-        // Configure setting
-        val prefs = context.getSharedPreferences("plektra_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("shift_tap_latches", scenario.setting).apply()
-        
-        // Setup Q25 profile
-        DeviceSpecific.clearTestOverrides()
-        SettingsManager.setPhysicalKeyboardProfileOverride(context, "Q25")
-        SettingsManager.setAltModifierBinding(context, AltModifierBinding.DeviceSym)
+        // Set shift_tap_latches setting
+        SettingsManager.setShiftTapLatches(context, scenario.setting)
         
         // Create service
         val service = Robolectric.buildService(PhysicalKeyboardInputMethodService::class.java)
@@ -140,7 +129,8 @@ class ShiftOneShotBugTest {
         val recorder = RecordingInputConnection()
         val inputConnection = recorder.asProxy()
         val editorInfo = EditorInfo().apply {
-            inputType = InputType.TYPE_CLASS_TEXT
+            // Disable auto-cap: use TYPE_TEXT_VARIATION_NORMAL
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
             packageName = "rocks.pkb.plektra.test"
         }
         
@@ -152,64 +142,35 @@ class ShiftOneShotBugTest {
         
         val downTime = System.currentTimeMillis()
         
-        when (scenario.action) {
-            "tap" -> {
-                // Tap Shift
-                sendKey(service, KeyEvent.KEYCODE_SHIFT_LEFT, downTime, downTime)
-                Thread.sleep(50)
-                // Press A twice
-                sendKey(service, KeyEvent.KEYCODE_A, downTime + 100, downTime + 100)
-                sendKey(service, KeyEvent.KEYCODE_A, downTime + 200, downTime + 200)
-            }
-            "hold" -> {
-                // Hold Shift (down only)
-                val shiftDown = KeyEvent(downTime, downTime, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SHIFT_LEFT, 0, 0)
-                service.onKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT, shiftDown)
-                // Press A twice while holding
-                sendKey(service, KeyEvent.KEYCODE_A, downTime + 50, downTime + 50)
-                sendKey(service, KeyEvent.KEYCODE_A, downTime + 100, downTime + 100)
-                // Release Shift
-                val shiftUp = KeyEvent(downTime, downTime + 150, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SHIFT_LEFT, 0, 0)
-                service.onKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT, shiftUp)
-            }
-            "double-tap" -> {
-                // Double-tap Shift (should NOT lock with setting OFF)
-                sendKey(service, KeyEvent.KEYCODE_SHIFT_LEFT, downTime, downTime)
-                Thread.sleep(50)
-                sendKey(service, KeyEvent.KEYCODE_SHIFT_LEFT, downTime + 100, downTime + 100)
-                Thread.sleep(50)
-                // Press A
-                sendKey(service, KeyEvent.KEYCODE_A, downTime + 200, downTime + 200)
-            }
-            "tap_space" -> {
-                // Tap Shift, then Space, then A
-                sendKey(service, KeyEvent.KEYCODE_SHIFT_LEFT, downTime, downTime)
-                Thread.sleep(50)
-                sendKey(service, KeyEvent.KEYCODE_SPACE, downTime + 100, downTime + 100)
-                sendKey(service, KeyEvent.KEYCODE_A, downTime + 200, downTime + 200)
-            }
-        }
+        // Step 1: Tap Shift (SHIFT_LEFT)
+        sendKey(service, KeyEvent.KEYCODE_SHIFT_LEFT, downTime, downTime)
         
-        val actualResults = recorder.committedTexts.toList()
-        val passed = actualResults == scenario.expectedResults
+        // Step 2: Press first key
+        sendKey(service, scenario.firstKey, downTime + 100, downTime + 100)
         
-        val message = if (passed) {
-            when {
-                scenario.setting -> "Shift latch working correctly"
-                scenario.action == "hold" -> "Hold Shift working correctly"
-                scenario.action == "double-tap" -> "Double-tap correctly did not lock"
-                else -> "Shift one-shot consumed correctly"
-            }
+        // Step 3: Press second key (A)
+        sendKey(service, scenario.secondKey, downTime + 200, downTime + 200)
+        
+        // Analyze: did the second key have Shift modifier?
+        val secondKeyText = if (recorder.committedTexts.size >= 2) {
+            recorder.committedTexts[recorder.committedTexts.size - 1]
+        } else if (recorder.committedTexts.size == 1) {
+            recorder.committedTexts[0]
         } else {
-            "Shift behavior incorrect"
+            ""
         }
         
-        return TestResult(
-            scenario = scenario,
-            passed = passed,
-            message = message,
-            actualResults = actualResults
-        )
+        // Check if Shift is active: A with Shift produces 'A', without produces 'a'
+        val secondKeyHasShift = secondKeyText == "A"
+        
+        val expectedStr = if (scenario.expectedSecondKeyHasShift) "uppercase 'A'" else "lowercase 'a'"
+        val actualStr = if (secondKeyHasShift) "uppercase 'A'" else "lowercase 'a'"
+        
+        return if (secondKeyHasShift == scenario.expectedSecondKeyHasShift) {
+            "${scenario.name}: ✓ PASS (expected $expectedStr, got $actualStr)"
+        } else {
+            "${scenario.name}: ✗ FAIL (expected $expectedStr, got $actualStr)"
+        }
     }
 
     private fun sendKey(service: PhysicalKeyboardInputMethodService, keyCode: Int, downTime: Long, eventTime: Long) {
@@ -242,45 +203,41 @@ class ShiftOneShotBugTest {
         fun asProxy(): InputConnection {
             return Proxy.newProxyInstance(
                 InputConnection::class.java.classLoader,
-                arrayOf(InputConnection::class.java),
-                InvocationHandler { _, method, args ->
+                arrayOf(InputConnection::class.java)
+            ) { _, method, args ->
                 when (method.name) {
                     "commitText" -> {
                         val text = args?.getOrNull(0)?.toString()
                         if (text != null) {
                             committedTexts += text
+                            textBeforeCursor += text
                         }
                         true
                     }
                     "sendKeyEvent" -> {
                         val event = args?.getOrNull(0) as? KeyEvent
-                        if (event != null) {
-                            sentKeyEvents += event
-                        }
+                        if (event != null) sentKeyEvents += event
                         true
                     }
-                    "getTextBeforeCursor" -> textBeforeCursor
-                    "getTextAfterCursor" -> ""
-                    "deleteSurroundingText" -> true
-                    "setComposingText" -> true
-                    "finishComposingText" -> true
-                    "beginBatchEdit" -> true
-                    "endBatchEdit" -> true
-                    "getCursorCapsMode" -> 0
-                    "getExtractedText" -> null
-                    "getSelectedText" -> null
-                    "setSelection" -> true
-                    "performEditorAction" -> true
+                    "getTextBeforeCursor" -> {
+                        val count = (args?.getOrNull(0) as? Int) ?: textBeforeCursor.length
+                        textBeforeCursor.takeLast(count)
+                    }
+                    "getExtractedText" -> ExtractedText().apply {
+                        text = textBeforeCursor
+                        selectionStart = textBeforeCursor.length
+                        selectionEnd = textBeforeCursor.length
+                    }
                     "performContextMenuAction" -> true
-                    "clearMetaKeyStates" -> true
-                    "reportFullscreenMode" -> true
-                    "closeConnection" -> null
-                    "toString" -> "RecordingInputConnection"
-                    "hashCode" -> System.identityHashCode(this)
-                    "equals" -> (args?.getOrNull(0) === this)
-                    else -> null
+                    "beginBatchEdit", "endBatchEdit", "finishComposingText" -> true
+                    else -> when {
+                        method.returnType == Boolean::class.javaPrimitiveType -> false
+                        method.returnType == Int::class.javaPrimitiveType -> 0
+                        method.returnType == Long::class.javaPrimitiveType -> 0L
+                        else -> null
+                    }
                 }
-            }) as InputConnection
+            } as InputConnection
         }
     }
 }

@@ -379,6 +379,14 @@ class InputEventRouter(
         } else if (!isAltKey) {
         }
         
+        // Clear Shift one-shot on ANY non-Shift key (not just letters)
+        val isShiftKey = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT
+        if (!isShiftKey && shiftOneShotActive) {
+            callbacks.disableShiftOneShot()
+            callbacks.refreshStatusBar()
+            shiftOneShotActive = false
+        }
+        
         val ic = params.inputConnection
         val effectiveCtrlActive = event?.isCtrlPressed == true ||
             params.ctrlPressed ||
