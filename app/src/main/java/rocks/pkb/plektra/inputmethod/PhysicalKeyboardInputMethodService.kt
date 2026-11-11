@@ -1939,9 +1939,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (!::modifierStateController.isInitialized) {
             return
         }
-        modifierStateController.shiftTapLatches = SettingsManager.getShiftTapLatches(this)
-        modifierStateController.altTapLatches = SettingsManager.getAltTapLatches(this)
-        modifierStateController.ctrlTapLatches = SettingsManager.getCtrlTapLatches(this)
     }
 
     override fun onCreate() {

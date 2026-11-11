@@ -2015,7 +2015,6 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         editorInfo.inputType = EditorInfo.TYPE_NULL
         setField(service, "inputContextState", InputContextState.fromEditorInfo(editorInfo))
         modifierController().clearAltState(resetPressedState = true)
-        modifierController().altTapLatches = false
         setField(service, "isInputViewActive", false)
         setField(service, "requestedInputViewShown", false)
         getField<AlternateCharacterManager>(service, "alternateCharacterManager")

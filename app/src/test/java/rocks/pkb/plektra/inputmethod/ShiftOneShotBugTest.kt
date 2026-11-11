@@ -19,10 +19,10 @@ import java.lang.reflect.Field
 import java.lang.reflect.Proxy
 
 /**
- * Test for Shift one-shot bug:
- * - When shift_tap_latches setting is OFF, single Shift tap should NOT latch
+ * Test for Shift one-shot behavior:
+ * - Unified tap model: single tap → one-shot, double-tap → CAPS latch
  * - Shift one-shot should be consumed by ANY non-modifier key (letters, Space, Enter, Backspace, Del, arrows, digits)
- * - When shift_tap_latches setting is ON, single Shift tap SHOULD latch (persist across keys)
+ * - Obsolete shift_tap_latches preference is ignored (verified by ON scenarios)
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -84,14 +84,16 @@ class ShiftOneShotBugTest {
             ))
         }
         
-        // ON setting: latch persists, so 2nd key should still be uppercase
+        // ON setting (shift_tap_latches=true): obsolete preference is now ignored,
+        // single tap gives ONE-SHOT (consumed by keys), not CAPS latch.
+        // These scenarios verify the fix: Shift is consumed even when shift_tap_latches=true.
         scenarios.add(TestScenario(
             name = "ON_tap_then_Space_then_A",
             setting = true,
             firstKey = KeyEvent.KEYCODE_SPACE,
             firstKeyName = "Space",
             secondKey = KeyEvent.KEYCODE_A,
-            expectedSecondKeyHasShift = true
+            expectedSecondKeyHasShift = false  // One-shot consumed, not latch
         ))
         scenarios.add(TestScenario(
             name = "ON_tap_then_Enter_then_A",
@@ -99,7 +101,7 @@ class ShiftOneShotBugTest {
             firstKey = KeyEvent.KEYCODE_ENTER,
             firstKeyName = "Enter",
             secondKey = KeyEvent.KEYCODE_A,
-            expectedSecondKeyHasShift = true
+            expectedSecondKeyHasShift = false  // One-shot consumed, not latch
         ))
         
         // Execute all scenarios

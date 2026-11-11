@@ -43,9 +43,10 @@ class ModifierStateController(
             // to handle fast overlapping taps where second DOWN arrives before first UP
             val doubleTap = isConsecutiveTap && now - lastDownTime <= doubleTapThreshold
             lastDownTime = now
+            // Ignore obsolete singleTapLatches: unified tap model is always
+            // single tap → one-shot, double-tap → CAPS (same as Ctrl/Alt).
             state = when {
                 doubleTap -> if (state == ShiftState.CAPS) ShiftState.OFF else ShiftState.CAPS
-                singleTapLatches -> if (state == ShiftState.CAPS) ShiftState.OFF else ShiftState.CAPS
                 state == ShiftState.OFF -> ShiftState.ONE_SHOT
                 else -> ShiftState.OFF
             }
@@ -108,9 +109,6 @@ class ModifierStateController(
     private val ctrlState = ModifierKeyHandler.CtrlState()
     private val altState = ModifierKeyHandler.AltState()
 
-    var shiftTapLatches: Boolean = false
-    var ctrlTapLatches: Boolean = false
-    var altTapLatches: Boolean = false
 
     fun registerModifierTap(keyCode: Int): Boolean {
         val isConsecutive = lastKeyWasModifier && lastModifierKeyCode == keyCode
@@ -355,8 +353,7 @@ class ModifierStateController(
         val isConsecutiveTap = registerModifierTap(keyCode)
         val current = shiftStateMachine.tap(
             now = now,
-            isConsecutiveTap = isConsecutiveTap,
-            singleTapLatches = shiftTapLatches
+            isConsecutiveTap = isConsecutiveTap
         )
         val changed = previous != current
         return ModifierKeyHandler.ModifierKeyResult(
@@ -392,7 +389,6 @@ class ModifierStateController(
             ctrlState,
             isInputViewActive,
             isConsecutiveTap = isConsecutiveTap,
-            singleTapLatches = ctrlTapLatches,
             now = now,
             onNavModeDeactivated = onNavModeDeactivated
         )
@@ -421,7 +417,6 @@ class ModifierStateController(
             keyCode,
             altState,
             isConsecutiveTap = isConsecutiveTap,
-            singleTapLatches = altTapLatches,
             now = now
         )
         altPressed = true

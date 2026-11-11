@@ -88,9 +88,6 @@ class Q25AltCtrlIntegrationTest {
         println("Alt binding: device_sym:Q25")
         println("alt_tap_latches: ${SettingsManager.getAltTapLatches(context)}")
         
-        // Verify the controller received the setting
-        val controller = getField(service, "modifierStateController") as rocks.pkb.plektra.core.ModifierStateController
-        println("modifierStateController.altTapLatches: ${controller.altTapLatches}")
     }
 
     // =========================
