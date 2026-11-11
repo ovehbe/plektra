@@ -188,6 +188,7 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"direct\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", if (isFdroidBuild) "true" else "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", if (isFdroidBuild) "false" else "true")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "false")
             val storePath = signingProp("storeFile", "PLEKTRA_KEYSTORE_PATH")
             val storePass = signingProp("storePassword", "PLEKTRA_KEYSTORE_PASSWORD")
             val alias = signingProp("keyAlias", "PLEKTRA_KEY_ALIAS")
@@ -220,6 +221,7 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"direct\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", if (isFdroidBuild) "true" else "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", if (isFdroidBuild) "false" else "true")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "true")
             val storePath = signingProp("nightlyStoreFile", "PLEKTRA_NIGHTLY_KEYSTORE_PATH")
             val storePass = signingProp("nightlyStorePassword", "PLEKTRA_NIGHTLY_KEYSTORE_PASSWORD")
             val alias = signingProp("nightlyKeyAlias", "PLEKTRA_NIGHTLY_KEY_ALIAS")
@@ -250,6 +252,7 @@ android {
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", "false")
             buildConfigField("String", "APK_VARIANT", "\"no-accessibility\"")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_SERVICE", "false")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "true")
             // Sideload flavor always unsigned for local signing, NoAccessibility variant
         }
         create("playStable") {
@@ -267,6 +270,7 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"play\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", "false")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "false")
         }
         create("playNightly") {
             dimension = "channel"
