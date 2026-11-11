@@ -126,7 +126,7 @@ class AlternateCharacterManager(
                 val isTurkish = context.resources.configuration.locales[0]?.language == "tr"
                 customMappings.forEach { (key, value) ->
                     val uppercase = toUppercaseWithLocale(value, isTurkish)
-                    if (uppercase != value && uppercase.length == value.length) {
+                    if (uppercase != value) {
                         symKeyMapUppercase[key] = uppercase
                     }
                 }
@@ -146,8 +146,7 @@ class AlternateCharacterManager(
     /**
      * Convert string to uppercase with Turkish locale support.
      * Turkish: ı→I, i→İ
-     * Others: standard Unicode uppercase
-     * Multi-char results (like ß→SS) are ignored to preserve single-char output.
+     * Others: standard Unicode uppercase (including ß→SS)
      */
     private fun toUppercaseWithLocale(text: String, isTurkish: Boolean): String {
         if (text.isEmpty()) return text
@@ -175,7 +174,7 @@ class AlternateCharacterManager(
                 val isTurkish = context.resources.configuration.locales[0]?.language == "tr"
                 customMappings.forEach { (key, value) ->
                     val uppercase = toUppercaseWithLocale(value, isTurkish)
-                    if (uppercase != value && uppercase.length == value.length) {
+                    if (uppercase != value) {
                         symKeyMap2Uppercase[key] = uppercase
                     }
                 }

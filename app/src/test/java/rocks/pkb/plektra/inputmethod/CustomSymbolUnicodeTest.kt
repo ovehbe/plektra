@@ -81,13 +81,10 @@ class CustomSymbolUnicodeTest {
     }
 
     @Test
-    fun shiftUppercase_multiChar_shouldLeaveUnchanged() {
-        // ß→SS is multi-char, should be ignored to preserve single-char output
+    fun shiftUppercase_multiChar_shouldTransform() {
+        // ß→SS is multi-char uppercase (German sharp s)
         val result = toUppercaseWithLocale("ß", isTurkish = false)
-        // The actual uppercase is "SS" (2 chars), but we want single-char mappings
-        // This test verifies the filtering logic in reloadSymMappings
-        assertEquals("SS", result) // uppercase() produces "SS"
-        // The actual filtering happens in reloadSymMappings: if (uppercase.length == value.length)
+        assertEquals("SS", result)
     }
 
     @Test
