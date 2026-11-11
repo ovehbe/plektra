@@ -154,13 +154,13 @@ class Q25AltCtrlIntegrationTest {
     }
     
     @Test
-    fun bug1_altTapOn_shouldLatch() {
-        println("\n=== BUG 1 TEST: Alt tap ON -> A -> A (latch persists) ===")
+    fun bug1_altTapOn_shouldGiveOneShot_notLatch() {
+        println("\n=== BUG 1 FIX: Alt tap with alt_tap_latches=true should give ONE-SHOT (not latch) ===")
         createAndBindService(altTapLatches = true)
         
         val downTime = 2000L
         
-        // Alt tap
+        // Alt tap - with obsolete alt_tap_latches=true, this used to latch but now gives one-shot
         val altDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime)
         val altUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime + 50)
         
@@ -169,7 +169,7 @@ class Q25AltCtrlIntegrationTest {
         
         println("Alt tap sent")
         
-        // Send 'A' key - should produce Alt+A symbol due to latch
+        // Send 'A' key - should produce Alt+A symbol due to one-shot
         val aDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_A, downTime + 100, downTime + 100)
         val aUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_A, downTime + 100, downTime + 150)
         
@@ -178,7 +178,7 @@ class Q25AltCtrlIntegrationTest {
         
         println("First 'A' pressed, commits: ${recorder.committedTexts}")
         
-        // Send 'A' again - should STILL produce Alt+A due to persistent latch
+        // Send 'A' again - should produce plain 'a' because one-shot was consumed
         val aDown2 = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_A, downTime + 200, downTime + 200)
         val aUp2 = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_A, downTime + 200, downTime + 250)
         
@@ -187,11 +187,11 @@ class Q25AltCtrlIntegrationTest {
         
         println("Second 'A' pressed, all commits: ${recorder.committedTexts}")
         
-        // Both presses should use Alt modifier (latch persists)
+        // First press uses Alt (one-shot), second press is plain 'a' (one-shot consumed)
         assertTrue("Should have at least 2 commits", recorder.committedTexts.size >= 2)
-        assertNotEquals("First A should NOT produce plain 'a' (latch active)", 
+        assertNotEquals("First A should NOT produce plain 'a' (one-shot applies)", 
             "a", recorder.committedTexts[0])
-        assertNotEquals("Second A should ALSO NOT produce plain 'a' (latch persists)", 
+        assertEquals("Second A should produce plain 'a' (one-shot consumed)", 
             "a", recorder.committedTexts[1])
     }
 

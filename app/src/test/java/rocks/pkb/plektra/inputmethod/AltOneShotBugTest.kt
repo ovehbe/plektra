@@ -136,14 +136,16 @@ class AltOneShotBugTest {
             ))
         }
         
-        // ON setting: latch persists, so 2nd key should still have Alt
+        // ON setting (alt_tap_latches=true): obsolete preference is now ignored,
+        // single tap gives ONE-SHOT (consumed by keys), not latch.
+        // These scenarios verify the fix: Alt is consumed even when alt_tap_latches=true.
         scenarios.add(TestScenario(
             name = "ON_tap_then_Space_then_A",
             setting = true,
             firstKey = KeyEvent.KEYCODE_SPACE,
             firstKeyName = "Space",
             secondKey = KeyEvent.KEYCODE_A,
-            expectedSecondKeyHasAlt = true
+            expectedSecondKeyHasAlt = false  // One-shot consumed, not latch
         ))
         
         scenarios.add(TestScenario(
@@ -152,7 +154,7 @@ class AltOneShotBugTest {
             firstKey = KeyEvent.KEYCODE_ENTER,
             firstKeyName = "Enter",
             secondKey = KeyEvent.KEYCODE_A,
-            expectedSecondKeyHasAlt = true
+            expectedSecondKeyHasAlt = false  // One-shot consumed, not latch
         ))
         
         return scenarios

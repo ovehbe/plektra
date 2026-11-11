@@ -196,11 +196,8 @@ class ModifierKeyHandler(
                     state.lastReleaseTime = 0
                 }
                 
-                if (singleTapLatches) {
-                    state.latchActive = true
-                    state.lastReleaseTime = 0
-                    return ModifierKeyResult(shouldUpdateStatusBar = true)
-                }
+                // Ignore obsolete singleTapLatches preference: new tap model is always
+                // single tap → one-shot, double-tap → latch (same as Ctrl/Shift).
                 // Check for double-tap to enable latch (must be consecutive AND within timing)
                 if (wasDoubleTap) {
                     state.latchActive = true
