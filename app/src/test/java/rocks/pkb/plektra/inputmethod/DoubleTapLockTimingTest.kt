@@ -89,7 +89,7 @@ class DoubleTapLockTimingTest {
 
     data class DoubleTapScenario(
         val name: String,
-        val modifierKeyCode: Int,  // Q25 physical key code (SHIFT_RIGHT for Ctrl, ALT_RIGHT for Alt)
+        val modifierKeyCode: Int,  // Q25 physical key code (SHIFT_RIGHT for Ctrl, ALT_LEFT for Alt)
         val timeBetweenTaps: Long,  // milliseconds between first release and second press
         val shouldLock: Boolean
     )
@@ -121,10 +121,10 @@ class DoubleTapLockTimingTest {
     @Test
     fun doubleTapLockTiming_alt_fastAndSlow() {
         val scenarios = listOf(
-            DoubleTapScenario("Alt_80ms", KeyEvent.KEYCODE_ALT_RIGHT, 80L, true),
-            DoubleTapScenario("Alt_150ms", KeyEvent.KEYCODE_ALT_RIGHT, 150L, true),
-            DoubleTapScenario("Alt_250ms", KeyEvent.KEYCODE_ALT_RIGHT, 250L, true),
-            DoubleTapScenario("Alt_600ms", KeyEvent.KEYCODE_ALT_RIGHT, 600L, false)
+            DoubleTapScenario("Alt_80ms", KeyEvent.KEYCODE_ALT_LEFT, 80L, true),
+            DoubleTapScenario("Alt_150ms", KeyEvent.KEYCODE_ALT_LEFT, 150L, true),
+            DoubleTapScenario("Alt_250ms", KeyEvent.KEYCODE_ALT_LEFT, 250L, true),
+            DoubleTapScenario("Alt_600ms", KeyEvent.KEYCODE_ALT_LEFT, 600L, false)
         )
         
         runDoubleTapScenarios(scenarios, "Alt")
@@ -200,7 +200,7 @@ class DoubleTapLockTimingTest {
         val modifiers = listOf(
             "Shift" to KeyEvent.KEYCODE_SHIFT_LEFT,
             "Ctrl" to KeyEvent.KEYCODE_SHIFT_RIGHT,  // Q25 Ctrl
-            "Alt" to KeyEvent.KEYCODE_ALT_RIGHT       // Q25 Alt
+            "Alt" to KeyEvent.KEYCODE_ALT_LEFT        // Q25 physical Alt
         )
         
         for ((name, keyCode) in modifiers) {
@@ -253,7 +253,7 @@ class DoubleTapLockTimingTest {
         val modifiers = listOf(
             "Shift" to KeyEvent.KEYCODE_SHIFT_LEFT,
             "Ctrl" to KeyEvent.KEYCODE_SHIFT_RIGHT,
-            "Alt" to KeyEvent.KEYCODE_ALT_RIGHT
+            "Alt" to KeyEvent.KEYCODE_ALT_LEFT
         )
         
         for ((name, keyCode) in modifiers) {
