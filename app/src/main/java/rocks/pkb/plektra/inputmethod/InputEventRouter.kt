@@ -378,11 +378,13 @@ class InputEventRouter(
             altOneShotActive = false
         }
         
-        // Clear Shift one-shot on ANY non-Shift key (not just letters)
+        // Save original Shift one-shot state before clearing controller state
+        // The local variable will be used later to apply shift to letters
         if (!isShiftKey && shiftOneShotActive) {
             callbacks.disableShiftOneShot()
             callbacks.refreshStatusBar()
-            shiftOneShotActive = false
+            // Don't set shiftOneShotActive = false here - keep it true so letter
+            // handling code can check it and apply the shift
         }
         
         // Register non-modifier keys to clear double-tap timing windows

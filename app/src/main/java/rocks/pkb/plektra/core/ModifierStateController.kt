@@ -32,15 +32,17 @@ class ModifierStateController(
         var automaticCapsLock: Boolean = false
             private set
 
-        private var lastTapTime: Long = 0
+        private var lastDownTime: Long = 0
 
         fun tap(
             now: Long = System.currentTimeMillis(),
             isConsecutiveTap: Boolean,
             singleTapLatches: Boolean = false
         ): ShiftState {
-            val doubleTap = isConsecutiveTap && now - lastTapTime <= doubleTapThreshold
-            lastTapTime = now
+            // Use same timing logic as Ctrl/Alt: check against last DOWN time
+            // to handle fast overlapping taps where second DOWN arrives before first UP
+            val doubleTap = isConsecutiveTap && now - lastDownTime <= doubleTapThreshold
+            lastDownTime = now
             state = when {
                 doubleTap -> if (state == ShiftState.CAPS) ShiftState.OFF else ShiftState.CAPS
                 singleTapLatches -> if (state == ShiftState.CAPS) ShiftState.OFF else ShiftState.CAPS
@@ -86,7 +88,7 @@ class ModifierStateController(
 
         fun reset() {
             state = ShiftState.OFF
-            lastTapTime = 0
+            lastDownTime = 0
         }
     }
 
@@ -121,7 +123,9 @@ class ModifierStateController(
         lastKeyWasModifier = false
         lastModifierKeyCode = 0
         // Clear double-tap timing window for all modifiers to prevent tap-letter-tap from locking
+        ctrlState.lastDownTime = 0
         ctrlState.lastReleaseTime = 0
+        altState.lastDownTime = 0
         altState.lastReleaseTime = 0
     }
 
@@ -454,6 +458,7 @@ class ModifierStateController(
     fun clearAltState(resetPressedState: Boolean = false) {
         altState.latchActive = false
         altState.oneShot = false
+        altState.lastDownTime = 0
         altState.lastReleaseTime = 0
         if (resetPressedState) {
             altState.pressed = false
@@ -469,6 +474,7 @@ class ModifierStateController(
         ctrlState.latchActive = false
         ctrlState.oneShot = false
         ctrlState.latchFromNavMode = false
+        ctrlState.lastDownTime = 0
         ctrlState.lastReleaseTime = 0
         if (resetPressedState) {
             ctrlState.pressed = false
