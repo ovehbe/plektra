@@ -153,8 +153,26 @@ class ShiftOneShotBugTest {
         // Step 1: Tap Shift (SHIFT_LEFT)
         sendKey(service, KeyEvent.KEYCODE_SHIFT_LEFT, downTime, downTime)
         
+        // Check if shift was activated
+        val modController = try {
+            getField(service, "modifierStateController") as? rocks.pkb.plektra.core.ModifierStateController
+        } catch (e: Exception) {
+            null
+        }
+        val shiftOneShotAfterShiftTap = modController?.shiftOneShot ?: false
+        
         // Step 2: Press first key
         sendKey(service, scenario.firstKey, downTime + 100, downTime + 100)
+        
+        // HYPOTHESIS TEST: Check shift state after first key, BEFORE A
+        val textBeforeA = recorder.textBeforeCursor
+        val shiftOneShotAfterFirstKey = try {
+            val modController = getField(service, "modifierStateController") as? rocks.pkb.plektra.core.ModifierStateController
+            modController?.shiftOneShot ?: false
+        } catch (e: Exception) {
+            false
+        }
+        val autoCapEnabled = rocks.pkb.plektra.SettingsManager.getAutoCapitalizeFirstLetter(context)
         
         // Step 3: Press second key (A)
         sendKey(service, scenario.secondKey, downTime + 200, downTime + 200)
@@ -174,10 +192,15 @@ class ShiftOneShotBugTest {
         val expectedStr = if (scenario.expectedSecondKeyHasShift) "uppercase 'A'" else "lowercase 'a'"
         val actualStr = if (secondKeyHasShift) "uppercase 'A'" else "lowercase 'a'"
         
+        // Always include debug info for Space and Enter scenarios
+        val debugSuffix = if (scenario.firstKey == KeyEvent.KEYCODE_SPACE || scenario.firstKey == KeyEvent.KEYCODE_ENTER) {
+            " [afterShiftTap=$shiftOneShotAfterShiftTap, afterFirstKey=$shiftOneShotAfterFirstKey, autoCap=$autoCapEnabled]"
+        } else ""
+        
         return if (secondKeyHasShift == scenario.expectedSecondKeyHasShift) {
-            "${scenario.name}: ✓ PASS (expected $expectedStr, got $actualStr)"
+            "${scenario.name}: ✓ PASS (expected $expectedStr, got $actualStr)$debugSuffix"
         } else {
-            "${scenario.name}: ✗ FAIL (expected $expectedStr, got $actualStr)"
+            "${scenario.name}: ✗ FAIL (expected $expectedStr, got $actualStr)$debugSuffix"
         }
     }
 
@@ -196,6 +219,20 @@ class ShiftOneShotBugTest {
                 field.isAccessible = true
                 field.set(target, value)
                 return
+            } catch (e: NoSuchFieldException) {
+                clazz = clazz.superclass
+            }
+        }
+        throw NoSuchFieldException("Field $fieldName not found")
+    }
+
+    private fun getField(target: Any, fieldName: String): Any? {
+        var clazz: Class<*>? = target.javaClass
+        while (clazz != null) {
+            try {
+                val field: Field = clazz.getDeclaredField(fieldName)
+                field.isAccessible = true
+                return field.get(target)
             } catch (e: NoSuchFieldException) {
                 clazz = clazz.superclass
             }
