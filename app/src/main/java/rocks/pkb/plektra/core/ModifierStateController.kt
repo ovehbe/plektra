@@ -123,9 +123,7 @@ class ModifierStateController(
         lastKeyWasModifier = false
         lastModifierKeyCode = 0
         // Clear double-tap timing window for all modifiers to prevent tap-letter-tap from locking
-        ctrlState.lastDownTime = 0
         ctrlState.lastReleaseTime = 0
-        altState.lastDownTime = 0
         altState.lastReleaseTime = 0
     }
 
@@ -458,7 +456,6 @@ class ModifierStateController(
     fun clearAltState(resetPressedState: Boolean = false) {
         altState.latchActive = false
         altState.oneShot = false
-        altState.lastDownTime = 0
         altState.lastReleaseTime = 0
         if (resetPressedState) {
             altState.pressed = false
@@ -474,7 +471,6 @@ class ModifierStateController(
         ctrlState.latchActive = false
         ctrlState.oneShot = false
         ctrlState.latchFromNavMode = false
-        ctrlState.lastDownTime = 0
         ctrlState.lastReleaseTime = 0
         if (resetPressedState) {
             ctrlState.pressed = false
