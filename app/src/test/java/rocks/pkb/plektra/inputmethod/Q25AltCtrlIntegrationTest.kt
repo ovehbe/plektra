@@ -103,13 +103,13 @@ class Q25AltCtrlIntegrationTest {
         
         val downTime = 1000L
         
-        // Step 1: Alt tap (Q25 physical SYM = KEYCODE_ALT_RIGHT = 58)
-        println("\nStep 1: Alt tap (keycode 58)")
-        val altDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime)
-        val altUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime + 50)
+        // Step 1: Alt tap (Q25 physical Alt = KEYCODE_ALT_LEFT = 57)
+        println("\nStep 1: Alt tap (keycode 57)")
+        val altDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime)
+        val altUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime + 50)
         
-        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, altDown)
-        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, altUp)
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_LEFT, altDown)
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_LEFT, altUp)
         
         println("  Alt tap sent to service")
         
@@ -160,11 +160,11 @@ class Q25AltCtrlIntegrationTest {
         val downTime = 2000L
         
         // Alt tap
-        val altDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime)
-        val altUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime + 50)
+        val altDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime)
+        val altUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime + 50)
         
-        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, altDown)
-        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, altUp)
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_LEFT, altDown)
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_LEFT, altUp)
         
         println("Alt tap sent")
         
@@ -202,8 +202,8 @@ class Q25AltCtrlIntegrationTest {
         val downTime = 3000L
         
         // Alt DOWN (hold)
-        val altDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime)
-        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, altDown)
+        val altDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime)
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_LEFT, altDown)
         
         // Press 'A' while Alt is held
         val aDown = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_A, downTime + 50, downTime + 50, metaState = KeyEvent.META_ALT_ON)
@@ -213,8 +213,8 @@ class Q25AltCtrlIntegrationTest {
         service.onKeyUp(KeyEvent.KEYCODE_A, aUp)
         
         // Alt UP (release)
-        val altUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime + 150)
-        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, altUp)
+        val altUp = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime + 150)
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_LEFT, altUp)
         
         println("Commits after Alt+A hold: ${recorder.committedTexts}")
         
@@ -232,16 +232,16 @@ class Q25AltCtrlIntegrationTest {
         val downTime = 4000L
         
         // First tap
-        val alt1Down = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime)
-        val alt1Up = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime + 50)
-        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, alt1Down)
-        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, alt1Up)
+        val alt1Down = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime)
+        val alt1Up = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime + 50)
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_LEFT, alt1Down)
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_LEFT, alt1Up)
         
         // Second tap within threshold (< 500ms)
-        val alt2Down = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, downTime + 100, downTime + 100)
-        val alt2Up = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, downTime + 100, downTime + 150)
-        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, alt2Down)
-        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, alt2Up)
+        val alt2Down = keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT, downTime + 100, downTime + 100)
+        val alt2Up = keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, downTime + 100, downTime + 150)
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_LEFT, alt2Down)
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_LEFT, alt2Up)
         
         println("Double-tap sent")
         

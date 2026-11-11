@@ -869,7 +869,27 @@ class InputEventRouter(
             }
         }
 
+        // Before calling super, consume shift one-shot for non-modifier keys.
+        // Since we now consume Shift events (to prevent Android's MetaKeyKeyListener interference),
+        // we must manually consume shift one-shot for keys that reach the framework path.
+        if (shiftOneShotActive && !isModifierKey(keyCode)) {
+            callbacks.disableShiftOneShot()
+            callbacks.updateStatusBar()
+        }
+
         return EditableFieldRoutingResult.CallSuper
+    }
+
+    private fun isModifierKey(keyCode: Int): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT,
+            KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_ALT_RIGHT,
+            KeyEvent.KEYCODE_CTRL_LEFT, KeyEvent.KEYCODE_CTRL_RIGHT,
+            KeyEvent.KEYCODE_META_LEFT, KeyEvent.KEYCODE_META_RIGHT,
+            KeyEvent.KEYCODE_SYM, KeyEvent.KEYCODE_FUNCTION
+            -> true
+            else -> false
+        }
     }
 
     fun handleConfiguredForwardDeleteAlternatives(

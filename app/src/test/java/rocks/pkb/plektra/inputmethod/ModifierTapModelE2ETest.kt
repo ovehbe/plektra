@@ -353,15 +353,24 @@ class ModifierTapModelE2ETest {
         setField(service, "physicalKeyboardProfileOverride", "q25")
         
         val symLayout = getField<rocks.pkb.plektra.core.SymLayoutController>(service, "symLayoutController")
-        
-        // On Q25, physical Alt key sends ALT_RIGHT which gets remapped to SYM with symWasRemappedFromAlt=true
-        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, 1000L, 1000L))
-        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, 1000L, 1030L))
-        
-        // Alt should be active, Sym layout should NOT open
         val mod = modifierController()
-        assertTrue("Q25 remapped Alt should activate Alt modifier", mod.altOneShot || mod.altLatchActive)
-        assertFalse("Q25 remapped Alt should not open sym layout", symLayout.isSymActive())
+        
+        // On Q25, physical Alt sends ALT_LEFT and should activate Alt modifier
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_LEFT, keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_LEFT, 1000L, 1000L))
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_LEFT, keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_LEFT, 1000L, 1030L))
+        
+        assertTrue("Q25 physical Alt (ALT_LEFT) should activate Alt modifier", mod.altOneShot || mod.altLatchActive)
+        assertFalse("Q25 physical Alt should not open sym layout", symLayout.isSymActive())
+        
+        // Reset state
+        mod.clearAltState(resetPressedState = true)
+        
+        // Physical SYM key sends ALT_RIGHT, which should open sym layout, NOT act as Alt
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, 2000L, 2000L))
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, 2000L, 2030L))
+        
+        assertTrue("Q25 physical SYM key (ALT_RIGHT) should open sym layout", symLayout.isSymActive())
+        assertFalse("Q25 physical SYM key should NOT activate Alt modifier", mod.altOneShot || mod.altLatchActive)
     }
 
     // ========== HELPERS ==========
