@@ -333,7 +333,7 @@ class ModifierTapModelE2ETest {
         service.onKeyUp(KeyEvent.KEYCODE_SYM, keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SYM, 1000L, 1030L))
         
         // Sym layout should be open, Alt should NOT be active
-        // assertTrue("Real SYM key should open sym layout", symLayout.isSymActive())
+        assertTrue("Real SYM key should open sym layout", symLayout.isSymActive())
         val mod = modifierController()
         assertFalse("Real SYM key should not activate Alt", mod.altOneShot)
         assertFalse("Real SYM key should not latch Alt", mod.altLatchActive)
