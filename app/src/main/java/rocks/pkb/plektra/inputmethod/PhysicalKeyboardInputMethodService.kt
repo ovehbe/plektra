@@ -5244,6 +5244,26 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             variationInteractedDuringHold = false
             otherKeyInteractedDuringHold = false
             modifierDownTimes[keyCode] = event.eventTime
+            
+            // Call ModifierStateController handlers to set pressed state
+            when (keyCode) {
+                KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_ALT_RIGHT -> {
+                    modifierStateController.handleAltKeyDown(
+                        keyCode,
+                        now = ModifierKeyHandler.eventTimeOrUptime(event)
+                    )
+                }
+                KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> {
+                    val wasShiftOneShot = modifierStateController.shiftOneShot
+                    modifierStateController.handleShiftKeyDown(
+                        keyCode,
+                        now = ModifierKeyHandler.eventTimeOrUptime(event)
+                    )
+                    if (wasShiftOneShot && !modifierStateController.shiftOneShot) {
+                        suppressAutoCapRenderingAtCursorIfNeeded()
+                    }
+                }
+            }
         } else if (!isModifierKey && event?.repeatCount == 0) {
             if (
                 CompatibilityWorkarounds.isClicksPowerSyntheticShiftChord(
@@ -5711,19 +5731,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 if (result.shouldUpdateStatusBar) {
                     updateStatusBarText()
                 }
-                val isQuickTap = holdDuration < 300L && !variationInteractedDuringHold && !otherKeyInteractedDuringHold
-                if (stickyEnabled && isQuickTap) {
-                    val now = event?.eventTime ?: System.currentTimeMillis()
-                    if (lastAltTapUpTime > 0L && now - lastAltTapUpTime <= DOUBLE_TAP_THRESHOLD) {
-                        altModifierLayerLatched = true
-                        lastAltTapUpTime = 0L
-                        updateStatusBarText()
-                    } else {
-                        lastAltTapUpTime = now
-                    }
-                } else {
-                    lastAltTapUpTime = 0L
-                }
+                // Visual layer follows ModifierStateController latch state
+                altModifierLayerLatched = modifierStateController.altLatchActive
             }
             if (otherKeyInteractedDuringHold) altOneShot = false
             variationInteractedDuringHold = false
@@ -5875,19 +5884,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     if (result.shouldUpdateStatusBar) {
                         updateStatusBarText()
                     }
-                    val isQuickTap = holdDuration < 300L && !variationInteractedDuringHold && !otherKeyInteractedDuringHold
-                    if (stickyEnabled && isQuickTap) {
-                        val now = event?.eventTime ?: System.currentTimeMillis()
-                        if (lastShiftTapUpTime > 0L && now - lastShiftTapUpTime <= DOUBLE_TAP_THRESHOLD) {
-                            shiftLayerLatched = true
-                            lastShiftTapUpTime = 0L
-                            updateStatusBarText()
-                        } else {
-                            lastShiftTapUpTime = now
-                        }
-                    } else {
-                        lastShiftTapUpTime = 0L
-                    }
+                    // Visual layer follows ModifierStateController caps state
+                    shiftLayerLatched = modifierStateController.capsLockEnabled
                 }
                 variationInteractedDuringHold = false
                 otherKeyInteractedDuringHold = false
