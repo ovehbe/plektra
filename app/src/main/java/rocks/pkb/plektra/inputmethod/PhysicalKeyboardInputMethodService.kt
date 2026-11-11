@@ -5526,6 +5526,17 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 }
             }
         }
+        // Consume shift one-shot for non-modifier keys before routing. This ensures shift
+        // is consumed regardless of which code path the key takes (special handlers, InputEventRouter, CallSuper).
+        // Exception: Skip consumption for alphabetic keys - they apply shift first in InputEventRouter,
+        // THEN InputEventRouter calls the disableShiftOneShot callback to consume it after application.
+        // Since we now consume Shift events to prevent Android MetaKeyKeyListener interference,
+        // we must manually consume shift one-shot here for non-letter keys.
+        if (shiftOneShot && !isModifierKey(keyCode) && !isAlphabeticKey(keyCode)) {
+            modifierStateController.consumeShiftOneShot()
+            updateStatusBarText()
+        }
+
         if (
             inputEventRouter.handleConfiguredForwardDeleteAlternatives(
                 context = this,
@@ -5576,15 +5587,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 updateStatusBarText()
             }
             return true
-        }
-
-        // Consume shift one-shot for non-modifier keys before routing. This ensures shift
-        // is consumed regardless of which code path the key takes (special handlers, InputEventRouter, CallSuper).
-        // Since we now consume Shift events to prevent Android MetaKeyKeyListener interference,
-        // we must manually consume shift one-shot here.
-        if (shiftOneShot && !isModifierKey(keyCode)) {
-            modifierStateController.consumeShiftOneShot()
-            updateStatusBarText()
         }
 
         val routingDecision = inputEventRouter.routeEditableFieldKeyDown(
