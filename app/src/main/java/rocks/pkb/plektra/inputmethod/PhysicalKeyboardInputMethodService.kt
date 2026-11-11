@@ -98,6 +98,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         private const val NATIVE_TRACKPAD_MIN_SWIPE_VELOCITY_PX_PER_MS = 2f
         private const val KEYBOARD_SURFACE_TRANSITION_DELAY_MS = 32L
         private const val KEYBOARD_DEVICE_SURFACE_TRANSITION_DELAY_MS = 250L
+        private const val SYNTHETIC_DUPLICATE_WINDOW_MS = 60L
         private const val MODIFIER_ICON_OFF = 0
         private const val MODIFIER_ICON_ACTIVE = 1
         private const val MODIFIER_ICON_LOCKED = 2
@@ -329,6 +330,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private var altModifierLayerLatched: Boolean = false
     private var lastShiftTapUpTime: Long = 0L
     private var lastAltTapUpTime: Long = 0L
+    // Track recent real modifier events to filter synthetic duplicates (deviceId=-1, flags=0, zero-duration)
+    private val recentRealModifierEvents = mutableMapOf<Int, Long>() // keyCode -> eventTime
     private var symTogglePendingOnKeyUp: Boolean = false
     private var symChordUsedSinceKeyDown: Boolean = false
     private var symPhysicallyPressed: Boolean = false
@@ -773,6 +776,48 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             keyCode == KeyEvent.KEYCODE_ALT_LEFT ||
             keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
             keyCode == KEYCODE_SYM
+    }
+
+    /**
+     * Filters synthetic duplicate modifier key events that arrive as echoes from the framework.
+     * 
+     * Root cause: Unknown source (possibly Android framework echoing events back through IME).
+     * Synthetic events have: deviceId=-1, flags=0, eventTime==downTime (zero duration),
+     * and arrive within ~13-60ms of the real hardware event.
+     * 
+     * Returns true if the event should be dropped as a synthetic duplicate.
+     */
+    private fun isSyntheticModifierDuplicate(keyCode: Int, event: KeyEvent?): Boolean {
+        if (event == null) return false
+        
+        // Only filter Alt and Shift (Ctrl works correctly without filtering)
+        if (keyCode != KeyEvent.KEYCODE_ALT_LEFT && keyCode != KeyEvent.KEYCODE_ALT_RIGHT &&
+            keyCode != KeyEvent.KEYCODE_SHIFT_LEFT && keyCode != KeyEvent.KEYCODE_SHIFT_RIGHT) {
+            return false
+        }
+        
+        val isRealEvent = event.deviceId >= 0 || (event.flags and KeyEvent.FLAG_FROM_SYSTEM) != 0
+        val isSyntheticEvent = event.deviceId == -1 && event.flags == 0 && event.eventTime == event.downTime
+        
+        if (isRealEvent) {
+            // Track real events for duplicate detection
+            recentRealModifierEvents[keyCode] = event.eventTime
+            return false
+        }
+        
+        if (isSyntheticEvent) {
+            // Check if this is a duplicate of a recent real event
+            val lastRealEventTime = recentRealModifierEvents[keyCode]
+            if (lastRealEventTime != null) {
+                val timeSinceReal = Math.abs(event.eventTime - lastRealEventTime)
+                if (timeSinceReal <= SYNTHETIC_DUPLICATE_WINDOW_MS) {
+                    // This is a synthetic duplicate, drop it
+                    return true
+                }
+            }
+        }
+        
+        return false
     }
 
     private fun isMinimalPhoneHardwareActive(): Boolean {
@@ -4900,6 +4945,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         val keyCode = remapped.keyCode
         val event = remapped.event
+        
+        // Filter synthetic duplicate modifier events (deviceId=-1, flags=0, zero-duration echoes)
+        if (isSyntheticModifierDuplicate(keyCode, event)) {
+            return true
+        }
+        
         clicksPowerShiftTapFilter.shouldConsumeKeyDown(
             isClicksPowerKeyboard = DeviceSpecific.resolveInputProfile(
                 event,
@@ -5221,6 +5272,30 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (event?.repeatCount == 0 && isModifierKey) {
             // Pressing a latched key again cancels the visual latch and restores logical state.
             if ((keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) && shiftLayerLatched) {
+                if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG && event != null) {
+                    val altBefore = modifierStateController.captureAltStateString()
+                    val shiftBefore = modifierStateController.captureShiftStateString()
+                    val ctrlBefore = modifierStateController.captureCtrlStateString()
+                    ModifierDebugLog.logKeyEvent(
+                        action = "KEY_DOWN",
+                        keyCode = keyCode,
+                        scanCode = event.scanCode,
+                        metaState = event.metaState,
+                        repeatCount = event.repeatCount,
+                        flags = event.flags,
+                        deviceId = event.deviceId,
+                        source = event.source,
+                        eventTime = event.eventTime,
+                        downTime = event.downTime,
+                        handledBy = "unlock-while-shift-latched",
+                        altStateBefore = altBefore,
+                        altStateAfter = altBefore,
+                        shiftStateBefore = shiftBefore,
+                        shiftStateAfter = shiftBefore,
+                        ctrlStateBefore = ctrlBefore,
+                        ctrlStateAfter = ctrlBefore
+                    )
+                }
                 shiftLayerLatched = false
                 lastShiftTapUpTime = 0L
                 // Tapping SHIFT while the visual Shift layer is latched should fully disable Shift.
@@ -5231,6 +5306,30 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 return true
             }
             if ((keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) && altModifierLayerLatched) {
+                if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG && event != null) {
+                    val altBefore = modifierStateController.captureAltStateString()
+                    val shiftBefore = modifierStateController.captureShiftStateString()
+                    val ctrlBefore = modifierStateController.captureCtrlStateString()
+                    ModifierDebugLog.logKeyEvent(
+                        action = "KEY_DOWN",
+                        keyCode = keyCode,
+                        scanCode = event.scanCode,
+                        metaState = event.metaState,
+                        repeatCount = event.repeatCount,
+                        flags = event.flags,
+                        deviceId = event.deviceId,
+                        source = event.source,
+                        eventTime = event.eventTime,
+                        downTime = event.downTime,
+                        handledBy = "unlock-while-alt-latched",
+                        altStateBefore = altBefore,
+                        altStateAfter = altBefore,
+                        shiftStateBefore = shiftBefore,
+                        shiftStateAfter = shiftBefore,
+                        ctrlStateBefore = ctrlBefore,
+                        ctrlStateAfter = ctrlBefore
+                    )
+                }
                 altModifierLayerLatched = false
                 lastAltTapUpTime = 0L
                 // Tapping ALT while the visual Device SYM layer is latched should fully disable Alt.
@@ -5857,6 +5956,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (remapped.consume) return true
         val keyCode = remapped.keyCode
         val event = remapped.event
+        
+        // Filter synthetic duplicate modifier events (deviceId=-1, flags=0, zero-duration echoes)
+        if (isSyntheticModifierDuplicate(keyCode, event)) {
+            return true
+        }
+        
         if (keyCode == KeyEvent.KEYCODE_ENTER && consumeAltEnterUntilKeyUp) {
             consumeAltEnterUntilKeyUp = false
             return true
