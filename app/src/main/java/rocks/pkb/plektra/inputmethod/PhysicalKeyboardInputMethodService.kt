@@ -5457,7 +5457,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
 
         clearAltOnBoundaryIfNeeded(keyCode) { updateStatusBarText() }
-        if (keyCode == KeyEvent.KEYCODE_ENTER && modifierStateController.consumeShiftOneShot()) {
+        // Consume shift one-shot for Enter and Space boundary keys early.
+        // This ensures they consume shift even if they take special paths later.
+        if ((keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_SPACE) && 
+            modifierStateController.consumeShiftOneShot()) {
             updateStatusBarText()
         }
 
