@@ -293,9 +293,7 @@ class InputEventRouter(
         val capsLockEnabled: Boolean,
         val cursorUpdateDelayMs: Long,
         val altMappingsOverride: Map<Int, String>? = null,
-        val shouldDisableSmartFeatures: Boolean = false,
-        val symWasRemappedFromAlt: Boolean = false,
-        val physicalProfileOverride: String? = null
+        val shouldDisableSmartFeatures: Boolean = false
     )
 
     data class EditableFieldKeyDownControllers(
@@ -364,9 +362,7 @@ class InputEventRouter(
         // Define modifier keys
         val isShiftKey = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT
         val isCtrlKey = keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT
-        val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || 
-                       keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
-                       (keyCode == KeyEvent.KEYCODE_SYM && params.symWasRemappedFromAlt)
+        val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT
         val isModifierKey = isShiftKey || isCtrlKey || isAltKey
         
         // Alt one-shot is consumed by non-modifier keys only (letters, space, etc.)
@@ -455,19 +451,6 @@ class InputEventRouter(
             handleAltModifierKeyDown(
                 keyCode, event, controllers.modifierStateController, controllers.symLayoutController,
                 callbacks.updateStatusBar, callbacks.startSpeechRecognition
-            )
-            return EditableFieldRoutingResult.Consume
-        }
-
-        // On Q25, the physical Alt key (labeled "SYM") gets remapped to KEYCODE_SYM.
-        // Only treat KEYCODE_SYM as Alt when it was actually remapped from an Alt key.
-        if (keyCode == KeyEvent.KEYCODE_SYM && params.symWasRemappedFromAlt) {
-            // This SYM was remapped from a physical Alt key - treat it as Alt.
-            // Normalize keyCode to ALT_LEFT so ModifierKeyHandler accepts it.
-            handleAltModifierKeyDown(
-                KeyEvent.KEYCODE_ALT_LEFT, event, controllers.modifierStateController, controllers.symLayoutController,
-                callbacks.updateStatusBar, callbacks.startSpeechRecognition,
-                resetOtherKeyInteractedFlag = callbacks.resetOtherKeyInteracted
             )
             return EditableFieldRoutingResult.Consume
         }
@@ -583,8 +566,7 @@ class InputEventRouter(
                     callSuper = callbacks.callSuper,
                     toggleMinimalUi = callbacks.toggleMinimalUi,
                     alternateCharacterManager = controllers.alternateCharacterManager,
-                    altMappingsOverride = params.altMappingsOverride,
-                    physicalProfileOverride = params.physicalProfileOverride
+                    altMappingsOverride = params.altMappingsOverride
                 )
             ) {
                 return EditableFieldRoutingResult.Consume

@@ -4680,8 +4680,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val remapped = DeviceSpecific.remapHardwareKeyEvent(
             keyCode,
             event,
-            physicalKeyboardProfileOverride,
-            this
+            physicalKeyboardProfileOverride
         )
         val isClicksPowerKeyboard = !dispatchingClicksAccessibilityKeyEvent &&
             (event
@@ -4700,7 +4699,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             altButtonMode = SettingsManager.getClicksAltButtonMode(this),
             microphoneButtonMode = SettingsManager.getClicksMicrophoneButtonMode(this)
         )
-        return result.copy(symWasRemappedFromAlt = remapped.symWasRemappedFromAlt)
+        return result
     }
 
     override fun dispatchClicksAccessibilityKeyEvent(event: KeyEvent): Boolean {
@@ -5060,11 +5059,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
 
         // Adapted from Mircea Horea IONICĂ (mionica), pastiera 12ce0a35c1.
-        // Skip this check when processing Alt keys (or remapped SYM) to avoid clearing one-shot
-        val isAltOrSymKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT || 
-            (keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt)
+        // Skip this check when processing Alt keys to avoid clearing one-shot
+        val isAltKey = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT
         val isBlackberry = DeviceSpecific.hasBlackberryKeyboard(DeviceSpecific.resolveInputProfile(event, physicalKeyboardProfileOverride).profileId)
-        if (!isAltOrSymKey &&
+        if (!isAltKey &&
             hasEditableField && event?.repeatCount == 0 && keyCode == KeyEvent.KEYCODE_0 &&
             isBlackberry &&
             altActive(event) &&
@@ -5203,17 +5201,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ctrlOneShot ||
             ctrlLatchFromNavMode
 
-        // KEYCODE_SYM is only a modifier key when it was remapped from a physical Alt key (Q25).
-        // On other devices, it's the SYM key for cycling SYM pages.
-        val symIsAltModifier = keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt
-        
         val isModifierKey = keyCode == KeyEvent.KEYCODE_SHIFT_LEFT ||
             keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT ||
             keyCode == KeyEvent.KEYCODE_CTRL_LEFT ||
             keyCode == KeyEvent.KEYCODE_CTRL_RIGHT ||
             keyCode == KeyEvent.KEYCODE_ALT_LEFT ||
-            keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
-            symIsAltModifier
+            keyCode == KeyEvent.KEYCODE_ALT_RIGHT
 
         if (event?.repeatCount == 0 && isModifierKey) {
             // Pressing a latched key again cancels the visual latch and restores logical state.
@@ -5271,10 +5264,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         
         // If NO editable field is active, handle ONLY nav mode
         if (!hasEditableField) {
-            // Include KEYCODE_SYM when it was remapped from Alt (Q25)
-            val isAltKeyForInput = keyCode == KeyEvent.KEYCODE_ALT_LEFT || 
-                keyCode == KeyEvent.KEYCODE_ALT_RIGHT ||
-                (keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt)
+            val isAltKeyForInput = keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT
             if (KeyEventInputPolicy.appliesTo(info) && !navModeController.isNavModeActive() &&
                 (languageAlt || keyEventTextOutput.hasPressedKey(keyCode) || isAltKeyForInput)) {
                 return handleKeyEventInput(keyCode, event) || super.onKeyDown(keyCode, event)
@@ -5598,14 +5588,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 shiftOneShot = shiftOneShot,
                 capsLockEnabled = capsLockEnabled,
                 cursorUpdateDelayMs = CURSOR_UPDATE_DELAY,
-                symWasRemappedFromAlt = remapped.symWasRemappedFromAlt,
                 altMappingsOverride = if (dispatchingSoftwareKeyboardKey) {
                     AltModifierMappingResolver.resolve(assets, this)
                 } else {
                     null
                 },
-                shouldDisableSmartFeatures = shouldDisableSmartFeatures,
-                physicalProfileOverride = physicalKeyboardProfileOverride
+                shouldDisableSmartFeatures = shouldDisableSmartFeatures
             ),
             controllers = InputEventRouter.EditableFieldKeyDownControllers(
                 modifierStateController = modifierStateController,
@@ -5930,22 +5918,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Handle Alt release for double-tap
         if (keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
             handleAltModifierKeyUp(keyCode, event, allowVisualLayer = true)
-            return super.onKeyUp(keyCode, event)
-        }
-
-        // When KEYCODE_SYM was remapped from a physical Alt key (Q25), treat it as Alt
-        if (keyCode == KEYCODE_SYM && remapped.symWasRemappedFromAlt) {
-            // Normalize to ALT_LEFT so ModifierKeyHandler accepts it
-            handleAltModifierKeyUp(KeyEvent.KEYCODE_ALT_LEFT, event, allowVisualLayer = true)
-            // BUG FIX: Don't pass SYM key UP to framework if it was used in a chord (e.g., launcher shortcut)
-            // This prevents the Android stock SYM picker from appearing when launcher shortcut is used
-            if (symChordUsedSinceKeyDown) {
-                // Chord was used - consume the SYM key UP to prevent stock SYM picker
-                symPhysicallyPressed = false
-                symTogglePendingOnKeyUp = false
-                symChordUsedSinceKeyDown = false
-                return true
-            }
             return super.onKeyUp(keyCode, event)
         }
 
