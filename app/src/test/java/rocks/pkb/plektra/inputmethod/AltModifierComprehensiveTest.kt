@@ -107,42 +107,9 @@ class AltModifierComprehensiveTest {
                 KeySequence.HOLD_PLUS_LETTER
             )
             
-            // OFF setting with RIGHT key (Q25 SYM), CLEAN modifier state
-            for (lifecycle in criticalLifecycles) {
-                for (keySeq in criticalSequences) {
-                    val expected = when (keySeq) {
-                        KeySequence.TAP_THEN_1_LETTER,
-                        KeySequence.TAP_THEN_2_LETTERS,
-                        KeySequence.TAP_THEN_3_LETTERS -> ExpectedBehavior.ONE_SHOT
-                        KeySequence.DOUBLE_TAP -> ExpectedBehavior.LATCHED
-                        KeySequence.HOLD_PLUS_LETTER -> ExpectedBehavior.HELD_ONLY
-                        else -> ExpectedBehavior.ONE_SHOT
-                    }
-                    
-                    cases.add(TestCase(
-                        name = "OFF_${lifecycle}_${keySeq}_CLEAN_RIGHT",
-                        setting = Setting.OFF,
-                        lifecycle = lifecycle,
-                        keySequence = keySeq,
-                        modifierState = ModifierState.CLEAN,
-                        altKey = AltKey.RIGHT,
-                        expectedBehavior = expected
-                    ))
-                }
-            }
-            
-            // OFF with special keys
-            for (keySeq in listOf(KeySequence.TAP_THEN_SPACE, KeySequence.TAP_THEN_ENTER, KeySequence.TAP_THEN_BACKSPACE)) {
-                cases.add(TestCase(
-                    name = "OFF_FIRST_LAUNCH_${keySeq}_CLEAN_RIGHT",
-                    setting = Setting.OFF,
-                    lifecycle = Lifecycle.FIRST_LAUNCH,
-                    keySequence = keySeq,
-                    modifierState = ModifierState.CLEAN,
-                    altKey = AltKey.RIGHT,
-                    expectedBehavior = ExpectedBehavior.ONE_SHOT
-                ))
-            }
+            // NOTE: Removed RIGHT key (Q25 physical SYM / ALT_RIGHT) scenarios.
+            // After fix, physical SYM key opens sym layout, not acts as Alt modifier.
+            // These test cases tested the old buggy symWasRemappedFromAlt behavior.
             
             // OFF with LEFT key (verify both Alt keys)
             cases.add(TestCase(

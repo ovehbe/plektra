@@ -202,8 +202,8 @@ class AltOneShotBugTest {
         
         val downTime = System.currentTimeMillis()
         
-        // Step 1: Tap Alt (Q25 SYM = ALT_RIGHT)
-        sendKey(service, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime)
+        // Step 1: Tap Alt (Q25 physical Alt = ALT_LEFT)
+        sendKey(service, KeyEvent.KEYCODE_ALT_LEFT, downTime, downTime)
         
         // Step 2: Press first key
         sendKey(service, scenario.firstKey, downTime + 100, downTime + 100)
