@@ -122,32 +122,8 @@ class AltModifierComprehensiveTest {
                 expectedBehavior = ExpectedBehavior.ONE_SHOT
             ))
             
-            // ON scenarios (verify latch persists)
-            // Note: DOUBLE_TAP excluded - with toggle behavior, second tap unlatches (per upstream semantics)
-            for (keySeq in listOf(KeySequence.TAP_THEN_1_LETTER, KeySequence.TAP_THEN_2_LETTERS)) {
-                cases.add(TestCase(
-                    name = "ON_FIRST_LAUNCH_${keySeq}_CLEAN_RIGHT",
-                    setting = Setting.ON,
-                    lifecycle = Lifecycle.FIRST_LAUNCH,
-                    keySequence = keySeq,
-                    modifierState = ModifierState.CLEAN,
-                    altKey = AltKey.RIGHT,
-                    expectedBehavior = ExpectedBehavior.LATCHED
-                ))
-            }
-            
-            // DEFAULT scenarios (missing pref - should behave as OFF)
-            for (keySeq in listOf(KeySequence.TAP_THEN_1_LETTER, KeySequence.TAP_THEN_2_LETTERS)) {
-                cases.add(TestCase(
-                    name = "DEFAULT_FIRST_LAUNCH_${keySeq}_CLEAN_RIGHT",
-                    setting = Setting.DEFAULT,
-                    lifecycle = Lifecycle.FIRST_LAUNCH,
-                    keySequence = keySeq,
-                    modifierState = ModifierState.CLEAN,
-                    altKey = AltKey.RIGHT,
-                    expectedBehavior = ExpectedBehavior.ONE_SHOT
-                ))
-            }
+            // NOTE: ON and DEFAULT scenarios with AltKey.RIGHT also removed.
+            // Physical SYM key (ALT_RIGHT) opens sym layout, tested separately.
             
             return cases
         }
@@ -540,6 +516,51 @@ class AltModifierComprehensiveTest {
     }
 
     // Helper functions
+    @Test
+    fun q25SymKey_opensSymLayout_notAlt() {
+        println("\n${"=".repeat(80)}")
+        println("Q25 SYM KEY TEST")
+        println("Physical SYM key (ALT_RIGHT) should open sym layout, NOT activate Alt")
+        println("${"=".repeat(80)}")
+        
+        val context = RuntimeEnvironment.getApplication()
+        DeviceSpecific.clearTestOverrides()
+        SettingsManager.setPhysicalKeyboardProfileOverride(context, "Q25")
+        
+        val service = Robolectric.buildService(PhysicalKeyboardInputMethodService::class.java).create().get()
+        val recorder = RecordingInputConnection()
+        val inputConnection = recorder.asProxy()
+        val editorInfo = EditorInfo().apply {
+            inputType = InputType.TYPE_CLASS_TEXT
+            packageName = "rocks.pkb.plektra.test"
+        }
+        
+        setField(service, "mInputConnection", inputConnection)
+        setField(service, "mStartedInputConnection", inputConnection)
+        setField(service, "mInputEditorInfo", editorInfo)
+        setField(service, "isInputViewActive", true)
+        setField(service, "inputContextState", InputContextState.fromEditorInfo(editorInfo))
+        
+        service.onStartInput(editorInfo, false)
+        service.onStartInputView(editorInfo, false)
+        
+        val symLayout = getField<rocks.pkb.plektra.core.SymLayoutController>(service, "symLayoutController")
+        val mod = getField<rocks.pkb.plektra.core.ModifierStateController>(service, "modifierStateController")
+        
+        val downTime = 1000L
+        
+        // Press ALT_RIGHT (physical SYM key)
+        service.onKeyDown(KeyEvent.KEYCODE_ALT_RIGHT, keyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime))
+        service.onKeyUp(KeyEvent.KEYCODE_ALT_RIGHT, keyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ALT_RIGHT, downTime, downTime + 30))
+        
+        // Assert: SYM layout opened, Alt NOT activated
+        assertTrue("SYM key should open sym layout", symLayout.isSymActive())
+        assertFalse("SYM key should NOT activate Alt one-shot", mod.altOneShot)
+        assertFalse("SYM key should NOT activate Alt latch", mod.altLatchActive)
+        
+        println("✓ PASS: SYM key opened sym layout and did not activate Alt")
+    }
+
     private fun keyEvent(
         action: Int,
         keyCode: Int,
@@ -549,6 +570,21 @@ class AltModifierComprehensiveTest {
         repeatCount: Int = 0
     ): KeyEvent {
         return KeyEvent(downTime, eventTime, action, keyCode, repeatCount, metaState)
+    }
+    
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> getField(target: Any, fieldName: String): T {
+        var cls: Class<*>? = target.javaClass
+        while (cls != null) {
+            try {
+                val field = cls.getDeclaredField(fieldName)
+                field.isAccessible = true
+                return field.get(target) as T
+            } catch (_: NoSuchFieldException) {
+                cls = cls.superclass
+            }
+        }
+        error("Field not found: $fieldName")
     }
 
     private fun setField(target: Any, fieldName: String, value: Any?) {

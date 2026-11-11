@@ -170,7 +170,11 @@ class AltOneShotBugTest {
         
         // Configure setting
         val prefs = context.getSharedPreferences("plektra_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("alt_tap_latches", scenario.setting).apply()
+        prefs.edit()
+            .putBoolean("alt_tap_latches", scenario.setting)
+            // When latches are ON, disable clearAltOnSpace so Space/Enter don't clear the latch
+            .putBoolean("clear_alt_on_space", !scenario.setting)
+            .apply()
         
         // Setup Q25 profile
         DeviceSpecific.clearTestOverrides()
