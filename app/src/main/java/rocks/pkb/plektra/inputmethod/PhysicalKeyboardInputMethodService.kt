@@ -5875,7 +5875,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 otherKeyInteractedDuringHold = false
                 modifierDownTimes.remove(keyCode)
             }
-            return super.onKeyUp(keyCode, event)
+            // MUST consume Shift UP to prevent Android's MetaKeyKeyListener from
+            // managing META_SHIFT_ON/LOCKED sticky state alongside our state machine
+            return true
         }
         
         // Handle Ctrl release for double-tap
@@ -5918,7 +5920,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Handle Alt release for double-tap
         if (keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
             handleAltModifierKeyUp(keyCode, event, allowVisualLayer = true)
-            return super.onKeyUp(keyCode, event)
+            // MUST consume Alt UP to prevent Android's MetaKeyKeyListener from
+            // managing META_ALT_ON/LOCKED sticky state alongside our state machine
+            return true
         }
 
         // Toggle SYM layout on key release only when SYM was tapped alone.

@@ -412,7 +412,9 @@ class InputEventRouter(
                     callbacks.refreshStatusBar()
                 }
             }
-            return EditableFieldRoutingResult.CallSuper
+            // MUST consume Shift events to prevent Android's MetaKeyKeyListener sticky state
+            // from interfering with our state machine. Framework tracks META_SHIFT_ON/LOCKED.
+            return EditableFieldRoutingResult.Consume
         }
 
         if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
