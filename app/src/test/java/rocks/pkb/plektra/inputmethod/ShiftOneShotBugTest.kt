@@ -125,6 +125,9 @@ class ShiftOneShotBugTest {
     private fun runScenario(scenario: TestScenario): String {
         val context: Context = RuntimeEnvironment.getApplication()
         
+        // Disable auto-cap to isolate shift one-shot behavior
+        SettingsManager.setAutoCapitalizeFirstLetter(context, false)
+        
         // Set shift_tap_latches setting
         SettingsManager.setShiftTapLatches(context, scenario.setting)
         
@@ -153,26 +156,8 @@ class ShiftOneShotBugTest {
         // Step 1: Tap Shift (SHIFT_LEFT)
         sendKey(service, KeyEvent.KEYCODE_SHIFT_LEFT, downTime, downTime)
         
-        // Check if shift was activated
-        val modController = try {
-            getField(service, "modifierStateController") as? rocks.pkb.plektra.core.ModifierStateController
-        } catch (e: Exception) {
-            null
-        }
-        val shiftOneShotAfterShiftTap = modController?.shiftOneShot ?: false
-        
         // Step 2: Press first key
         sendKey(service, scenario.firstKey, downTime + 100, downTime + 100)
-        
-        // HYPOTHESIS TEST: Check shift state after first key, BEFORE A
-        val textBeforeA = recorder.textBeforeCursor
-        val shiftOneShotAfterFirstKey = try {
-            val modController = getField(service, "modifierStateController") as? rocks.pkb.plektra.core.ModifierStateController
-            modController?.shiftOneShot ?: false
-        } catch (e: Exception) {
-            false
-        }
-        val autoCapEnabled = rocks.pkb.plektra.SettingsManager.getAutoCapitalizeFirstLetter(context)
         
         // Step 3: Press second key (A)
         sendKey(service, scenario.secondKey, downTime + 200, downTime + 200)
@@ -192,15 +177,10 @@ class ShiftOneShotBugTest {
         val expectedStr = if (scenario.expectedSecondKeyHasShift) "uppercase 'A'" else "lowercase 'a'"
         val actualStr = if (secondKeyHasShift) "uppercase 'A'" else "lowercase 'a'"
         
-        // Always include debug info for Space and Enter scenarios
-        val debugSuffix = if (scenario.firstKey == KeyEvent.KEYCODE_SPACE || scenario.firstKey == KeyEvent.KEYCODE_ENTER) {
-            " [afterShiftTap=$shiftOneShotAfterShiftTap, afterFirstKey=$shiftOneShotAfterFirstKey, autoCap=$autoCapEnabled]"
-        } else ""
-        
         return if (secondKeyHasShift == scenario.expectedSecondKeyHasShift) {
-            "${scenario.name}: ✓ PASS (expected $expectedStr, got $actualStr)$debugSuffix"
+            "${scenario.name}: ✓ PASS (expected $expectedStr, got $actualStr)"
         } else {
-            "${scenario.name}: ✗ FAIL (expected $expectedStr, got $actualStr)$debugSuffix"
+            "${scenario.name}: ✗ FAIL (expected $expectedStr, got $actualStr)"
         }
     }
 
@@ -219,20 +199,6 @@ class ShiftOneShotBugTest {
                 field.isAccessible = true
                 field.set(target, value)
                 return
-            } catch (e: NoSuchFieldException) {
-                clazz = clazz.superclass
-            }
-        }
-        throw NoSuchFieldException("Field $fieldName not found")
-    }
-
-    private fun getField(target: Any, fieldName: String): Any? {
-        var clazz: Class<*>? = target.javaClass
-        while (clazz != null) {
-            try {
-                val field: Field = clazz.getDeclaredField(fieldName)
-                field.isAccessible = true
-                return field.get(target)
             } catch (e: NoSuchFieldException) {
                 clazz = clazz.superclass
             }
@@ -283,6 +249,87 @@ class ShiftOneShotBugTest {
                     }
                 }
             } as InputConnection
+        }
+    }
+
+    /**
+     * Auto-capitalization tests: Verify that auto-cap correctly capitalizes after Enter/Space.
+     * These scenarios do NOT involve Shift tap; the uppercase A comes from auto-cap re-arming shift.
+     */
+    @Test
+    fun autoCapAfterBoundaryKeys() {
+        val context: Context = RuntimeEnvironment.getApplication()
+        
+        // Enable auto-cap for these tests
+        SettingsManager.setAutoCapitalizeFirstLetter(context, true)
+        SettingsManager.setShiftTapLatches(context, false)
+        
+        val scenarios = listOf(
+            "AutoCap_Enter_then_A" to KeyEvent.KEYCODE_ENTER,
+            "AutoCap_Space_then_A" to KeyEvent.KEYCODE_SPACE
+        )
+        
+        val results = mutableListOf<String>()
+        for ((name, boundaryKey) in scenarios) {
+            val result = runAutoCapScenario(name, boundaryKey)
+            results.add(result)
+            println(result)
+        }
+        
+        // Aggregate result
+        val passCount = results.count { it.contains("✓ PASS") }
+        val failCount = results.count { it.contains("✗ FAIL") }
+        println("\n=== AUTO-CAP RESULT: $passCount/${scenarios.size} passed, $failCount failed ===")
+        
+        if (failCount > 0) {
+            throw AssertionError("$failCount/${scenarios.size} auto-cap scenarios failed:\n" + 
+                results.filter { it.contains("✗ FAIL") }.joinToString("\n"))
+        }
+    }
+    
+    private fun runAutoCapScenario(name: String, boundaryKey: Int): String {
+        val context: Context = RuntimeEnvironment.getApplication()
+        
+        // Enable auto-cap
+        SettingsManager.setAutoCapitalizeFirstLetter(context, true)
+        SettingsManager.setShiftTapLatches(context, false)
+        
+        // Create service
+        val service = Robolectric.buildService(PhysicalKeyboardInputMethodService::class.java)
+            .create()
+            .get()
+        
+        // Setup recording InputConnection
+        val recorder = RecordingInputConnection()
+        val inputConnection = recorder.asProxy()
+        val editorInfo = EditorInfo().apply {
+            // Enable auto-cap: use TYPE_TEXT_FLAG_CAP_SENTENCES
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            packageName = "rocks.pkb.plektra.test"
+        }
+        
+        setField(service, "mInputConnection", inputConnection)
+        setField(service, "mStartedInputConnection", inputConnection)
+        setField(service, "mInputEditorInfo", editorInfo)
+        setField(service, "isInputViewActive", true)
+        setField(service, "inputContextState", InputContextState.fromEditorInfo(editorInfo))
+        
+        val downTime = System.currentTimeMillis()
+        
+        // Step 1: Press boundary key (Enter or Space) in empty field
+        sendKey(service, boundaryKey, downTime, downTime)
+        
+        // Step 2: Press A
+        sendKey(service, KeyEvent.KEYCODE_A, downTime + 100, downTime + 100)
+        
+        // Analyze: A should be uppercase from auto-cap
+        val lastText = recorder.committedTexts.lastOrNull() ?: ""
+        val isUppercase = lastText == "A"
+        
+        return if (isUppercase) {
+            "$name: ✓ PASS (auto-cap gave uppercase 'A')"
+        } else {
+            "$name: ✗ FAIL (expected uppercase 'A' from auto-cap, got '$lastText')"
         }
     }
 }

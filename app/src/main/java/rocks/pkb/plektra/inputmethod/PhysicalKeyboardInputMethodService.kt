@@ -5457,10 +5457,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
 
         clearAltOnBoundaryIfNeeded(keyCode) { updateStatusBarText() }
-        // Consume shift one-shot for Enter and Space boundary keys early.
-        // This ensures they consume shift even if they take special paths later.
-        if ((keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_SPACE) && 
-            modifierStateController.consumeShiftOneShot()) {
+        if (keyCode == KeyEvent.KEYCODE_ENTER && modifierStateController.consumeShiftOneShot()) {
             updateStatusBarText()
         }
 
@@ -5540,14 +5537,16 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         ) {
             return true
         }
+
+        // Consume shift one-shot for non-modifier, non-letter keys before routing.
+        // Letters consume shift themselves in InputEventRouter after applying it.
+        // This ensures Space/Comma/Period and other non-letter keys consume shift.
+        if (shiftOneShot && !isModifierKey(keyCode) && !isAlphabeticKey(keyCode)) {
+            modifierStateController.consumeShiftOneShot()
+            updateStatusBarText()
+        }
+
         if (!altActiveNow) {
-            // Consume shift one-shot for non-letter keys before handleTextInputPipeline.
-            // Letters will consume shift later in routeEditableFieldKeyDown after applying it.
-            // This ensures Space/Enter/Comma/Period consume shift even if handleTextInputPipeline returns early.
-            if (shiftOneShot && !isModifierKey(keyCode) && !isAlphabeticKey(keyCode)) {
-                modifierStateController.consumeShiftOneShot()
-                updateStatusBarText()
-            }
             if (
                 inputEventRouter.handleTextInputPipeline(
                     context = this,

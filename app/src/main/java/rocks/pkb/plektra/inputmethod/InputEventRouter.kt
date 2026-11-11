@@ -666,7 +666,6 @@ class InputEventRouter(
                 shouldDisableSmartPunctuation = params.shouldDisableSmartFeatures
             )
         ) {
-            if (shiftOneShotActive) callbacks.disableShiftOneShot()
             suggestionController?.onCharacterCommitted("'", ic)
             if (smartReplacementText.isNotEmpty()) {
                 suggestionController?.onCharacterCommitted(smartReplacementText, ic)
@@ -683,7 +682,6 @@ class InputEventRouter(
                 shouldDisableSmartPunctuation = params.shouldDisableSmartFeatures
             )
         ) {
-            if (shiftOneShotActive) callbacks.disableShiftOneShot()
             Handler(Looper.getMainLooper()).postDelayed({
                 callbacks.updateStatusBar()
             }, params.cursorUpdateDelayMs)
@@ -696,7 +694,6 @@ class InputEventRouter(
         // Ignore system-generated repeats on multi-tap keys so holding the key
         // won't churn through tap levels. Legacy keys keep their normal repeat.
         if (shouldUseMultiTap && (event?.repeatCount ?: 0) > 0) {
-            if (shiftOneShotActive) callbacks.disableShiftOneShot()
             return EditableFieldRoutingResult.Consume
         }
 
