@@ -43,6 +43,7 @@ import rocks.pkb.plektra.inputmethod.NotificationHelper
 import rocks.pkb.plektra.core.AutoCorrectionManager
 import rocks.pkb.plektra.core.DeferredPunctuationSpaceTracker
 import rocks.pkb.plektra.core.InputContextState
+import rocks.pkb.plektra.core.ModifierDebugLog
 import rocks.pkb.plektra.core.ModifierStateController
 import rocks.pkb.plektra.core.NavModeController
 import rocks.pkb.plektra.core.SymLayoutController
@@ -5248,17 +5249,75 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             // Call ModifierStateController handlers to set pressed state
             when (keyCode) {
                 KeyEvent.KEYCODE_ALT_LEFT, KeyEvent.KEYCODE_ALT_RIGHT -> {
-                    modifierStateController.handleAltKeyDown(
-                        keyCode,
-                        now = ModifierKeyHandler.eventTimeOrUptime(event)
-                    )
+                    if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG && event != null) {
+                        val altBefore = modifierStateController.captureAltStateString()
+                        val shiftBefore = modifierStateController.captureShiftStateString()
+                        val ctrlBefore = modifierStateController.captureCtrlStateString()
+                        modifierStateController.handleAltKeyDown(
+                            keyCode,
+                            now = ModifierKeyHandler.eventTimeOrUptime(event)
+                        )
+                        ModifierDebugLog.logKeyEvent(
+                            action = "KEY_DOWN",
+                            keyCode = keyCode,
+                            scanCode = event.scanCode,
+                            metaState = event.metaState,
+                            repeatCount = event.repeatCount,
+                            flags = event.flags,
+                            deviceId = event.deviceId,
+                            source = event.source,
+                            eventTime = event.eventTime,
+                            downTime = event.downTime,
+                            handledBy = "handleAltKeyDown",
+                            altStateBefore = altBefore,
+                            altStateAfter = modifierStateController.captureAltStateString(),
+                            shiftStateBefore = shiftBefore,
+                            shiftStateAfter = modifierStateController.captureShiftStateString(),
+                            ctrlStateBefore = ctrlBefore,
+                            ctrlStateAfter = modifierStateController.captureCtrlStateString()
+                        )
+                    } else {
+                        modifierStateController.handleAltKeyDown(
+                            keyCode,
+                            now = ModifierKeyHandler.eventTimeOrUptime(event)
+                        )
+                    }
                 }
                 KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> {
                     val wasShiftOneShot = modifierStateController.shiftOneShot
-                    modifierStateController.handleShiftKeyDown(
-                        keyCode,
-                        now = ModifierKeyHandler.eventTimeOrUptime(event)
-                    )
+                    if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG && event != null) {
+                        val altBefore = modifierStateController.captureAltStateString()
+                        val shiftBefore = modifierStateController.captureShiftStateString()
+                        val ctrlBefore = modifierStateController.captureCtrlStateString()
+                        modifierStateController.handleShiftKeyDown(
+                            keyCode,
+                            now = ModifierKeyHandler.eventTimeOrUptime(event)
+                        )
+                        ModifierDebugLog.logKeyEvent(
+                            action = "KEY_DOWN",
+                            keyCode = keyCode,
+                            scanCode = event.scanCode,
+                            metaState = event.metaState,
+                            repeatCount = event.repeatCount,
+                            flags = event.flags,
+                            deviceId = event.deviceId,
+                            source = event.source,
+                            eventTime = event.eventTime,
+                            downTime = event.downTime,
+                            handledBy = "handleShiftKeyDown",
+                            altStateBefore = altBefore,
+                            altStateAfter = modifierStateController.captureAltStateString(),
+                            shiftStateBefore = shiftBefore,
+                            shiftStateAfter = modifierStateController.captureShiftStateString(),
+                            ctrlStateBefore = ctrlBefore,
+                            ctrlStateAfter = modifierStateController.captureCtrlStateString()
+                        )
+                    } else {
+                        modifierStateController.handleShiftKeyDown(
+                            keyCode,
+                            now = ModifierKeyHandler.eventTimeOrUptime(event)
+                        )
+                    }
                     if (wasShiftOneShot && !modifierStateController.shiftOneShot) {
                         suppressAutoCapRenderingAtCursorIfNeeded()
                     }
@@ -5724,12 +5783,44 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 modifierStateController.altPhysicallyPressed = false
                 updateStatusBarText()
             } else {
-                val result = modifierStateController.handleAltKeyUp(
-                    keyCode,
-                    now = ModifierKeyHandler.eventTimeOrUptime(event)
-                )
-                if (result.shouldUpdateStatusBar) {
-                    updateStatusBarText()
+                if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG && event != null) {
+                    val altBefore = modifierStateController.captureAltStateString()
+                    val shiftBefore = modifierStateController.captureShiftStateString()
+                    val ctrlBefore = modifierStateController.captureCtrlStateString()
+                    val result = modifierStateController.handleAltKeyUp(
+                        keyCode,
+                        now = ModifierKeyHandler.eventTimeOrUptime(event)
+                    )
+                    ModifierDebugLog.logKeyEvent(
+                        action = "KEY_UP",
+                        keyCode = keyCode,
+                        scanCode = event.scanCode,
+                        metaState = event.metaState,
+                        repeatCount = event.repeatCount,
+                        flags = event.flags,
+                        deviceId = event.deviceId,
+                        source = event.source,
+                        eventTime = event.eventTime,
+                        downTime = event.downTime,
+                        handledBy = "handleAltKeyUp",
+                        altStateBefore = altBefore,
+                        altStateAfter = modifierStateController.captureAltStateString(),
+                        shiftStateBefore = shiftBefore,
+                        shiftStateAfter = modifierStateController.captureShiftStateString(),
+                        ctrlStateBefore = ctrlBefore,
+                        ctrlStateAfter = modifierStateController.captureCtrlStateString()
+                    )
+                    if (result.shouldUpdateStatusBar) {
+                        updateStatusBarText()
+                    }
+                } else {
+                    val result = modifierStateController.handleAltKeyUp(
+                        keyCode,
+                        now = ModifierKeyHandler.eventTimeOrUptime(event)
+                    )
+                    if (result.shouldUpdateStatusBar) {
+                        updateStatusBarText()
+                    }
                 }
                 // Visual layer follows ModifierStateController latch state
                 altModifierLayerLatched = modifierStateController.altLatchActive
@@ -5880,9 +5971,38 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     modifierStateController.shiftPhysicallyPressed = false
                     updateStatusBarText()
                 } else {
-                    val result = modifierStateController.handleShiftKeyUp(keyCode)
-                    if (result.shouldUpdateStatusBar) {
-                        updateStatusBarText()
+                    if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG && event != null) {
+                        val altBefore = modifierStateController.captureAltStateString()
+                        val shiftBefore = modifierStateController.captureShiftStateString()
+                        val ctrlBefore = modifierStateController.captureCtrlStateString()
+                        val result = modifierStateController.handleShiftKeyUp(keyCode)
+                        ModifierDebugLog.logKeyEvent(
+                            action = "KEY_UP",
+                            keyCode = keyCode,
+                            scanCode = event.scanCode,
+                            metaState = event.metaState,
+                            repeatCount = event.repeatCount,
+                            flags = event.flags,
+                            deviceId = event.deviceId,
+                            source = event.source,
+                            eventTime = event.eventTime,
+                            downTime = event.downTime,
+                            handledBy = "handleShiftKeyUp",
+                            altStateBefore = altBefore,
+                            altStateAfter = modifierStateController.captureAltStateString(),
+                            shiftStateBefore = shiftBefore,
+                            shiftStateAfter = modifierStateController.captureShiftStateString(),
+                            ctrlStateBefore = ctrlBefore,
+                            ctrlStateAfter = modifierStateController.captureCtrlStateString()
+                        )
+                        if (result.shouldUpdateStatusBar) {
+                            updateStatusBarText()
+                        }
+                    } else {
+                        val result = modifierStateController.handleShiftKeyUp(keyCode)
+                        if (result.shouldUpdateStatusBar) {
+                            updateStatusBarText()
+                        }
                     }
                     // Visual layer follows ModifierStateController caps state
                     shiftLayerLatched = modifierStateController.capsLockEnabled

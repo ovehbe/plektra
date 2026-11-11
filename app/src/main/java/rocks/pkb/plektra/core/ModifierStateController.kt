@@ -515,4 +515,44 @@ class ModifierStateController(
         }
         modifierKeyHandler.resetAltState(altState)
     }
+
+    /**
+     * Capture Alt modifier state as a compact string for debug logging.
+     */
+    fun captureAltStateString(): String {
+        val parts = mutableListOf<String>()
+        if (altPressed) parts.add("pressed")
+        if (altPhysicallyPressed) parts.add("physical")
+        if (altOneShot) parts.add("oneShot")
+        if (altLatchActive) parts.add("latch")
+        return if (parts.isEmpty()) "OFF" else parts.joinToString("|")
+    }
+
+    /**
+     * Capture Shift modifier state as a compact string for debug logging.
+     */
+    fun captureShiftStateString(): String {
+        val parts = mutableListOf<String>()
+        if (shiftPressed) parts.add("pressed")
+        if (shiftPhysicallyPressed) parts.add("physical")
+        when (shiftStateMachine.state) {
+            ShiftState.ONE_SHOT -> parts.add("oneShot")
+            ShiftState.CAPS -> parts.add("CAPS")
+            ShiftState.OFF -> {}
+        }
+        return if (parts.isEmpty()) "OFF" else parts.joinToString("|")
+    }
+
+    /**
+     * Capture Ctrl modifier state as a compact string for debug logging.
+     */
+    fun captureCtrlStateString(): String {
+        val parts = mutableListOf<String>()
+        if (ctrlPressed) parts.add("pressed")
+        if (ctrlPhysicallyPressed) parts.add("physical")
+        if (ctrlOneShot) parts.add("oneShot")
+        if (ctrlLatchActive) parts.add("latch")
+        if (ctrlLatchFromNavMode) parts.add("navMode")
+        return if (parts.isEmpty()) "OFF" else parts.joinToString("|")
+    }
 }

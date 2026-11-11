@@ -711,6 +711,74 @@ fun AdvancedSettingsScreen(
                                 )
                             }
                         }
+
+                        // Modifier Debug Log Export (nightly and sideload builds only)
+                        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+                            val exportLauncher = rememberLauncherForActivityResult(
+                                ActivityResultContracts.CreateDocument("text/plain")
+                            ) { uri ->
+                                if (uri != null) {
+                                    scope.launch {
+                                        try {
+                                            val text = rocks.pkb.plektra.core.ModifierDebugLog.exportAsText()
+                                            context.contentResolver.openOutputStream(uri)?.use { output ->
+                                                output.write(text.toByteArray())
+                                            }
+                                            snackbarHostState.showSnackbar("Debug log exported successfully")
+                                        } catch (e: Exception) {
+                                            snackbarHostState.showSnackbar("Failed to export debug log: ${e.message}")
+                                        }
+                                    }
+                                }
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .clickable {
+                                        val formatter = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US)
+                                        val filename = "modifier-debug-log-${formatter.format(Date())}.txt"
+                                        exportLauncher.launch(filename)
+                                    },
+                                shape = MaterialTheme.shapes.medium,
+                                tonalElevation = 1.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Backup,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Export Modifier Debug Log",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "Export last 500 modifier key events for debugging",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
