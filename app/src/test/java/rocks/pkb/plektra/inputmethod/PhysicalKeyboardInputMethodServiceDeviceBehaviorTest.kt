@@ -1164,7 +1164,9 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         )
 
         val modifier = modifierController()
-        assertFalse(handled)
+        // After fix: Shift returns true (consumed) to prevent framework MetaKeyKeyListener interference
+        assertTrue(handled)
+        // The key assertions: both one-shots active, no layout switch triggered
         assertTrue(modifier.altOneShot)
         assertTrue(modifier.shiftOneShot)
         assertFalse(modifier.altPhysicallyPressed)
