@@ -46,7 +46,50 @@
 
 ## Implementation Steps
 
-1. Modify `ModifierKeyHandler` to add DOWN time tracking
-2. Update `ModifierStateController` to remove `ShiftStateMachine` and use unified handler
-3. Test and verify fixes
-4. Update SYM key handling if needed
+1. ✅ Modify `ModifierKeyHandler` to add DOWN time tracking
+2. ✅ Update `ShiftStateMachine` to use DOWN time tracking (kept separate for Caps vs Latch distinction)
+3. ✅ Fix InputEventRouter Shift one-shot consumption bug
+4. ✅ Test and verify fixes - all 23 tests pass
+5. ✅ Verify SYM key handling - no regression found
+
+## Final Results
+
+### All 23 E2E Tests Pass ✓
+
+**Ctrl Tests** (all pass):
+- ctrl_singleTap_enablesOneShot ✓
+- ctrl_doubleTapFast_enablesLatch ✓
+- ctrl_oneShotThenSlowTap_turnsOff ✓
+- ctrl_latchThenTap_turnsOff ✓
+- ctrl_oneShotConsumedByLetter_turnsOff ✓
+- ctrl_tapLetterTap_doesNotLatch ✓
+- ctrl_veryFastDoubleTap_overlappingDownUp_stillLatches ✓
+
+**Alt Tests** (all pass):
+- alt_singleTap_enablesOneShot ✓
+- alt_doubleTapFast_enablesLatch ✓
+- alt_oneShotThenSlowTap_turnsOff ✓
+- alt_latchThenTap_turnsOff ✓
+- alt_oneShotConsumedByLetter_turnsOff ✓
+- alt_tapLetterTap_doesNotLatch ✓
+- alt_veryFastDoubleTap_overlappingDownUp_stillLatches ✓
+
+**Shift Tests** (all pass):
+- shift_singleTap_enablesOneShot ✓
+- shift_doubleTapFast_enablesLatch ✓
+- shift_oneShotThenSlowTap_turnsOff ✓
+- shift_latchThenTap_turnsOff ✓
+- shift_oneShotConsumedByLetter_turnsOff ✓
+- shift_tapLetterTap_doesNotLatch ✓
+- shift_veryFastDoubleTap_overlappingDownUp_stillLatches ✓
+
+**SYM Key Tests** (all pass):
+- realSymKey_opensSymLayout_notAlt ✓
+- q25RemappedAlt_actsAsAlt_notSymLayout ✓
+
+### Commits Pushed
+
+1. `1ff1ba99` - Fix modifier tap timing and Shift one-shot consumption
+2. `6a52eef4` - Enable and verify SYM key regression test
+
+HEAD at `6a52eef4`, pushed to `origin/cursor/fix-alt-ctrl-keyboard-bugs-38b2`
