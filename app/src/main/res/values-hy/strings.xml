@@ -196,7 +196,6 @@
     <string name="launcher_shortcut_assignment_key_name">Ստեղն %1$d</string>
     <string name="power_shortcuts_title">Արագ դյուրանցումներ</string>
     <string name="power_shortcuts_description">Սեղմեք SYM, ապա ստեղն՝ տեքստային դաշտից դուրս դյուրանցում գործարկելու համար</string>
-    <string name="power_shortcuts_press_key">Գործարկելու համար սեղմեք դյուրանցման ստեղնը</string>
     <string name="notification_nav_mode_channel_name">Նավիգացիայի ռեժիմ</string>
     <string name="notification_nav_mode_channel_description">Նավիգացիայի ռեժիմի ծանուցումներ</string>
     <string name="notification_nav_mode_activated_title">Նավիգացիայի ռեժիմը միացված է</string>
@@ -663,12 +662,12 @@
     <string name="keyboard_profile_option_mp01">Minimal Phone (MP01)</string>
     <string name="keyboard_currency_symbol_title">Արժույթի նշան</string>
     <string name="keyboard_currency_symbol_description">Նշան, որը մուտքագրվում է արժույթի հատուկ ապարատային ստեղներով։</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Արագ գործարկում, SYM դյուրանցումներ և հավելվածների ստեղների նշանակումներ</string>
     <string name="starter_launcher_shortcuts_intro">Այս կարգավորումները կիսում են հավելված-ստեղն նշանակումների մեկ ցուցակ։ Ընտրեք, թե Plektra-ն որտեղ պետք է լսի այդ նշանակված ստեղները։</string>
     <string name="launcher_shortcuts_configure_description_with_quick_launcher">Հպեք ստեղնին՝ հավելված նշանակելու կամ փոխարինելու համար։ QuickLauncher-ը այժմ նշանակված է %1$s-ին։</string>
     <string name="quick_launcher_default_blocked_hint">Նոր․ SYM-ը կարող է բացել QuickLauncher-ը։ Plektra-ն սովորաբար այն կնշանակեր Space-ին, բայց Space-ն արդեն դյուրանցում ունի։ Բացեք նշանակումների էջը և ցանկացած ստեղնի վրա ընտրեք «Բացել QuickLauncher»-ը՝ փորձելու համար։</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Մուտքագրեք որոնելու համար։ Enter-ը բացում է առաջին արդյունքը։</string>
     <string name="quick_launcher_close">Փակել</string>
     <string name="quick_launcher_no_entries_match">Ոչ մի տարր չի համապատասխանում \"%1$s\"-ին։</string>

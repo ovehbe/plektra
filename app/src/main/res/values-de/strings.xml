@@ -267,7 +267,7 @@
     <string name="about_plektra_github_title">Plektra auf GitHub einen Stern geben</string>
     <string name="about_plektra_github_description">Folge dem Nachfolgeprojekt und unterstütze seinen Start.</string>
     <string name="about_sbom_export">Software-Stückliste exportieren (CycloneDX-JSON)</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Schnellstart, SYM-Tastenkürzel und Launcher-Tastenzuweisungen</string>
     <string name="starter_launcher_shortcuts_intro">Diese Einstellungen nutzen dieselbe Liste von Launcher-Tastenzuweisungen. Hier legst du fest, wo Plektra auf diese Tasten reagieren soll.</string>
     <string name="launcher_shortcuts_title">Homescreen-Tastenkürzel</string>
@@ -277,7 +277,7 @@
     <string name="launcher_shortcuts_configure_description">Taste antippen, um einen Command zuzuweisen oder zu ersetzen. Die Zuweisungen gelten für beide Auslösearten.</string>
     <string name="launcher_shortcuts_configure_description_with_quick_launcher">Taste antippen, um einen Command zuzuweisen oder zu ersetzen. Der Schnellstarter liegt aktuell auf %1$s.</string>
     <string name="quick_launcher_default_blocked_hint">Neu: SYM kann den Schnellstarter öffnen. Normalerweise würde Plektra ihn auf Space legen, aber Space hat bereits eine Zuweisung. Öffne die Zuweisungsseite und wähle „Schnellstarter öffnen“ auf einer Taste, um es auszuprobieren.</string>
-    <string name="launcher_shortcuts_screen_title">Plektra-QuickLauncher</string>
+    <string name="launcher_shortcuts_screen_title">Plektra Quick Launcher</string>
     <string name="launcher_shortcuts_not_assigned">Nicht zugewiesen</string>
     <string name="launcher_shortcuts_remove">Entfernen</string>
     <string name="launcher_shortcuts_app_name_unavailable">App (Name nicht verfügbar)</string>
@@ -293,7 +293,7 @@
     <string name="launcher_shortcut_assignment_no_apps">Keine Commands gefunden</string>
     <string name="launcher_shortcut_assignment_no_results">Keine Ergebnisse für \"%1$s\"</string>
     <string name="launcher_shortcut_assignment_key_name">Taste %1$d</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Tippen zum Suchen. Enter öffnet den obersten Treffer.</string>
     <string name="quick_launcher_close">Schließen</string>
     <string name="quick_launcher_no_entries_match">Keine Einträge passen zu \"%1$s\".</string>
@@ -1242,7 +1242,6 @@ Jede Taste kann als Keycode, Aktion, Native Ctrl oder Keine konfiguriert werden.
     <string name="sym_shortcuts_compatibility_info">Informationen zur SYM-Tasten-Kompatibilität</string>
     <string name="sym_shortcuts_compatibility_title">Kompatibilität der SYM-Taste</string>
     <string name="sym_shortcuts_compatibility_description">SYM-Tasten-Shortcuts benötigen eine Tastatur, die SYM gegenüber Android als Modifier bereitstellt. Sie funktionieren derzeit nicht mit Tastaturen, deren Firmware SYM-Kombinationen bereits in fertige Zeichen oder Navigationseingaben umwandelt, bevor Plektra sie empfängt. Dazu gehört das aktuelle SYM-Verhalten des Clicks Power Keyboard.</string>
-    <string name="power_shortcuts_press_key">Zum Starten die Shortcut-Taste drücken</string>
     <string name="notification_update_channel_name">Plektra-Updates</string>
     <string name="notification_update_channel_description">Benachrichtigungen über neue Plektra-Versionen</string>
     <string name="notification_successor_release_title">Plektra update available</string>

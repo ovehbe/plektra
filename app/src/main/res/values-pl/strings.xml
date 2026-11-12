@@ -562,7 +562,6 @@
     <string name="keyboard_profile_option_titan2">Unihertz Titan 2</string>
     <string name="power_shortcuts_title">Skróty Power</string>
     <string name="power_shortcuts_description">Naciśnij SYM, a potem klawisz, aby uruchomić skróty poza polem tekstowym</string>
-    <string name="power_shortcuts_press_key">Naciśnij klawisz skrótu, aby uruchomić</string>
     <string name="notification_update_channel_name">Aktualizacje Plektra</string>
     <string name="notification_update_channel_description">Powiadomienia o nowych wersjach Plektra</string>
     <string name="notification_successor_release_title">Plektra update available</string>
@@ -663,12 +662,12 @@
     <string name="keyboard_profile_option_mp01">Minimal Phone (MP01)</string>
     <string name="keyboard_currency_symbol_title">Symbol waluty</string>
     <string name="keyboard_currency_symbol_description">Symbol wstawiany przez dedykowane sprzętowe klawisze waluty.</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Szybkie uruchamianie, skróty SYM i przypisania klawiszy aplikacji</string>
     <string name="starter_launcher_shortcuts_intro">Te ustawienia współdzielą jedną listę przypisań aplikacji do klawiszy. Wybierz, gdzie Plektra ma nasłuchiwać tych przypisanych klawiszy.</string>
     <string name="launcher_shortcuts_configure_description_with_quick_launcher">Dotknij klawisza, aby przypisać lub zastąpić aplikację. QuickLauncher jest obecnie przypisany do %1$s.</string>
     <string name="quick_launcher_default_blocked_hint">Nowość: SYM może otwierać QuickLauncher. Plektra normalnie przypisałaby go do Spacji, ale Spacja ma już skrót. Otwórz stronę przypisań i wybierz „Otwórz QuickLauncher” na dowolnym klawiszu, aby spróbować.</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Pisz, aby szukać. Enter otwiera pierwszy wynik.</string>
     <string name="quick_launcher_close">Zamknij</string>
     <string name="quick_launcher_no_entries_match">Brak pozycji pasujących do \"%1$s\".</string>

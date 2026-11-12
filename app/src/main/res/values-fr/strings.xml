@@ -502,7 +502,6 @@
     <string name="speech_recognition_error_not_available">Reconnaissance vocale indisponible.</string>
     <string name="power_shortcuts_title">Raccourcis rapides</string>
     <string name="power_shortcuts_description">Appuyez sur SYM puis sur une touche pour lancer des raccourcis hors des champs de texte</string>
-    <string name="power_shortcuts_press_key">Appuyez sur la touche de raccourci pour lancer</string>
     <string name="custom_input_styles_add">Ajouter un style de saisie</string>
     <string name="custom_input_styles_delete">Supprimer</string>
     <string name="custom_input_styles_delete_confirm_title">Supprimer le style de saisie</string>
@@ -663,12 +662,12 @@
     <string name="keyboard_profile_option_titan2elite_qwerty">Titan 2 Elite (QWERTY)</string>
     <string name="keyboard_currency_symbol_title">Symbole monétaire</string>
     <string name="keyboard_currency_symbol_description">Symbole inséré par les touches matérielles dédiées à la devise.</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Lancement rapide, raccourcis SYM et affectations des touches d’apps</string>
     <string name="starter_launcher_shortcuts_intro">Ces paramètres partagent une seule liste d’affectations app-touche. Choisissez où Plektra doit écouter ces touches affectées.</string>
     <string name="launcher_shortcuts_configure_description_with_quick_launcher">Touchez une touche pour affecter ou remplacer une app. QuickLauncher est actuellement affecté à %1$s.</string>
     <string name="quick_launcher_default_blocked_hint">Nouveau : SYM peut ouvrir QuickLauncher. Plektra l’affecterait normalement à Espace, mais Espace possède déjà un raccourci. Ouvrez la page des affectations et choisissez « Ouvrir QuickLauncher » sur n’importe quelle touche pour l’essayer.</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Tapez pour rechercher. Entrée ouvre le premier résultat.</string>
     <string name="quick_launcher_close">Fermer</string>
     <string name="quick_launcher_no_entries_match">Aucune entrée ne correspond à \"%1$s\".</string>

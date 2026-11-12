@@ -206,7 +206,6 @@
     <string name="launcher_shortcut_assignment_key_name">Клавіша %1$d</string>
     <string name="power_shortcuts_title">Швидкі ярлики</string>
     <string name="power_shortcuts_description">Натисніть SYM, а потім клавішу, щоб запускати ярлики поза текстовим полем</string>
-    <string name="power_shortcuts_press_key">Натисніть клавішу ярлика для запуску</string>
     <string name="notification_nav_mode_channel_name">Режим навігації Plektra</string>
     <string name="notification_nav_mode_channel_description">Сповіщення для режиму навігації</string>
     <string name="notification_nav_mode_activated_title">Режим навігації увімкнено</string>
@@ -663,12 +662,12 @@
     <string name="keyboard_profile_option_mp01">Minimal Phone (MP01)</string>
     <string name="keyboard_currency_symbol_title">Символ валюти</string>
     <string name="keyboard_currency_symbol_description">Символ, який вставляють виділені апаратні клавіші валюти.</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Швидкий запуск, ярлики SYM і призначення клавіш застосунків</string>
     <string name="starter_launcher_shortcuts_intro">Ці налаштування спільно використовують один список призначень застосунок-клавіша. Виберіть, де Plektra має слухати ці призначені клавіші.</string>
     <string name="launcher_shortcuts_configure_description_with_quick_launcher">Торкніться клавіші, щоб призначити або замінити застосунок. QuickLauncher зараз призначено на %1$s.</string>
     <string name="quick_launcher_default_blocked_hint">Нове: SYM може відкривати QuickLauncher. Plektra зазвичай призначила б його на Пробіл, але Пробіл уже має ярлик. Відкрийте сторінку призначень і виберіть «Відкрити QuickLauncher» на будь-якій клавіші, щоб спробувати.</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Вводьте для пошуку. Enter відкриває перший результат.</string>
     <string name="quick_launcher_close">Закрити</string>
     <string name="quick_launcher_no_entries_match">Немає записів за запитом \"%1$s\".</string>

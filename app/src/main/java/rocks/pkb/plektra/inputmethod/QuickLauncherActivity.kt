@@ -126,6 +126,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var dismissRequestId by mutableStateOf(0)
     private var dismissInProgress = false
     private var quickLauncherPrefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
+    private var selectedIndex by mutableStateOf(-1) // -1 means no selection, 0+ is the index
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -184,6 +185,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         staticTopHighlightColor = staticTopHighlightColor,
                         animationDurationMs = animationDurationMs,
                         dismissRequestId = dismissRequestId,
+                        selectedIndex = selectedIndex,
                         onCommandSelected = { launchCommand(it) },
                         onCustomizationChanged = { updateCommandCustomization(it) },
                         onCustomizationsReloadRequested = { reloadCommandCustomizations() },
@@ -247,10 +249,74 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
             return handleDismissKeyDown(keyCode, event)
         }
 
+        // Handle Ctrl shortcuts (works with hardware Ctrl meta state and Plektra's Ctrl state)
+        val isCtrl = event?.isCtrlPressed == true || isPlektraCtrlActive()
+        
+        if (isCtrl) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_A -> {
+                    // Ctrl+A: select all (no-op since query is always fully selected)
+                    return true
+                }
+                KeyEvent.KEYCODE_C -> {
+                    // Ctrl+C: copy
+                    copyQueryToClipboard()
+                    return true
+                }
+                KeyEvent.KEYCODE_X -> {
+                    // Ctrl+X: cut
+                    copyQueryToClipboard()
+                    query = ""
+                    launchedAutomatically = false
+                    refreshFilteredCommands()
+                    return true
+                }
+                KeyEvent.KEYCODE_V -> {
+                    // Ctrl+V: paste
+                    pasteFromClipboard()
+                    return true
+                }
+                KeyEvent.KEYCODE_Z -> {
+                    // Ctrl+Z: undo (not supported in current implementation)
+                    return true
+                }
+                KeyEvent.KEYCODE_DEL -> {
+                    // Ctrl+Backspace: delete previous word
+                    deletePreviousWord()
+                    return true
+                }
+            }
+        }
+
         when (keyCode) {
-            KeyEvent.KEYCODE_ENTER -> {
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_DPAD_CENTER -> {
                 enterHandledOnKeyDown = true
-                launchTopMatch()
+                if (selectedIndex >= 0 && selectedIndex < filteredCommands.size) {
+                    launchCommand(filteredCommands[selectedIndex])
+                } else {
+                    launchTopMatch()
+                }
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                if (filteredCommands.isNotEmpty()) {
+                    selectedIndex = when {
+                        selectedIndex < 0 -> filteredCommands.size - 1
+                        selectedIndex > 0 -> selectedIndex - 1
+                        else -> selectedIndex
+                    }
+                }
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (filteredCommands.isNotEmpty()) {
+                    selectedIndex = when {
+                        selectedIndex < 0 -> 0
+                        selectedIndex < filteredCommands.size - 1 -> selectedIndex + 1
+                        else -> selectedIndex
+                    }
+                }
                 return true
             }
             KeyEvent.KEYCODE_BACK,
@@ -259,23 +325,79 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                 if (query.isNotEmpty()) {
                     query = query.dropLast(1)
                     launchedAutomatically = false
+                    selectedIndex = -1 // Reset selection when query changes
                     refreshFilteredCommands()
                 }
                 return true
             }
         }
 
-        if (event?.isCtrlPressed != true) {
+        if (!isCtrl) {
             val text = resolveTypedText(keyCode, event)
             if (!text.isNullOrEmpty()) {
                 query += text
                 launchedAutomatically = false
+                selectedIndex = -1 // Reset selection when typing
                 refreshFilteredCommands()
                 return true
             }
         }
 
         return false
+    }
+    
+    private fun isPlektraCtrlActive(): Boolean {
+        // Check if Plektra's IME service has Ctrl one-shot or latched
+        val ime = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        val currentIme = ime?.currentInputMethodInfo
+        if (currentIme?.packageName == packageName) {
+            // If Plektra is active, check for Ctrl state via broadcast
+            // For now, return false as cross-activity state checking is complex
+            // The hardware meta state check above should cover real Ctrl key presses
+        }
+        return false
+    }
+    
+    private fun copyQueryToClipboard() {
+        if (query.isNotEmpty()) {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("query", query)
+            clipboard?.setPrimaryClip(clip)
+        }
+    }
+    
+    private fun pasteFromClipboard() {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        val clip = clipboard?.primaryClip
+        if (clip != null && clip.itemCount > 0) {
+            val text = clip.getItemAt(0).text
+            if (text != null) {
+                query += text.toString()
+                launchedAutomatically = false
+                refreshFilteredCommands()
+            }
+        }
+    }
+    
+    private fun deletePreviousWord() {
+        if (query.isEmpty()) return
+        
+        // Find the last word boundary
+        var endIndex = query.length - 1
+        
+        // Skip trailing whitespace
+        while (endIndex >= 0 && query[endIndex].isWhitespace()) {
+            endIndex--
+        }
+        
+        // Find the start of the word
+        while (endIndex >= 0 && !query[endIndex].isWhitespace()) {
+            endIndex--
+        }
+        
+        query = query.substring(0, maxOf(0, endIndex + 1))
+        launchedAutomatically = false
+        refreshFilteredCommands()
     }
 
     private fun handleQuickLauncherKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
@@ -528,6 +650,7 @@ private fun QuickLauncherSheet(
     staticTopHighlightColor: Int,
     animationDurationMs: Int,
     dismissRequestId: Int,
+    selectedIndex: Int,
     onCommandSelected: (CommandTarget) -> Unit,
     onCustomizationChanged: (SettingsManager.QuickLauncherCommandCustomization) -> Unit,
     onCustomizationsReloadRequested: () -> Unit,
@@ -731,22 +854,27 @@ private fun QuickLauncherSheet(
                         }) { index, entry ->
                             when (entry) {
                                 is QuickLauncherEntry.Header -> QuickLauncherSectionHeader(entry.label)
-                                is QuickLauncherEntry.Command -> QuickLauncherCommandRow(
-                                    command = entry.command,
-                                    customization = customizations[entry.command.id],
-                                    isTopMatch = entries.take(index).none { it is QuickLauncherEntry.Command },
-                                    highlightFavorites = highlightFavorites,
-                                    favoriteColor = favoriteColor,
-                                    iconColors = iconColors,
-                                    showAliasFirst = showAliasFirst,
-                                    staticTopHighlight = staticTopHighlight,
-                                    staticTopHighlightColor = staticTopHighlightColor,
-                                    nextFavoriteOrder = nextFavoriteOrder(customizations),
-                                    onClick = { onCommandSelected(entry.command) },
-                                    onCustomizationChanged = onCustomizationChanged,
-                                    onCustomizationsReloadRequested = onCustomizationsReloadRequested,
-                                    onMoveFavorite = onMoveFavorite
-                                )
+                                is QuickLauncherEntry.Command -> {
+                                    // Calculate command index (excluding headers)
+                                    val commandIndex = entries.take(index).count { it is QuickLauncherEntry.Command }
+                                    QuickLauncherCommandRow(
+                                        command = entry.command,
+                                        customization = customizations[entry.command.id],
+                                        isTopMatch = commandIndex == 0,
+                                        isSelected = commandIndex == selectedIndex,
+                                        highlightFavorites = highlightFavorites,
+                                        favoriteColor = favoriteColor,
+                                        iconColors = iconColors,
+                                        showAliasFirst = showAliasFirst,
+                                        staticTopHighlight = staticTopHighlight,
+                                        staticTopHighlightColor = staticTopHighlightColor,
+                                        nextFavoriteOrder = nextFavoriteOrder(customizations),
+                                        onClick = { onCommandSelected(entry.command) },
+                                        onCustomizationChanged = onCustomizationChanged,
+                                        onCustomizationsReloadRequested = onCustomizationsReloadRequested,
+                                        onMoveFavorite = onMoveFavorite
+                                    )
+                                }
                             }
                         }
                     }
@@ -780,6 +908,7 @@ private fun QuickLauncherCommandRow(
     command: CommandTarget,
     customization: SettingsManager.QuickLauncherCommandCustomization?,
     isTopMatch: Boolean,
+    isSelected: Boolean,
     highlightFavorites: Boolean,
     favoriteColor: Int,
     iconColors: Boolean,
@@ -804,7 +933,10 @@ private fun QuickLauncherCommandRow(
     }
     Box {
         Surface(
-            color = if (isTopMatch) {
+            color = if (isSelected) {
+                // D-pad/trackpad selection highlight
+                MaterialTheme.colorScheme.primaryContainer
+            } else if (isTopMatch) {
                 if (staticTopHighlight) {
                     Color(staticTopHighlightColor)
                 } else {

@@ -222,7 +222,6 @@
     <string name="launcher_shortcut_assignment_key_name">Phím %1$d</string>
     <string name="power_shortcuts_title">Phím tắt nhanh</string>
     <string name="power_shortcuts_description">Nhấn SYM rồi nhấn một phím để mở phím tắt khi không ở trường văn bản</string>
-    <string name="power_shortcuts_press_key">Nhấn phím tắt để mở</string>
     <string name="notification_nav_mode_channel_name">Plektra Nav Mode</string>
     <string name="notification_nav_mode_channel_description">Thông báo cho chế độ điều hướng Plektra</string>
     <string name="notification_nav_mode_activated_title">Đã bật Nav Mode</string>
@@ -663,12 +662,12 @@
     <string name="keyboard_profile_option_mp01">Minimal Phone (MP01)</string>
     <string name="keyboard_currency_symbol_title">Ký hiệu tiền tệ</string>
     <string name="keyboard_currency_symbol_description">Ký hiệu được chèn bởi các phím tiền tệ phần cứng chuyên dụng.</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Mở nhanh, phím tắt SYM và gán phím ứng dụng</string>
     <string name="starter_launcher_shortcuts_intro">Các cài đặt này dùng chung một danh sách gán ứng dụng-vào-phím. Chọn nơi Plektra sẽ lắng nghe các phím đã gán đó.</string>
     <string name="launcher_shortcuts_configure_description_with_quick_launcher">Chạm một phím để gán hoặc thay ứng dụng. QuickLauncher hiện được gán cho %1$s.</string>
     <string name="quick_launcher_default_blocked_hint">Mới: SYM có thể mở QuickLauncher. Plektra thường sẽ gán nó cho Phím cách, nhưng Phím cách đã có phím tắt. Mở trang gán phím và chọn “Mở QuickLauncher” trên bất kỳ phím nào để thử.</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Gõ để tìm. Enter mở kết quả đầu tiên.</string>
     <string name="quick_launcher_close">Đóng</string>
     <string name="quick_launcher_no_entries_match">Không có mục nào khớp với \"%1$s\".</string>
