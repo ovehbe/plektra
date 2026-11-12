@@ -360,10 +360,9 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
     
     private fun isPlektraCtrlActive(): Boolean {
-        // Check if Plektra's IME service has Ctrl one-shot or latched
-        // Cross-activity state checking is complex, and getCurrentInputMethodInfo()
-        // is not available in all Android versions/test environments.
-        // The hardware meta state check (event?.isCtrlPressed) covers real Ctrl key presses.
+        // Cannot read Plektra's internal one-shot/latched Ctrl state from this activity context.
+        // The IME service runs in a separate process and does not expose modifier state via IPC.
+        // Only hardware Ctrl key presses (META_CTRL_ON) are detectable here.
         return false
     }
     

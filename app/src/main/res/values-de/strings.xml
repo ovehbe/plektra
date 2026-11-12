@@ -627,7 +627,7 @@ Jede Taste kann als Keycode, Aktion, Native Ctrl oder Keine konfiguriert werden.
     <string name="clicks_launcher_interception_disabled">Für softwareseitig belegte Clicks-Tasten erforderlich. Antippen, um den Dienst in Androids Bedienungshilfen zu aktivieren.</string>
     <string name="clicks_button_mode_native">Nativ</string>
     <string name="clicks_button_mode_native_description">Das ursprüngliche Android-Tastenereignis unverändert beibehalten.</string>
-    <string name="clicks_button_mode_quick_launcher">QuickLauncher</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Plektras QuickLauncher direkt öffnen und das Tastenereignis nicht an die App weitergeben.</string>
     <string name="clicks_button_mode_open_plektra">Plektra öffnen</string>
     <string name="clicks_button_mode_open_plektra_description">Plektras Einstellungen direkt öffnen und das Tastenereignis nicht an die App weitergeben.</string>
@@ -886,7 +886,7 @@ Jede Taste kann als Keycode, Aktion, Native Ctrl oder Keine konfiguriert werden.
     <string name="tutorial_nav_mode_bullet_selection">Auswahlaktionen erweitern markierten Text nach links, rechts oder wortweise.</string>
     <string name="tutorial_nav_mode_bullet_words">Wortaktionen springen in Textfeldern schneller ganze Wörter vor und zurück.</string>
     <string name="tutorial_nav_mode_bullet_media">Belegungen können auch App-Shortcuts, Mediensteuerung, Escape, Tab, Page Up/Down und Slim auslösen.</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Apps direkt über die Tastatur öffnen, ohne den Schreibfluss zu verlassen.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Halte SYM und drücke Space, um den QuickLauncher überall zu öffnen.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Das funktioniert auch mit Cursor im Textfeld, damit du direkt aus dem Schreiben heraus Apps wechseln kannst.</string>

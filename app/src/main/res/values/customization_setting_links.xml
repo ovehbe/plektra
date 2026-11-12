@@ -4,8 +4,8 @@
     <string name="setting_link_quick_launcher_icon_colors">Tint entries from app icon colors</string>
     <string name="setting_link_quick_launcher_static_top_highlight">Use static top-match highlight color</string>
     <string name="setting_link_quick_launcher_alias_first">Show search alias before entry name</string>
-    <string name="setting_link_quick_launcher_entries">QuickLauncher entries</string>
-    <string name="setting_link_quick_launcher_customize_entries">Customize QuickLauncher entries</string>
+    <string name="setting_link_quick_launcher_entries">Quick Launcher entries</string>
+    <string name="setting_link_quick_launcher_customize_entries">Customize Quick Launcher entries</string>
     <string name="setting_link_quick_launcher_source_apps">Apps</string>
     <string name="setting_link_quick_launcher_source_plektra">Plektra actions</string>
     <string name="setting_link_quick_launcher_source_appactions">App actions</string>
@@ -41,6 +41,6 @@
     <string name="setting_link_theme_software_dark_theme">Software keyboard: dark mode theme</string>
     <string name="setting_link_theme_software_layout_overrides">Software keyboard: theme layout overrides</string>
     <string name="setting_link_theme_assignment">Theme assignment</string>
-    <string name="setting_link_quick_launcher_favorite_color">QuickLauncher favorite highlight color</string>
-    <string name="setting_link_quick_launcher_top_match_color">QuickLauncher top-match highlight color</string>
+    <string name="setting_link_quick_launcher_favorite_color">Quick Launcher favorite highlight color</string>
+    <string name="setting_link_quick_launcher_top_match_color">Quick Launcher top-match highlight color</string>
 </resources>

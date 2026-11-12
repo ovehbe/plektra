@@ -489,7 +489,7 @@
     <string name="clicks_cursor_mode_title">Cursor Mode</string>
     <string name="clicks_cursor_mode_description">Enable the keyboard firmware’s cursor navigation mode.</string>
     <string name="clicks_recommended_settings_title">Apply recommended settings</string>
-    <string name="clicks_recommended_settings_description">Restore native Tab and Alt outputs; assign the microphone button to Plektra dictation; assign the red Clicks button and Launcher button directly to QuickLauncher; and disable Caps Lock and Cursor Mode.</string>
+    <string name="clicks_recommended_settings_description">Restore native Tab and Alt outputs; assign the microphone button to Plektra dictation; assign the red Clicks button and Launcher button directly to Quick Launcher; and disable Caps Lock and Cursor Mode.</string>
     <string name="clicks_recommended_settings_success">Recommended Clicks settings applied.</string>
     <string name="clicks_recommended_settings_failure">Recommended settings could not be applied completely.</string>
     <string name="clicks_sticky_alt_help">Controls the Clicks firmware’s SYM Lock behaviour. Plektra’s separate Sticky Alt behaviour remains configured under Modifiers.</string>
@@ -558,7 +558,7 @@
     <string name="clicks_launcher_interception_disabled">Required for software-assigned Clicks buttons. Tap to enable it in Android Accessibility settings.</string>
     <string name="clicks_button_mode_native">Native</string>
     <string name="clicks_button_mode_native_description">Keep the button’s original Android key event.</string>
-    <string name="clicks_button_mode_quick_launcher">QuickLauncher</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Open Plektra Quick Launcher directly and do not pass the key event to the app.</string>
     <string name="clicks_button_mode_open_plektra">Open Plektra</string>
     <string name="clicks_button_mode_open_plektra_description">Open the Plektra settings directly and do not pass the key event to the app.</string>
@@ -747,7 +747,7 @@
     <string name="quick_launcher_limit_results_title">Show only top search results</string>
     <string name="quick_launcher_limit_results_description">Do not render the full alphabetical app list. The quick launcher stays empty until you type and then shows only the top three matches.</string>
     <string name="quick_launcher_text_field_shortcuts_title">Allow SYM+Space in text fields</string>
-    <string name="quick_launcher_text_field_shortcuts_description">When enabled, the QuickLauncher can also open while the cursor is inside an app text field.</string>
+    <string name="quick_launcher_text_field_shortcuts_description">When enabled, the Quick Launcher can also open while the cursor is inside an app text field.</string>
     <string name="quick_launcher_text_field_shortcuts_hint">In text fields, hold SYM and press Space. SYM latch cannot trigger this because tapping SYM cycles the SYM pages.</string>
     <string name="quick_launcher_alt_space_text_fields_title">Allow Alt+Space in text fields</string>
     <string name="quick_launcher_alt_space_text_fields_description">Open Quick Launcher with Alt+Space. Enabling this disables Alt+Space for the previous input language.</string>
@@ -1065,7 +1065,7 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="app_enter_behaviour_additional_send_shortcut_description">Apply an extra send shortcut to the rendered app list below.</string>
     <string name="app_enter_behaviour_additional_send_shortcut_none">None</string>
     <string name="app_enter_behaviour_additional_send_shortcut_sym_enter">SYM + Enter</string>
-    <string name="app_enter_behaviour_sym_enter_conflict_title">SYM + Enter is already used by QuickLauncher</string>
+    <string name="app_enter_behaviour_sym_enter_conflict_title">SYM + Enter is already used by Quick Launcher</string>
     <string name="app_enter_behaviour_sym_enter_conflict_description">Move the Quick Launcher trigger to another key before using SYM + Enter as an additional send shortcut.</string>
     <string name="app_enter_behaviour_sym_enter_conflict_action">Change trigger</string>
     <string name="variation_instructions_title">Instructions</string>
@@ -1355,7 +1355,7 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="tutorial_nav_mode_bullet_media">Mappings can also handle app shortcuts, media controls, Escape, Tab, Page Up/Down, and Slim.</string>
     <string name="tutorial_page_customization_title">Customization</string>
     <string name="tutorial_page_customization_description">Plektra offers many customization options:\n• Customizable keyboard layouts\n• Launcher shortcuts &amp; Power Shortcuts\n• IME bar can act as a swipe bar to move the cursor\n• Custom mappings for Nav Mode\nExplore the settings to find the perfect configuration for you!</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Open apps from the keyboard without leaving your typing flow.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Hold SYM and press Space to open Quick Launcher from anywhere.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">It also works while the cursor is inside a text field, so you can switch apps from typing context.</string>
@@ -1363,8 +1363,8 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="tutorial_quick_launcher_bullet_layout">Search can respect your active Plektra layout, such as QWERTZ.</string>
     <string name="tutorial_quick_launcher_button">Open Quick Launcher settings</string>
     <string name="tutorial_quick_launcher_mapping_conflict_title">SYM + Space is assigned to something else</string>
-    <string name="tutorial_quick_launcher_mapping_conflict_description">Space currently opens “%1$s”. Replace that mapping with QuickLauncher and enable it in text fields to try the new feature.</string>
-    <string name="tutorial_quick_launcher_mapping_conflict_button">Use SYM + Space for QuickLauncher</string>
+    <string name="tutorial_quick_launcher_mapping_conflict_description">Space currently opens “%1$s”. Replace that mapping with Quick Launcher and enable it in text fields to try the new feature.</string>
+    <string name="tutorial_quick_launcher_mapping_conflict_button">Use SYM + Space for Quick Launcher</string>
     <string name="tutorial_messenger_presets_title">Messenger presets</string>
     <string name="tutorial_messenger_presets_description">Choose how Enter should behave in chat apps, where newline and send often differ by app.</string>
     <string name="tutorial_messenger_presets_bullet_enter">Use tested presets for common messenger apps instead of tuning each key manually.</string>
