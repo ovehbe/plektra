@@ -322,7 +322,7 @@
     <string name="tutorial_nav_mode_bullet_selection">Les actions de sélection étendent le texte sélectionné vers la gauche, la droite ou mot par mot.</string>
     <string name="tutorial_nav_mode_bullet_words">Les actions par mot sautent des mots entiers pour déplacer plus vite le curseur dans les champs de texte.</string>
     <string name="tutorial_nav_mode_bullet_media">Les affectations peuvent aussi gérer raccourcis d’apps, contrôles média, Escape, Tab, Page Up/Down et Slim.</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Ouvrez des apps au clavier sans quitter votre flux de saisie.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Maintenez SYM et appuyez sur Espace pour ouvrir QuickLauncher partout.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Cela fonctionne aussi avec le curseur dans un champ de texte, pour changer d’app en écrivant.</string>

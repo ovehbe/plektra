@@ -408,7 +408,7 @@
     <string name="tutorial_nav_mode_bullet_selection">Hành động chọn có thể mở rộng vùng chọn sang trái, phải hoặc theo từng từ.</string>
     <string name="tutorial_nav_mode_bullet_words">Hành động theo từ nhảy cả từ để di chuyển con trỏ nhanh hơn trong ô văn bản.</string>
     <string name="tutorial_nav_mode_bullet_media">Ánh xạ cũng có thể xử lý phím tắt ứng dụng, điều khiển media, Escape, Tab, Page Up/Down và Slim.</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Mở ứng dụng từ bàn phím mà không rời luồng gõ.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Giữ SYM và nhấn Phím cách để mở QuickLauncher ở bất cứ đâu.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Cũng hoạt động khi con trỏ nằm trong ô văn bản, để chuyển ứng dụng ngay khi đang gõ.</string>

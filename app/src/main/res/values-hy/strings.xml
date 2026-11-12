@@ -538,7 +538,7 @@
     <string name="tutorial_nav_mode_bullet_selection">Ընտրության գործողությունները կարող են ընդլայնել նշված տեքստը ձախ, աջ կամ բառ առ բառ։</string>
     <string name="tutorial_nav_mode_bullet_words">Բառային գործողությունները տեքստային դաշտերում կուրսորը արագ տեղափոխում են ամբողջական բառերով։</string>
     <string name="tutorial_nav_mode_bullet_media">Քարտեզագրումները կարող են նաև գործարկել app shortcut-ներ, media control-ներ, Escape, Tab, Page Up/Down և Slim։</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Բացեք հավելվածներ ստեղնաշարից՝ չլքելով մուտքագրման հոսքը։</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Պահեք SYM-ը և սեղմեք Space՝ QuickLauncher-ը ցանկացած տեղից բացելու համար։</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Սա աշխատում է նաև, երբ կուրսորը տեքստային դաշտում է, որպեսզի հավելված փոխեք մուտքագրելիս։</string>

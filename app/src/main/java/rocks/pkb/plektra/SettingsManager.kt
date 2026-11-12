@@ -3792,7 +3792,7 @@ object SettingsManager {
             commandId = PlektraCommandSource.COMMAND_QUICK_LAUNCHER,
             source = CommandSourceId.Plektra.storageValue,
             kind = "PlektraAction",
-            title = "Plektra QuickLauncher",
+            title = "Plektra Quick Launcher",
             subtitle = "Open Plektra search",
             launch = CommandLaunchSpec.InternalAction(PlektraCommandSource.ACTION_OPEN_QUICK_LAUNCHER)
         )

@@ -13,13 +13,13 @@ class PlektraCommandSource : CommandSource {
                 id = COMMAND_QUICK_LAUNCHER,
                 source = id,
                 kind = CommandKind.PlektraAction,
-                label = "Plektra QuickLauncher",
+                label = "Plektra Quick Launcher",
                 subtitle = "Open Plektra search",
                 icon = CommandIcon.Search,
                 launch = CommandLaunchSpec.InternalAction(ACTION_OPEN_QUICK_LAUNCHER),
                 capabilities = setOf(CommandCapability.LaunchesActivity),
                 defaultSurfaces = setOf(CommandSurface.AssignedKey, CommandSurface.NavMode),
-                searchTokens = listOf("Plektra", "QuickLauncher", "Search")
+                searchTokens = listOf("Plektra", "QuickLauncher", "Quick Launcher", "Search")
             ),
             CommandTarget(
                 id = COMMAND_MAIN_ACTIVITY,

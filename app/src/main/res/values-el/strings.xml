@@ -543,7 +543,7 @@
     <string name="clicks_launcher_interception_disabled">Απαιτείται για κουμπιά Clicks που αντιστοιχίζονται από το λογισμικό. Πατήστε για ενεργοποίηση στις ρυθμίσεις Προσβασιμότητας Android.</string>
     <string name="clicks_button_mode_native">Εγγενές</string>
     <string name="clicks_button_mode_native_description">Διατηρεί το αρχικό συμβάν πλήκτρου Android του κουμπιού.</string>
-    <string name="clicks_button_mode_quick_launcher">QuickLauncher</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Ανοίγει απευθείας το Plektra Quick Launcher και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
     <string name="clicks_button_mode_open_plektra">Άνοιγμα Plektra</string>
     <string name="clicks_button_mode_open_plektra_description">Ανοίγει απευθείας τις ρυθμίσεις Plektra και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
@@ -1282,7 +1282,7 @@ QWERTZ σε φυσικό QWERTY
     <string name="tutorial_nav_mode_bullet_media">Οι αντιστοιχίσεις μπορούν επίσης να χειρίζονται συντομεύσεις εφαρμογών, στοιχεία ελέγχου media, Escape, Tab, Page Up/Down και Slim.</string>
     <string name="tutorial_page_customization_title">Προσαρμογή</string>
     <string name="tutorial_page_customization_description">Το Plektra προσφέρει πολλές επιλογές προσαρμογής:\n• Προσαρμόσιμες διατάξεις πληκτρολογίου\n• Συντομεύσεις launcher &amp; Power Shortcuts\n• Η γραμμή IME μπορεί να λειτουργεί ως γραμμή σάρωσης για μετακίνηση του δρομέα\n• Προσαρμοσμένες αντιστοιχίσεις για Nav Mode\nΕξερευνήστε τις ρυθμίσεις για να βρείτε την ιδανική διαμόρφωση για εσάς!</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Ανοίξτε εφαρμογές από το πληκτρολόγιο χωρίς να βγείτε από τη ροή πληκτρολόγησης.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Κρατήστε SYM και πατήστε Space για να ανοίξετε το QuickLauncher από οπουδήποτε.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Λειτουργεί επίσης ενώ ο δρομέας βρίσκεται μέσα σε πεδίο κειμένου, ώστε να αλλάζετε εφαρμογές από το περιβάλλον πληκτρολόγησης.</string>

@@ -379,7 +379,7 @@
     <string name="tutorial_nav_mode_bullet_selection">Действия выделения расширяют выделенный текст влево, вправо или по словам.</string>
     <string name="tutorial_nav_mode_bullet_words">Действия по словам быстрее перемещают курсор целыми словами в текстовых полях.</string>
     <string name="tutorial_nav_mode_bullet_media">Назначения также могут выполнять ярлыки приложений, медиа-кнопки, Escape, Tab, Page Up/Down и Slim.</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Открывайте приложения с клавиатуры, не прерывая ввод.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Удерживайте SYM и нажмите Пробел, чтобы открыть QuickLauncher из любого места.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Это работает и когда курсор находится в текстовом поле, чтобы переключать приложения во время набора.</string>

@@ -327,7 +327,7 @@
     <string name="tutorial_nav_mode_bullet_selection">Akcje zaznaczania rozszerzają zaznaczony tekst w lewo, w prawo albo słowo po słowie.</string>
     <string name="tutorial_nav_mode_bullet_words">Akcje słów przeskakują całe słowa, aby szybciej przesuwać kursor w polach tekstowych.</string>
     <string name="tutorial_nav_mode_bullet_media">Mapowania mogą też obsługiwać skróty aplikacji, multimedia, Escape, Tab, Page Up/Down i Slim.</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Otwieraj aplikacje z klawiatury bez wychodzenia z pisania.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Przytrzymaj SYM i naciśnij Spację, aby otworzyć QuickLauncher z dowolnego miejsca.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Działa też, gdy kursor jest w polu tekstowym, więc możesz zmieniać aplikacje podczas pisania.</string>
