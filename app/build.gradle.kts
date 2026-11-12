@@ -15,6 +15,18 @@ abstract class GenerateReleaseSbom : DefaultTask() {
     abstract val outputDirectory: DirectoryProperty
 }
 
+abstract class MockitoInstrumentationArguments : CommandLineArgumentProvider {
+    @get:Classpath
+    abstract val agent: ConfigurableFileCollection
+
+    override fun asArguments() = listOf("-javaagent:${agent.singleFile.absolutePath}")
+}
+
+val mockitoVersion = "5.11.0"
+val mockitoInstrumentation = configurations.create("mockitoInstrumentation") {
+    isCanBeConsumed = false
+}
+
 // Config di firma letta da release/keystore.properties (non tracciato) o da env vars
 val keystorePropertiesFileCandidates = listOf(
     rootProject.file("release/keystore.properties"),
@@ -97,8 +109,8 @@ android {
     namespace = "rocks.pkb.plektra"
     compileSdk = 36
 
-    val defaultVersionCode = 26090000
-    val defaultVersionName = "26.09"
+    val defaultVersionCode = 26100601
+    val defaultVersionName = "26.10.6"
     val ciVersionCode = providers.gradleProperty("PLEKTRA_VERSION_CODE").orNull?.toIntOrNull()
     val ciVersionName = providers.gradleProperty("PLEKTRA_VERSION_NAME").orNull
     val nightlyVersionCode = providers.gradleProperty("PLEKTRA_NIGHTLY_VERSION_CODE").orNull?.toIntOrNull()
@@ -176,6 +188,7 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"direct\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", if (isFdroidBuild) "true" else "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", if (isFdroidBuild) "false" else "true")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "false")
             val storePath = signingProp("storeFile", "PLEKTRA_KEYSTORE_PATH")
             val storePass = signingProp("storePassword", "PLEKTRA_KEYSTORE_PASSWORD")
             val alias = signingProp("keyAlias", "PLEKTRA_KEY_ALIAS")
@@ -208,6 +221,7 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"direct\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", if (isFdroidBuild) "true" else "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", if (isFdroidBuild) "false" else "true")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "true")
             val storePath = signingProp("nightlyStoreFile", "PLEKTRA_NIGHTLY_KEYSTORE_PATH")
             val storePass = signingProp("nightlyStorePassword", "PLEKTRA_NIGHTLY_KEYSTORE_PASSWORD")
             val alias = signingProp("nightlyKeyAlias", "PLEKTRA_NIGHTLY_KEY_ALIAS")
@@ -220,6 +234,26 @@ android {
             initWith(getByName("nightly"))
             buildConfigField("String", "APK_VARIANT", "\"no-accessibility\"")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_SERVICE", "false")
+        }
+        create("sideload") {
+            dimension = "channel"
+            applicationIdSuffix = ".test"
+            manifestPlaceholders["appLabel"] = "Plektra Test"
+            manifestPlaceholders["imeLabel"] = "Plektra Test"
+            manifestPlaceholders["appIcon"] = "@mipmap/ic_launcher"
+            manifestPlaceholders["appRoundIcon"] = "@mipmap/ic_launcher_round"
+            manifestPlaceholders["closedOrangeLauncherEnabled"] = "true"
+            manifestPlaceholders["openOrangeLauncherEnabled"] = "false"
+            manifestPlaceholders["closedBlueLauncherEnabled"] = "false"
+            manifestPlaceholders["openBlueLauncherEnabled"] = "false"
+            buildConfigField("String", "RELEASE_CHANNEL", "\"sideload\"")
+            buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"direct\"")
+            buildConfigField("boolean", "IS_FDROID_BUILD", "false")
+            buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", "false")
+            buildConfigField("String", "APK_VARIANT", "\"no-accessibility\"")
+            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_SERVICE", "false")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "true")
+            // Sideload flavor always unsigned for local signing, NoAccessibility variant
         }
         create("playStable") {
             dimension = "channel"
@@ -236,6 +270,7 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"play\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", "false")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "false")
         }
         create("playNightly") {
             dimension = "channel"
@@ -346,6 +381,10 @@ android {
         }
     }
     
+    androidResources {
+        // The emoji font stays uncompressed so Android can map it instead of copying 11 MB.
+        noCompress += "ttf"
+    }
     lint {
         checkReleaseBuilds = false
         abortOnError = false
@@ -365,13 +404,21 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             // Gradle's 512 MB default runs out on the full Robolectric suite (OutOfMemoryError mid-run).
-            it.maxHeapSize = "2g"
+            // Cloud agents with the full suite need more headroom than a local 2g worker.
+            it.maxHeapSize = "4g"
+            it.maxParallelForks = 1
+            // Recycle Robolectric workers often so heavy UI tests do not accumulate heap / hang after OOM.
+            it.forkEvery = 25
+            // Load instrumentation at startup instead of relying on OS/JDK self-attach support.
+            it.jvmArgumentProviders.add(objects.newInstance<MockitoInstrumentationArguments>().apply {
+                agent.from(mockitoInstrumentation.filter { file -> file.name.startsWith("byte-buddy-agent-") })
+            })
         }
     }
 }
 
 // Release packages carry their runtime dependencies and bundled third-party assets.
-listOf("stable", "stableNoAccessibility", "nightly", "nightlyNoAccessibility", "playStable", "playNightly").forEach { flavor ->
+listOf("stable", "stableNoAccessibility", "nightly", "nightlyNoAccessibility", "playStable", "playNightly", "sideload").forEach { flavor ->
     val nightlyFlavor = flavor.startsWith("nightly", ignoreCase = true) || flavor == "playNightly"
     val flavorTitle = flavor.replaceFirstChar { it.uppercase() }
     val sbomAssets = layout.buildDirectory.dir("generated/sbom/${flavor}Release/assets")
@@ -417,7 +464,10 @@ listOf("stable", "stableNoAccessibility", "nightly", "nightlyNoAccessibility", "
                 bundled("OpenGameArt keyboard soundpack", "vendored:opengameart-keyboard-soundpack", "https://opengameart.org/content/keyboard-soundpack-1-typing-and-single-keystrokes", "CC0-1.0"),
                 bundled("OpenGameArt typewriter sounds", "vendored:opengameart-typewriter-sounds", "https://opengameart.org/content/typewriter-sounds", "CC0-1.0"),
                 bundled("OpenGameArt mechanical sounds", "vendored:opengameart-mechanical-sounds", "https://opengameart.org/content/mechanical-sounds", "CC0-1.0"),
-                bundled("Unicode CLDR emoji annotations", "vendored:unicode-cldr-annotations", "https://github.com/unicode-org/cldr-json", "Unicode-DFS-2016"),
+                bundled("Unicode CLDR emoji annotations", "vendored:unicode-cldr-annotations:49.0.0", "https://github.com/unicode-org/cldr-json", "Unicode-3.0"),
+                bundled("Unicode Emoji and Character Database data", "vendored:unicode-ucd-emoji:18.0", "https://www.unicode.org/Public/18.0.0/", "Unicode-3.0"),
+                bundled("Noto Color Emoji font", "vendored:noto-emoji:v2026-09-24-unicode18_0", "https://github.com/googlefonts/noto-emoji", "OFL-1.1"),
+                bundled("Flux Keyboard kaomoji collection", "vendored:flux-keyboard-kaomoji:2.0.0", "https://github.com/Flux-Sniffer-Mods/Flux-Keyboard", "GPL-3.0-or-later"),
                 bundled("Leipzig Corpora frequency data", "vendored:leipzig-corpora", "https://corpora.uni-leipzig.de/", "CC-BY-3.0")
             )
             val components = libraries + bundledAssets
@@ -493,7 +543,12 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
     testImplementation(libs.robolectric)
-    testImplementation("org.mockito:mockito-core:5.11.0")
+    testImplementation("org.mockito:mockito-core:$mockitoVersion")
+    // Debug unit tests drive real Compose settings screens under Robolectric (ComponentActivity comes from ui-test-manifest).
+    testDebugImplementation(platform(libs.androidx.compose.bom))
+    testDebugImplementation(libs.androidx.ui.test.junit4)
+    // Resolve the agent from Mockito's own dependency graph to keep both versions aligned.
+    add(mockitoInstrumentation.name, "org.mockito:mockito-core:$mockitoVersion")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")

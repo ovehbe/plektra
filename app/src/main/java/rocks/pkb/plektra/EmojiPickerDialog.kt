@@ -19,10 +19,14 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import rocks.pkb.plektra.data.emoji.EmojiRepository
 import rocks.pkb.plektra.data.emoji.EmojiSearchRepository
+import rocks.pkb.plektra.data.symbols.PickerExtras
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Dialog for selecting an emoji.
- * Loads emoji categories from assets (common/emoji).
+ * Loads emoji categories from assets (common/emoji), followed by the text symbols and kaomoji
+ * the keyboard's emoji picker offers (when turned on there).
  */
 @Composable
 fun EmojiPickerDialog(
@@ -40,14 +44,16 @@ fun EmojiPickerDialog(
         runCatching {
             val categories = EmojiRepository.getEmojiCategories(context)
             val searchIndex = EmojiSearchRepository.getSearchIndex(context)
-            categories to searchIndex
+            val extras = withContext(Dispatchers.IO) { PickerExtras.load(context) }
+            Triple(categories + extras.categories, searchIndex, extras)
         }
-            .onSuccess { (categories, searchIndex) ->
+            .onSuccess { (categories, searchIndex, extras) ->
                 selectedCategoryId = categories.firstOrNull()?.id
                 uiState = EmojiPickerState(
                     isLoading = false,
                     categories = categories,
                     searchIndex = searchIndex,
+                    extras = extras,
                     error = null
                 )
             }
@@ -98,15 +104,45 @@ fun EmojiPickerDialog(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
+                var unicodeError by remember { mutableStateOf<String?>(null) }
+                
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = { 
+                        searchQuery = it
+                        unicodeError = null
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 4.dp, vertical = 4.dp),
                     label = { Text(stringResource(R.string.emoji_picker_search_label)) },
                     placeholder = { Text(stringResource(R.string.emoji_picker_search_placeholder)) },
-                    singleLine = true
+                    singleLine = true,
+                    supportingText = if (unicodeError != null) {
+                        { Text(unicodeError!!, color = MaterialTheme.colorScheme.error) }
+                    } else null,
+                    isError = unicodeError != null,
+                    trailingIcon = if (searchQuery.trim().matches(Regex("^[Uu]\\+[0-9A-Fa-f]{1,6}$"))) {
+                        {
+                            TextButton(onClick = {
+                                val codeStr = searchQuery.trim().substring(2)
+                                try {
+                                    val codePoint = codeStr.toInt(16)
+                                    if (codePoint !in 0..0x10FFFF || (codePoint in 0xD800..0xDFFF)) {
+                                        unicodeError = context.getString(R.string.emoji_picker_invalid_unicode)
+                                    } else {
+                                        val char = String(Character.toChars(codePoint))
+                                        onEmojiSelected(char)
+                                        onDismiss()
+                                    }
+                                } catch (e: NumberFormatException) {
+                                    unicodeError = context.getString(R.string.emoji_picker_invalid_unicode)
+                                }
+                            }) {
+                                Text(stringResource(R.string.emoji_picker_use_code))
+                            }
+                        }
+                    } else null
                 )
 
                 when {
@@ -149,8 +185,13 @@ fun EmojiPickerDialog(
                         val isSearching = trimmedQuery.isNotEmpty()
                         val searchResults = if (isSearching) {
                             uiState.searchIndex?.let { index ->
-                                EmojiSearchRepository.search(index, trimmedQuery).map { it.entry }
-                            }.orEmpty()
+                                EmojiSearchRepository.search(index, trimmedQuery).map { result ->
+                                    // The emoji searched for as it was given (👋🏽), its other variants on hold
+                                    result.matched?.let { matched ->
+                                        EmojiRepository.EmojiEntry(matched, listOf(result.entry.base) + result.entry.variants - matched)
+                                    } ?: result.entry
+                                }
+                            }.orEmpty() + uiState.extras.search(context, trimmedQuery).map { it.entry }
                         } else {
                             emptyList()
                         }
@@ -199,6 +240,12 @@ fun EmojiPickerDialog(
                             val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId } ?: categories.first()
                             selectedCategory.emojis
                         }
+                        // Kaomoji are wide: shrunk to fit, and fewer to a row on their own tab
+                        val kaomojiShown = !isSearching && selectedCategoryId == EmojiRepository.KAOMOJI_CATEGORY_ID
+                        val kaomoji = remember(categories) {
+                            categories.firstOrNull { it.id == EmojiRepository.KAOMOJI_CATEGORY_ID }
+                                ?.emojis?.mapTo(HashSet()) { it.base }.orEmpty()
+                        }
 
                         val contentKey = if (isSearching) {
                             "search:$trimmedQuery:${entriesToShow.size}"
@@ -222,10 +269,11 @@ fun EmojiPickerDialog(
                                         val padding = (4 * context.resources.displayMetrics.density).toInt()
 
                                         val columns = (screenWidth / (emojiSize + spacing)).coerceAtLeast(4)
+                                            .let { if (kaomojiShown) (it / 3).coerceAtLeast(2) else it }
 
                                         recyclerView.apply {
                                             layoutManager = GridLayoutManager(context, columns)
-                                            adapter = EmojiEntryRecyclerViewAdapter(entriesToShow) { emoji ->
+                                            adapter = EmojiEntryRecyclerViewAdapter(entriesToShow, textLike = { it in kaomoji }) { emoji ->
                                                 onEmojiSelected(emoji)
                                                 onDismiss()
                                             }
@@ -237,7 +285,7 @@ fun EmojiPickerDialog(
                                         recyclerView
                                     },
                                     update = { recyclerView ->
-                                        recyclerView.adapter = EmojiEntryRecyclerViewAdapter(entriesToShow) { emoji ->
+                                        recyclerView.adapter = EmojiEntryRecyclerViewAdapter(entriesToShow, textLike = { it in kaomoji }) { emoji ->
                                             onEmojiSelected(emoji)
                                             onDismiss()
                                         }
@@ -257,6 +305,7 @@ private data class EmojiPickerState(
     val isLoading: Boolean = true,
     val categories: List<EmojiRepository.EmojiCategory> = emptyList(),
     val searchIndex: EmojiSearchRepository.EmojiSearchIndex? = null,
+    val extras: PickerExtras = PickerExtras.NONE,
     val error: String? = null
 )
 

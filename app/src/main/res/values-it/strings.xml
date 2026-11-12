@@ -13,6 +13,7 @@
     <string name="input_method_name_ru">Русский</string>
     <string name="input_method_name_sr">Српски</string>
     <string name="input_method_name_uk">Українська</string>
+    <string name="input_method_name_ug">ئۇيغۇرچە</string>
     
     <!-- Settings Screen -->
     <string name="settings_title">Impostazioni</string>
@@ -60,6 +61,14 @@
     
     <!-- Auto Show Keyboard Section -->
     <string name="auto_show_keyboard_title">Mostra Automaticamente la Tastiera</string>
+    <string name="auto_show_respect_app_visibility_title">Rispetta le impostazioni di visualizzazione dell\'app</string>
+    <string name="auto_show_respect_app_visibility_description">Android e l\'app decidono se la tastiera si apre quando si entra in un campo. Toccare il campo o premere un tasto la apre comunque.</string>
+    <string name="hardware_keypad_auto_open_title">Apri automaticamente il tastierino con una tastiera fisica</string>
+    <string name="hardware_keypad_auto_open_description">Mostra il tastierino numerico o telefonico su schermo nei campi PIN, numerici e telefonici. Altrimenti aprilo con il pulsante del tastierino nella barra della tastiera.</string>
+    <string name="software_keyboard_emoji_page_in_cycle_title">Livello emoji nel cambio pagina</string>
+    <string name="software_keyboard_emoji_page_in_cycle_description">Include la pagina delle emoji associate ai tasti nel cambio pagina della tastiera su schermo. Il selettore emoji non cambia.</string>
+    <string name="software_keyboard_accessibility_full_keyboard">Tastiera completa</string>
+    <string name="software_keyboard_keypad_button_description">Apri il tastierino su schermo</string>
 
     <!-- Alt+Ctrl Speech Recognition Shortcut Section -->
     <string name="alt_ctrl_speech_shortcut_title">Riconoscimento vocale Alt+Ctrl / BlackBerry Alt+0</string>
@@ -319,6 +328,12 @@
     <string name="quick_launcher_title">Plektra-QuickLauncher</string>
     <string name="quick_launcher_subtitle">Digita per cercare. Invio apre il primo risultato.</string>
     <string name="quick_launcher_close">Chiudi</string>
+    <string name="quick_launcher_no_entries_match">Nessuna voce corrisponde a \"%1$s\".</string>
+    <string name="quick_launcher_add_favorite">Aggiungi ai preferiti</string>
+    <string name="quick_launcher_remove_favorite">Rimuovi dai preferiti</string>
+    <string name="quick_launcher_hide_entry">Nascondi voce</string>
+    <string name="quick_launcher_show_entry">Mostra voce</string>
+    <string name="quick_launcher_edit_entry">Modifica voce</string>
     <string name="quick_launcher_search_placeholder">Inizia a digitare...</string>
     <string name="quick_launcher_auto_start_single">Avvia automaticamente quando resta un solo risultato</string>
     <string name="quick_launcher_auto_start_single_title">Apri automaticamente la corrispondenza unica</string>
@@ -474,9 +489,11 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="emoji_category_recents">Recenti</string>
     <string name="emoji_category_emoticons">Emoticon</string>
     <string name="emoji_picker_error">Impossibile caricare le emoji</string>
-    <string name="emoji_picker_search_label">Cerca</string>
+    <string name="emoji_picker_search_label">Cerca o codice Unicode</string>
     <string name="emoji_picker_search_placeholder">Cerca emoji...</string>
     <string name="emoji_picker_no_results">Nessuna emoji trovata</string>
+    <string name="emoji_picker_use_code">Usa</string>
+    <string name="emoji_picker_invalid_unicode">Codice Unicode non valido</string>
     
     <!-- Variation Customization -->
     <string name="variation_customize_title">Personalizza Variazioni</string>
@@ -797,6 +814,13 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="clipboard_clear_all">Cancella tutto</string>
     <string name="clipboard_empty_state">Nessuna cronologia degli appunti</string>
     <string name="clipboard_locked_state">La cronologia degli appunti non è disponibile mentre il dispositivo è bloccato.</string>
+    <string name="clipboard_loading_state">Caricamento della cronologia degli appunti…</string>
+    <string name="clipboard_error_state">Impossibile caricare la cronologia degli appunti. Riaprila per riprovare.</string>
+    <string name="clipboard_save_failed">Impossibile salvare il testo copiato nella cronologia degli appunti.</string>
+    <string name="clipboard_pin_failed">Impossibile fissare o sbloccare la voce.</string>
+    <string name="clipboard_delete_failed">Impossibile eliminare la voce.</string>
+    <string name="clipboard_clear_failed">Impossibile cancellare la cronologia degli appunti.</string>
+    <string name="clipboard_system_clear_failed">Impossibile cancellare gli appunti di sistema.</string>
     <string name="clipboard_pin">Fissa</string>
     <string name="clipboard_unpin">Rimuovi pin</string>
     <string name="clipboard_delete">Elimina</string>
@@ -1003,6 +1027,7 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="kw_main_text_input">digitazione, testo, punteggiatura, virgolette, spaziatura, maiuscole</string>
     <string name="kw_main_auto_correction">correzione, correttore automatico, ortografia, suggerimenti, sostituzioni, dizionari</string>
     <string name="kw_main_keyboard_theme">tema, temi, colori, scuro, chiaro, preset, tastiera fisica, tastiera a schermo, Plektra Dark, Plektra Light, Cloud Tap, Moon Tap, Classic Cloud, Classic Midnight</string>
+    <string name="kw_status_bar_presentation">Slim, normale, profilo, profili, minimale, compatto</string>
     <string name="kw_main_app_language">lingua, lingua app, locale, traduzione</string>
     <string name="kw_main_customization">personalizza, personalizzazione, aspetto</string>
     <string name="kw_main_advanced">avanzate, backup, ripristino, debug, esperto</string>
@@ -1057,4 +1082,31 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="caret_badge_custom_colors_description">Sostituisci i colori del tema della tastiera.</string>
     <string name="alt_latch_stays_on_space_title">Mantieni Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Spazio e Invio disattivano Alt singolo ma mantengono attivo Alt-Lock.</string>
+    <string name="keyboard_bar_hidden_apps_title">Non mostrare mai la barra</string>
+    <string name="keyboard_bar_hidden_apps_row_description">App in cui la barra resta nascosta, anche se aperta manualmente</string>
+    <string name="keyboard_bar_hidden_apps_summary_none">Nessuna app selezionata</string>
+    <plurals name="keyboard_bar_hidden_apps_summary">
+        <item quantity="one">%d app</item>
+        <item quantity="many">%d app</item>
+        <item quantity="other">%d app</item>
+    </plurals>
+    <string name="keyboard_bar_hidden_apps_description">Nelle app scelte qui, Plektra non mostra mai la sua barra né la tastiera su schermo: indipendentemente dalle altre impostazioni di visibilità, e anche se provi ad aprirla con un tasto, una scorciatoia o il pulsante tastiera del sistema. La digitazione con la tastiera fisica continua a funzionare, inclusi i livelli SYM, le scorciatoie, i modificatori e i codici esatti di emoji o snippet. Gli appunti e il selettore emoji restano chiusi in queste app.</string>
+    <string name="keyboard_bar_hidden_apps_webapk_note">Web app: funziona dentro %1$s, quindi la barra è nascosta anche lì</string>
+    <string name="emoji_category_unicode_symbols">Simboli di testo</string>
+    <string name="emoji_category_kaomoji">Kaomoji</string>
+    <string name="emoji_style_title">Aspetto delle emoji</string>
+    <string name="emoji_style_noto">Noto Color Emoji (integrato)</string>
+    <string name="emoji_style_system">Carattere di sistema</string>
+    <string name="emoji_style_description">Plektra inserisce emoji Unicode standard; l’app in cui scrivi le mostra con il proprio carattere.</string>
+    <string name="emoji_skin_tone_title">Tonalità della pelle predefinita</string>
+    <string name="emoji_pages_emoji_title">Sfoglia la pagina emoji con Q e P</string>
+    <string name="emoji_pages_symbols_title">Sfoglia la pagina simboli con Q e P</string>
+    <string name="emoji_pages_description">Q e P sfogliano le pagine, Maiusc+Q e Maiusc+P saltano tra le categorie, A apre la ricerca. Tieni premuta un’emoji per le sue tonalità della pelle. Tra le tonalità, P passa alle altre; per un’emoji della tua mappatura, ✎ su A apre la personalizzazione del tasto.</string>
+    <string name="sym_paged_navigation_note">Con le pagine attive, Q (‹) e P (›) le sfogliano. Le tue mappature di Q e P restano salvate e si possono modificare qui: a pagina aperta, tieni premuto SYM e premi Q o P per digitarle; senza le pagine tornano a funzionare direttamente.</string>
+    <string name="sym_navigation_key_content_description">%1$s sfoglia le pagine (%2$s). La tua mappatura: %3$s</string>
+    <string name="kaomoji_placement_title">Pagine kaomoji</string>
+    <string name="kaomoji_placement_symbols">Dopo i simboli</string>
+    <string name="kaomoji_placement_emoji">Dopo le emoji</string>
+    <string name="kaomoji_placement_off">Disattivato</string>
+    <string name="emoji_picker_extras_title">Simboli di testo e kaomoji nel selettore emoji</string>
 </resources>

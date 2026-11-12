@@ -4,7 +4,7 @@ Advanced (hardware) keyboard control on Android. Free software under GPLv3.
 
 Explore 21 presentations in the [Stable gallery](#stable-gallery) or [Nightly gallery](#nightly-gallery).
 
-The galleries use real Titan 2, Titan 2 Elite and Pixel 7a captures from October 2026. Both palettes show Nightly debug UI; native screenshot colors and contents are preserved. The Notes editor contains synthetic example text. Processed photographs frame the actual app captures.
+The galleries use real Titan 2, Titan 2 Elite and Pixel 7a captures from October 2026. Both palettes show Nightly debug UI; native screenshot colors and contents are preserved. The Notes editor contains synthetic example text. Processed photographs frame the actual app captures. The device comparison also includes an upcoming Clicks Communicator preview, using an official frontal product render and the same original screen composition as the Titan 2 Elite.
 
 ## Reproduce the images
 
@@ -298,7 +298,7 @@ The software keyboard gallery uses four Pixel 7a captures in one row: Cloud Tap,
    scripts/capture-showcase.sh --serial <serial> --device titan-2-elite
    ```
 
-   To capture only some states, add `--only r6-full,r5-slim`. To force one host for every scene, add `--host notes` or `--host showcase`. The default is the host each scene asks for. `showcase` uses a plain native editor with synthetic text and an optional contrast grid; `notes` uses the Markdown editor. The plain host is independent of the Notes screen layout.
+   To capture only some states, add `--only r6-full,r5-slim`. Every scene runs in the app's Markdown notes editor. The script adds the scene text as one synthetic note beside the existing notes and removes it again at the end, together with the changed settings.
 
 **Emulator.** Start the Android Virtual Device and wait until it has finished booting. The serial is usually `emulator-5554`. The display must have no size override, so run `adb shell wm size reset` first if the script reports a mismatch. The Titan 2 Elite profile expects a 1080 by 1200 display.
 
@@ -325,6 +325,6 @@ Exports draw the native keyboard children, including both LED rails, on an ARGB 
 
 ## Device comparison scale
 
-The opening device comparison uses one physical width scale: Titan 2 88.7 mm, Titan 2 Elite 75 mm and Pixel 7a 72.9 mm. Manufacturer dimensions and source links are recorded in [device-dimensions.json](sources/device-dimensions.json). Transparent photograph margins are excluded when measuring the frame widths; each photograph keeps its aspect ratio.
+The opening device comparison uses one physical width scale: Titan 2 88.7 mm, Titan 2 Elite 75 mm, Clicks Communicator 78.6 mm and Pixel 7a 72.9 mm. Manufacturer dimensions and source links are recorded in [device-dimensions.json](sources/device-dimensions.json). Transparent photograph margins are excluded when measuring the frame widths; each photograph keeps its aspect ratio.
 
 The upper edge of each keyboard bar is measured in its capture and mapped into its device frame. These edges share one horizontal reference. Device labels share one baseline, with a 16 px gap below the lowest device silhouette.

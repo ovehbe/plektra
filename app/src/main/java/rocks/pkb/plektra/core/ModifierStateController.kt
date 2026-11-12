@@ -11,7 +11,9 @@ enum class ShiftState { OFF, ONE_SHOT, CAPS }
  * bookkeeping in sync with the UI and auto-capitalization helpers.
  */
 class ModifierStateController(
-    private val doubleTapThreshold: Long
+    private val doubleTapThreshold: Long,
+    /** Whether the active layout has letter case, so field capitalization may select its shift layer. */
+    private val layoutSupportsAutomaticShift: () -> Boolean = { true }
 ) {
     private val modifierKeyHandler = ModifierKeyHandler(doubleTapThreshold)
     private var lastKeyWasModifier = false
@@ -21,20 +23,30 @@ class ModifierStateController(
         private val doubleTapThreshold: Long
     ) {
         var state: ShiftState = ShiftState.OFF
+            private set(value) {
+                field = value
+                automaticCapsLock = false
+            }
+
+        /** True while Caps Lock is the one a field's CAP_CHARACTERS flag turned on. */
+        var automaticCapsLock: Boolean = false
             private set
 
-        private var lastTapTime: Long = 0
+        private var lastDownTime: Long = 0
 
         fun tap(
             now: Long = System.currentTimeMillis(),
             isConsecutiveTap: Boolean,
             singleTapLatches: Boolean = false
         ): ShiftState {
-            val doubleTap = isConsecutiveTap && now - lastTapTime < doubleTapThreshold
-            lastTapTime = now
+            // Use same timing logic as Ctrl/Alt: check against last DOWN time
+            // to handle fast overlapping taps where second DOWN arrives before first UP
+            val doubleTap = isConsecutiveTap && now - lastDownTime <= doubleTapThreshold
+            lastDownTime = now
+            // Ignore obsolete singleTapLatches: unified tap model is always
+            // single tap → one-shot, double-tap → CAPS (same as Ctrl/Alt).
             state = when {
                 doubleTap -> if (state == ShiftState.CAPS) ShiftState.OFF else ShiftState.CAPS
-                singleTapLatches -> if (state == ShiftState.CAPS) ShiftState.OFF else ShiftState.CAPS
                 state == ShiftState.OFF -> ShiftState.ONE_SHOT
                 else -> ShiftState.OFF
             }
@@ -65,26 +77,38 @@ class ModifierStateController(
             state = if (enabled) ShiftState.CAPS else ShiftState.OFF
         }
 
-        fun restore(newState: ShiftState) {
+        fun setAutomaticCapsLock() {
+            state = ShiftState.CAPS
+            automaticCapsLock = true
+        }
+
+        fun restore(newState: ShiftState, automatic: Boolean = false) {
             state = newState
+            automaticCapsLock = automatic && newState == ShiftState.CAPS
         }
 
         fun reset() {
             state = ShiftState.OFF
-            lastTapTime = 0
+            lastDownTime = 0
         }
     }
 
     private val shiftStateMachine = ShiftStateMachine(doubleTapThreshold)
+
+    // The current field asks for Caps Lock (CAP_CHARACTERS). Field state, never part of a hold snapshot.
+    private var fieldCapsLockRequested = false
+    // Counts field (re)starts, so a state captured before one does not bring back the old field's request.
+    private var fieldGeneration = 0
+    // The field asked for Caps Lock while an uncased layout was active; it returns on a cased one.
+    private var fieldCapsLockSuspended = false
+    // Counts layout changes so a state captured before one can be re-applied to the new layout.
+    private var layoutGeneration = 0
     private var shiftPressedFlag = false
     private var shiftPhysicallyPressedFlag = false
 
     private val ctrlState = ModifierKeyHandler.CtrlState()
     private val altState = ModifierKeyHandler.AltState()
 
-    var shiftTapLatches: Boolean = false
-    var ctrlTapLatches: Boolean = false
-    var altTapLatches: Boolean = false
 
     fun registerModifierTap(keyCode: Int): Boolean {
         val isConsecutive = lastKeyWasModifier && lastModifierKeyCode == keyCode
@@ -96,6 +120,9 @@ class ModifierStateController(
     fun registerNonModifierKey() {
         lastKeyWasModifier = false
         lastModifierKeyCode = 0
+        // Clear double-tap timing window for all modifiers to prevent tap-letter-tap from locking
+        ctrlState.lastReleaseTime = 0
+        altState.lastReleaseTime = 0
     }
 
     data class Snapshot(
@@ -117,7 +144,11 @@ class ModifierStateController(
         val ctrlLatchActive: Boolean,
         val ctrlLatchFromNavMode: Boolean,
         val altOneShot: Boolean,
-        val altLatchActive: Boolean
+        val altLatchActive: Boolean,
+        val automaticCapsLock: Boolean = false,
+        val fieldCapsLockSuspended: Boolean = false,
+        val layoutGeneration: Int = 0,
+        val fieldGeneration: Int = 0
     )
 
     fun captureLogicalState(): LogicalState {
@@ -127,12 +158,35 @@ class ModifierStateController(
             ctrlLatchActive = ctrlState.latchActive,
             ctrlLatchFromNavMode = ctrlState.latchFromNavMode,
             altOneShot = altState.oneShot,
-            altLatchActive = altState.latchActive
+            altLatchActive = altState.latchActive,
+            automaticCapsLock = shiftStateMachine.automaticCapsLock,
+            fieldCapsLockSuspended = fieldCapsLockSuspended,
+            layoutGeneration = layoutGeneration,
+            fieldGeneration = fieldGeneration
         )
     }
 
+    /**
+     * Restores a state captured before a modifier hold. A layout change during the hold
+     * is applied again to the restored state, so field Caps Lock follows the current layout.
+     * When the field restarted during the hold, only the user's Shift state is restored and
+     * the current field's Caps Lock request is applied to it instead of the captured one.
+     */
     fun restoreLogicalState(captured: LogicalState) {
-        shiftStateMachine.restore(captured.shiftState)
+        if (captured.fieldGeneration == fieldGeneration) {
+            shiftStateMachine.restore(captured.shiftState, captured.automaticCapsLock)
+            fieldCapsLockSuspended = captured.fieldCapsLockSuspended
+            if (captured.layoutGeneration != layoutGeneration) {
+                applyLayoutCasing()
+            }
+        } else {
+            shiftStateMachine.restore(if (captured.automaticCapsLock) ShiftState.OFF else captured.shiftState)
+            fieldCapsLockSuspended = false
+            if (captured.layoutGeneration != layoutGeneration) {
+                applyLayoutCasing()
+            }
+            if (fieldCapsLockRequested) applyFieldCapsLockRequest()
+        }
         ctrlState.oneShot = captured.ctrlOneShot
         ctrlState.latchActive = captured.ctrlLatchActive
         ctrlState.latchFromNavMode = captured.ctrlLatchFromNavMode
@@ -146,6 +200,68 @@ class ModifierStateController(
     var capsLockEnabled: Boolean
         get() = shiftStateMachine.state == ShiftState.CAPS
         set(value) { shiftStateMachine.setCapsLock(value) }
+
+    /**
+     * Caps Lock turned on by the field's capitalization flags rather than by the user.
+     * Any later change to the Shift state makes it a regular, user-owned state again.
+     */
+    val capsLockAutomatic: Boolean
+        get() = shiftStateMachine.automaticCapsLock
+
+    /**
+     * Applies a field's Caps Lock request (CAP_CHARACTERS). Caps Lock that is already on
+     * keeps its origin, so a user's Caps Lock stays user-owned across field restarts.
+     * On an uncased layout the request waits until a cased layout becomes active.
+     */
+    fun requestFieldCapsLock() {
+        fieldCapsLockRequested = true
+        applyFieldCapsLockRequest()
+    }
+
+    private fun applyFieldCapsLockRequest() {
+        if (shiftStateMachine.state == ShiftState.CAPS) return
+        if (layoutSupportsAutomaticShift()) {
+            shiftStateMachine.setAutomaticCapsLock()
+        } else {
+            fieldCapsLockSuspended = true
+        }
+    }
+
+    /**
+     * Forgets the previous field's Caps Lock request before the field flags are applied
+     * again: Caps Lock the request turned on goes with it, user Caps Lock stays.
+     */
+    fun clearFieldCapsLockRequest() {
+        fieldGeneration++
+        fieldCapsLockRequested = false
+        fieldCapsLockSuspended = false
+        if (shiftStateMachine.automaticCapsLock) shiftStateMachine.setCapsLock(false)
+    }
+
+    /**
+     * Call after the active layout changed. On an uncased layout the shift layer holds
+     * other letters, so automatic Shift state is dropped (field Caps Lock is suspended);
+     * a cased layout gets the suspended field Caps Lock back. User Caps Lock stays.
+     */
+    fun onLayoutChanged() {
+        layoutGeneration++
+        applyLayoutCasing()
+    }
+
+    private fun applyLayoutCasing() {
+        if (!layoutSupportsAutomaticShift()) {
+            shiftStateMachine.consumeOneShot()
+            if (shiftStateMachine.automaticCapsLock) {
+                shiftStateMachine.setCapsLock(false)
+                fieldCapsLockSuspended = true
+            }
+        } else if (fieldCapsLockSuspended) {
+            fieldCapsLockSuspended = false
+            if (shiftStateMachine.state == ShiftState.OFF) {
+                shiftStateMachine.setAutomaticCapsLock()
+            }
+        }
+    }
 
     var shiftPressed: Boolean
         get() = shiftPressedFlag
@@ -220,7 +336,7 @@ class ModifierStateController(
         )
     }
 
-    fun handleShiftKeyDown(keyCode: Int): ModifierKeyHandler.ModifierKeyResult {
+    fun handleShiftKeyDown(keyCode: Int, now: Long = System.currentTimeMillis()): ModifierKeyHandler.ModifierKeyResult {
         if (keyCode != KeyEvent.KEYCODE_SHIFT_LEFT &&
             keyCode != KeyEvent.KEYCODE_SHIFT_RIGHT
         ) {
@@ -236,8 +352,8 @@ class ModifierStateController(
         val previous = shiftStateMachine.state
         val isConsecutiveTap = registerModifierTap(keyCode)
         val current = shiftStateMachine.tap(
-            isConsecutiveTap = isConsecutiveTap,
-            singleTapLatches = shiftTapLatches
+            now = now,
+            isConsecutiveTap = isConsecutiveTap
         )
         val changed = previous != current
         return ModifierKeyHandler.ModifierKeyResult(
@@ -273,7 +389,6 @@ class ModifierStateController(
             ctrlState,
             isInputViewActive,
             isConsecutiveTap = isConsecutiveTap,
-            singleTapLatches = ctrlTapLatches,
             now = now,
             onNavModeDeactivated = onNavModeDeactivated
         )
@@ -302,7 +417,6 @@ class ModifierStateController(
             keyCode,
             altState,
             isConsecutiveTap = isConsecutiveTap,
-            singleTapLatches = altTapLatches,
             now = now
         )
         altPressed = true
@@ -383,6 +497,9 @@ class ModifierStateController(
         }
 
         shiftStateMachine.reset()
+        fieldGeneration++
+        fieldCapsLockRequested = false
+        fieldCapsLockSuspended = false
         shiftPressedFlag = false
         shiftPhysicallyPressedFlag = false
         lastKeyWasModifier = false
@@ -397,5 +514,45 @@ class ModifierStateController(
             modifierKeyHandler.resetCtrlState(ctrlState, preserveNavMode = false)
         }
         modifierKeyHandler.resetAltState(altState)
+    }
+
+    /**
+     * Capture Alt modifier state as a compact string for debug logging.
+     */
+    fun captureAltStateString(): String {
+        val parts = mutableListOf<String>()
+        if (altPressed) parts.add("pressed")
+        if (altPhysicallyPressed) parts.add("physical")
+        if (altOneShot) parts.add("oneShot")
+        if (altLatchActive) parts.add("latch")
+        return if (parts.isEmpty()) "OFF" else parts.joinToString("|")
+    }
+
+    /**
+     * Capture Shift modifier state as a compact string for debug logging.
+     */
+    fun captureShiftStateString(): String {
+        val parts = mutableListOf<String>()
+        if (shiftPressed) parts.add("pressed")
+        if (shiftPhysicallyPressed) parts.add("physical")
+        when (shiftStateMachine.state) {
+            ShiftState.ONE_SHOT -> parts.add("oneShot")
+            ShiftState.CAPS -> parts.add("CAPS")
+            ShiftState.OFF -> {}
+        }
+        return if (parts.isEmpty()) "OFF" else parts.joinToString("|")
+    }
+
+    /**
+     * Capture Ctrl modifier state as a compact string for debug logging.
+     */
+    fun captureCtrlStateString(): String {
+        val parts = mutableListOf<String>()
+        if (ctrlPressed) parts.add("pressed")
+        if (ctrlPhysicallyPressed) parts.add("physical")
+        if (ctrlOneShot) parts.add("oneShot")
+        if (ctrlLatchActive) parts.add("latch")
+        if (ctrlLatchFromNavMode) parts.add("navMode")
+        return if (parts.isEmpty()) "OFF" else parts.joinToString("|")
     }
 }
