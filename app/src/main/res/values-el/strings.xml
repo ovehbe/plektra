@@ -544,7 +544,7 @@
     <string name="clicks_button_mode_native">Εγγενές</string>
     <string name="clicks_button_mode_native_description">Διατηρεί το αρχικό συμβάν πλήκτρου Android του κουμπιού.</string>
     <string name="clicks_button_mode_quick_launcher">QuickLauncher</string>
-    <string name="clicks_button_mode_quick_launcher_description">Ανοίγει απευθείας το Plektra QuickLauncher και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
+    <string name="clicks_button_mode_quick_launcher_description">Ανοίγει απευθείας το Plektra Quick Launcher και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
     <string name="clicks_button_mode_open_plektra">Άνοιγμα Plektra</string>
     <string name="clicks_button_mode_open_plektra_description">Ανοίγει απευθείας τις ρυθμίσεις Plektra και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
     <string name="clicks_button_mode_toggle_keyboard_mode">Εναλλαγή λειτουργίας πληκτρολογίου</string>
@@ -675,7 +675,7 @@
     <string name="about_credits_error">Δεν είναι δυνατή η φόρτωση πληροφοριών συντελεστών.</string>
 
     <!-- Launcher Shortcuts Section -->
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Γρήγορη εκκίνηση, συντομεύσεις SYM και αντιστοιχίσεις πλήκτρων launcher</string>
     <string name="starter_launcher_shortcuts_intro">Αυτές οι ρυθμίσεις μοιράζονται μία λίστα αντιστοίχισης πλήκτρων launcher. Επιλέξτε πού θα ακούει το Plektra για αυτά τα αντιστοιχισμένα πλήκτρα.</string>
     <string name="launcher_shortcuts_title">Συντομεύσεις αρχικής οθόνης</string>
@@ -687,7 +687,7 @@
     <string name="quick_launcher_default_blocked_hint">Νέο: Το SYM μπορεί να ανοίγει τον quick launcher. Το Plektra κανονικά θα το αντιστοιχούσε στο Space, αλλά το Space έχει ήδη συντόμευση. Ανοίξτε τη σελίδα αντιστοιχίσεων και επιλέξτε “Άνοιγμα quick launcher” σε οποιοδήποτε πλήκτρο για να το δοκιμάσετε.</string>
 
     <!-- Launcher Shortcuts Screen -->
-    <string name="launcher_shortcuts_screen_title">Plektra-QuickLauncher</string>
+    <string name="launcher_shortcuts_screen_title">Plektra Quick Launcher</string>
     <string name="launcher_shortcuts_not_assigned">Δεν έχει αντιστοιχιστεί</string>
     <string name="launcher_shortcuts_remove">Αφαίρεση</string>
     <string name="launcher_shortcuts_app_name_unavailable">Εφαρμογή (όνομα μη διαθέσιμο)</string>
@@ -705,7 +705,7 @@
     <string name="launcher_shortcut_assignment_no_apps">Δεν βρέθηκαν εντολές</string>
     <string name="launcher_shortcut_assignment_no_results">Δεν υπάρχουν αποτελέσματα για \"%1$s\"</string>
     <string name="launcher_shortcut_assignment_key_name">Πλήκτρο %1$d</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Πληκτρολογήστε για αναζήτηση. Το Enter ανοίγει το πρώτο αποτέλεσμα.</string>
     <string name="quick_launcher_close">Κλείσιμο</string>
     <string name="quick_launcher_no_entries_match">Καμία καταχώριση δεν ταιριάζει με “%1$s”.</string>
@@ -733,7 +733,7 @@
     <string name="quick_launcher_typo_tolerant_ranking_description">Ταιριάζει επίσης ονόματα εφαρμογών με μικρά λάθη πληκτρολόγησης. Οι υπάρχουσες αντιστοιχίσεις προθέματος και συντομογραφίας εξακολουθούν να κατατάσσονται ψηλότερα.</string>
     <string name="quick_launcher_provider_title">Συμπεριφορά QuickLauncher</string>
     <string name="quick_launcher_provider_description">Επιλέξτε αν η συντόμευση ανοίγει την αναζήτηση Plektra ή την αναζήτηση Niagara Launcher. Το Niagara επιστρέφει στο Plektra αν δεν είναι διαθέσιμο.</string>
-    <string name="quick_launcher_provider_plektra">Plektra QuickLauncher</string>
+    <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>
     <string name="quick_launcher_provider_niagara">Αναζήτηση Niagara Launcher</string>
     <string name="quick_launcher_ranking_info_button">Πώς λειτουργεί η κατάταξη</string>
     <string name="quick_launcher_ranking_info_title">Κατάταξη QuickLauncher</string>
@@ -868,7 +868,6 @@
     <string name="sym_shortcuts_compatibility_info">Σχετικά με τη συμβατότητα πλήκτρου SYM</string>
     <string name="sym_shortcuts_compatibility_title">Συμβατότητα πλήκτρου SYM</string>
     <string name="sym_shortcuts_compatibility_description">Οι συντομεύσεις πλήκτρου SYM απαιτούν πληκτρολόγιο που εκθέτει το SYM ως τροποποιητή στο Android. Προς το παρόν δεν μπορούν να λειτουργήσουν με πληκτρολόγια των οποίων το firmware μετατρέπει τους συνδυασμούς SYM σε τελικούς χαρακτήρες ή συμβάντα πλοήγησης πριν τους λάβει το Plektra. Αυτό περιλαμβάνει την τρέχουσα συμπεριφορά SYM του Clicks Power Keyboard.</string>
-    <string name="power_shortcuts_press_key">Πατήστε πλήκτρο συντόμευσης για εκκίνηση</string>
 
     <!-- Notification Helper -->
     <string name="notification_nav_mode_channel_name">Plektra Nav Mode</string>

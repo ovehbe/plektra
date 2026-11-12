@@ -149,9 +149,8 @@ class InputEventRouter(
 
         // Gestisci SYM per Power Shortcuts (toggle: attiva/disattiva)
         if (keyCode == KeyEvent.KEYCODE_SYM && powerShortcutsEnabled) {
-            val message = context.getString(R.string.power_shortcuts_press_key)
             val isNavModeActive = navModeController.isNavModeActive()
-            callbacks.togglePowerShortcutMode(message, isNavModeActive)
+            callbacks.togglePowerShortcutMode({}, isNavModeActive)
             return true // Consumiamo l'evento
         }
 

@@ -208,7 +208,6 @@
     <string name="launcher_shortcut_assignment_key_name">Клавиша %1$d</string>
     <string name="power_shortcuts_title">Быстрые команды</string>
     <string name="power_shortcuts_description">Нажмите SYM, затем клавишу, чтобы запускать ярлыки вне текстового поля</string>
-    <string name="power_shortcuts_press_key">Нажмите клавишу ярлыка для запуска</string>
     <string name="notification_nav_mode_channel_name">Режим навигации</string>
     <string name="notification_nav_mode_channel_description">Уведомления для режима навигации</string>
     <string name="notification_nav_mode_activated_title">Режим Навигации включён</string>
@@ -661,12 +660,12 @@
     <string name="keyboard_profile_option_titan2elite_qwerty">Titan 2 Elite (QWERTY)</string>
     <string name="keyboard_currency_symbol_title">Символ валюты</string>
     <string name="keyboard_currency_symbol_description">Символ, вставляемый выделенными аппаратными клавишами валюты.</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Быстрый запуск, ярлыки SYM и назначения клавиш приложений</string>
     <string name="starter_launcher_shortcuts_intro">Эти настройки используют общий список назначений приложение-клавиша. Выберите, где Plektra должна слушать назначенные клавиши.</string>
     <string name="launcher_shortcuts_configure_description_with_quick_launcher">Нажмите клавишу, чтобы назначить или заменить приложение. QuickLauncher сейчас назначен на %1$s.</string>
     <string name="quick_launcher_default_blocked_hint">Новое: SYM может открывать QuickLauncher. Plektra обычно назначила бы его на Пробел, но у Пробела уже есть ярлык. Откройте страницу назначений и выберите «Открыть QuickLauncher» на любой клавише, чтобы попробовать.</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Печатайте для поиска. Enter открывает первый результат.</string>
     <string name="quick_launcher_close">Закрыть</string>
     <string name="quick_launcher_no_entries_match">Нет элементов по запросу \"%1$s\".</string>

@@ -222,15 +222,8 @@ class LauncherShortcutController(
         // Cancella timeout precedente se esiste
         cancelPowerShortcutTimeout()
         
-        // Imposta timeout per resettare automaticamente e mostra il toast solo se il chord non prosegue subito.
+        // Imposta timeout per resettare automaticamente
         val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        val message = context.getString(R.string.power_shortcuts_press_key)
-        powerShortcutToastRunnable = Runnable {
-            if (powerShortcutSymPressed) {
-                showToast(message)
-            }
-        }
-        handler.postDelayed(powerShortcutToastRunnable!!, 500L)
         powerShortcutTimeoutRunnable = Runnable {
             resetPowerShortcutMode()
         }
