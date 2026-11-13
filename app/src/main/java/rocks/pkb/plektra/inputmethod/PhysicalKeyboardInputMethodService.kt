@@ -104,6 +104,22 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         private const val MODIFIER_ICON_LOCKED = 2
         private const val DISCORD_PACKAGE_NAME = "com.discord"
         private const val FACEBOOK_MESSENGER_PACKAGE_NAME = "com.facebook.orca"
+
+        /**
+         * Same-process bridge so Quick Launcher can honor Plektra Ctrl one-shot/latch
+         * tracked by the IME (Q25 remapped Ctrl has no META_CTRL_ON on the activity).
+         */
+        @Volatile
+        private var sharedModifierStateController: ModifierStateController? = null
+
+        fun activeModifierStateController(): ModifierStateController? = sharedModifierStateController
+
+        internal fun activeModifierStateControllerForTests(): ModifierStateController? =
+            sharedModifierStateController
+
+        internal fun clearActiveModifierStateControllerForTests() {
+            sharedModifierStateController = null
+        }
         private val MESSENGER_ENTER_BEHAVIOR_PACKAGES = setOf(
             "com.whatsapp",
             CompatibilityWorkarounds.TELEGRAM_PACKAGE_NAME,
@@ -2005,6 +2021,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         modifierStateController = ModifierStateController(DOUBLE_TAP_THRESHOLD) {
             LayoutMappingRepository.supportsAutoCapitalization
         }
+        sharedModifierStateController = modifierStateController
         updateModifierTapLatchSettings()
         navModeController = NavModeController(this, modifierStateController)
         navModeController.setOnNavModeChangedListener { isActive ->
@@ -3116,6 +3133,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         accidentalKeyPressFilter.reset()
         clicksPowerButtonEventMapper.reset()
         expansionAssetScope.cancel()
+        if (
+            ::modifierStateController.isInitialized &&
+            sharedModifierStateController === modifierStateController
+        ) {
+            sharedModifierStateController = null
+        }
         super.onDestroy()
         pendingInputDeviceModeRefresh?.let { uiHandler.removeCallbacks(it) }
         pendingInputDeviceModeRefresh = null
