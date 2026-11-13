@@ -89,8 +89,11 @@ import rocks.pkb.plektra.commands.CommandRegistry
 import rocks.pkb.plektra.commands.CommandSourceId
 import rocks.pkb.plektra.commands.CommandSurface
 import rocks.pkb.plektra.commands.CommandTarget
+import rocks.pkb.plektra.BuildConfig
+import rocks.pkb.plektra.core.ModifierDebugLog
 import rocks.pkb.plektra.core.ModifierStateController
 import rocks.pkb.plektra.data.layout.JsonLayoutLoader
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import rocks.pkb.plektra.data.layout.LayoutMapping
 import rocks.pkb.plektra.data.layout.LayoutMappingRepository
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
@@ -196,7 +199,17 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         onCustomizationsReloadRequested = { reloadCommandCustomizations() },
                         onMoveFavorite = { commandId, direction -> moveFavorite(commandId, direction) },
                         onDismiss = { requestAnimatedDismiss() },
-                        onDismissAnimationFinished = { finish() }
+                        onDismissAnimationFinished = { finish() },
+                        onSearchFieldKeyEvent = { nativeEvent ->
+                            logQuickLauncherKeyPath(
+                                entryPoint = "searchField.onPreviewKeyEvent",
+                                keyCode = nativeEvent.keyCode,
+                                event = nativeEvent,
+                                branch = "observe-only",
+                                consumed = false
+                            )
+                            false
+                        }
                     )
                 }
             }
@@ -224,35 +237,86 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val (keyCode, mappedEvent) = remapHardwareEvent(event.keyCode, event)
         val effectiveEvent = mappedEvent ?: event
+        val actionLabel = when (effectiveEvent.action) {
+            KeyEvent.ACTION_DOWN -> "KEY_DOWN"
+            KeyEvent.ACTION_UP -> "KEY_UP"
+            else -> "KEY_OTHER_${effectiveEvent.action}"
+        }
         return when (effectiveEvent.action) {
             KeyEvent.ACTION_DOWN -> {
-                if (handleQuickLauncherKeyDown(keyCode, effectiveEvent)) {
+                if (handleQuickLauncherKeyDown(keyCode, effectiveEvent, entryPoint = "dispatchKeyEvent")) {
                     true
                 } else {
                     super.dispatchKeyEvent(effectiveEvent)
                 }
             }
             KeyEvent.ACTION_UP -> {
-                if (handleQuickLauncherKeyUp(keyCode, effectiveEvent)) {
+                if (handleQuickLauncherKeyUp(keyCode, effectiveEvent, entryPoint = "dispatchKeyEvent")) {
                     true
                 } else {
                     super.dispatchKeyEvent(effectiveEvent)
                 }
             }
-            else -> super.dispatchKeyEvent(effectiveEvent)
+            else -> {
+                logQuickLauncherKeyPath(
+                    entryPoint = "dispatchKeyEvent",
+                    keyCode = keyCode,
+                    event = effectiveEvent,
+                    branch = "pass_to_super.dispatchKeyEvent_other",
+                    consumed = false,
+                    actionOverride = actionLabel
+                )
+                super.dispatchKeyEvent(effectiveEvent)
+            }
         }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val (mappedKeyCode, mappedEvent) = remapHardwareEvent(keyCode, event)
-        return handleQuickLauncherKeyDown(mappedKeyCode, mappedEvent) ||
+        return handleQuickLauncherKeyDown(mappedKeyCode, mappedEvent, entryPoint = "onKeyDown") ||
             super.onKeyDown(mappedKeyCode, mappedEvent)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         val (mappedKeyCode, mappedEvent) = remapHardwareEvent(keyCode, event)
-        return handleQuickLauncherKeyUp(mappedKeyCode, mappedEvent) ||
+        return handleQuickLauncherKeyUp(mappedKeyCode, mappedEvent, entryPoint = "onKeyUp") ||
             super.onKeyUp(mappedKeyCode, mappedEvent)
+    }
+
+    private fun sharedControllerIsNull(): Boolean =
+        PhysicalKeyboardInputMethodService.activeModifierStateController() == null
+
+    private fun logQuickLauncherKeyPath(
+        entryPoint: String,
+        keyCode: Int,
+        event: KeyEvent?,
+        branch: String,
+        consumed: Boolean,
+        actionOverride: String? = null
+    ) {
+        if (!BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) return
+        val action = actionOverride ?: when (event?.action) {
+            KeyEvent.ACTION_DOWN -> "KEY_DOWN"
+            KeyEvent.ACTION_UP -> "KEY_UP"
+            null -> "KEY_NULL_EVENT"
+            else -> "KEY_OTHER_${event.action}"
+        }
+        val sharedNull = sharedControllerIsNull()
+        val ctrlState = if (sharedNull) {
+            "fallback:${fallbackModifierStateController.captureCtrlStateString()}"
+        } else {
+            modifierStateController.captureCtrlStateString()
+        }
+        ModifierDebugLog.logQuickLauncher(
+            entryPoint = entryPoint,
+            action = action,
+            keyCode = keyCode,
+            event = event,
+            sharedControllerNull = sharedNull,
+            ctrlState = ctrlState,
+            branch = branch,
+            consumed = consumed
+        )
     }
 
     private fun remapHardwareEvent(keyCode: Int, event: KeyEvent?): Pair<Int, KeyEvent?> {
@@ -264,14 +328,30 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         return remapped.keyCode to remapped.event
     }
 
-    private fun handleQuickLauncherKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+    private fun handleQuickLauncherKeyDown(
+        keyCode: Int,
+        event: KeyEvent?,
+        entryPoint: String
+    ): Boolean {
+        fun finish(branch: String, consumed: Boolean): Boolean {
+            logQuickLauncherKeyPath(
+                entryPoint = entryPoint,
+                keyCode = keyCode,
+                event = event,
+                branch = branch,
+                consumed = consumed
+            )
+            return consumed
+        }
+
         if (isSymQuickLauncherToggle(keyCode, event)) {
-            return handleDismissKeyDown(keyCode, event)
+            val consumed = handleDismissKeyDown(keyCode, event)
+            return finish("sym_toggle_dismiss", consumed)
         }
 
         if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
             modifierStateController.handleCtrlKeyDown(keyCode, isInputViewActive = false)
-            return true
+            return finish("ctrl_key_down_track", true)
         }
 
         // Handle D-pad navigation first (before other key handling)
@@ -284,7 +364,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         else -> selectedIndex
                     }
                 }
-                return true
+                return finish("dpad_up", true)
             }
             KeyEvent.KEYCODE_DPAD_DOWN -> {
                 if (filteredCommands.isNotEmpty()) {
@@ -294,7 +374,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         else -> selectedIndex
                     }
                 }
-                return true
+                return finish("dpad_down", true)
             }
             KeyEvent.KEYCODE_DPAD_CENTER -> {
                 enterHandledOnKeyDown = true
@@ -303,13 +383,24 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                 } else {
                     launchTopMatch()
                 }
-                return true
+                return finish("dpad_center_launch", true)
             }
         }
 
         // Hardware META_CTRL_ON or Plektra held/one-shot/latched Ctrl (shared with IME).
-        val isCtrl = event?.isCtrlPressed == true || isPlektraCtrlActive()
+        val hardwareCtrl = event?.isCtrlPressed == true
+        val plektraCtrl = isPlektraCtrlActive()
+        val isCtrl = hardwareCtrl || plektraCtrl
         if (isCtrl) {
+            val shortcutName = when (keyCode) {
+                KeyEvent.KEYCODE_A -> "ctrl_a_select_all"
+                KeyEvent.KEYCODE_C -> "ctrl_c_copy"
+                KeyEvent.KEYCODE_X -> "ctrl_x_cut"
+                KeyEvent.KEYCODE_V -> "ctrl_v_paste"
+                KeyEvent.KEYCODE_Z -> "ctrl_z_undo_noop"
+                KeyEvent.KEYCODE_DEL -> "ctrl_del_delete_word"
+                else -> null
+            }
             val handledShortcut = when (keyCode) {
                 KeyEvent.KEYCODE_A -> {
                     // Ctrl+A: select all (no-op since query is always fully selected)
@@ -343,8 +434,15 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
             }
             if (handledShortcut) {
                 consumeCtrlOneShotAfterShortcut()
-                return true
+                return finish(
+                    "$shortcutName(hardwareCtrl=$hardwareCtrl,plektraCtrl=$plektraCtrl)",
+                    true
+                )
             }
+            return finish(
+                "ctrl_active_but_no_shortcut(key=${KeyEvent.keyCodeToString(keyCode)},hardwareCtrl=$hardwareCtrl,plektraCtrl=$plektraCtrl)",
+                false
+            )
         }
 
         // Original key handling (unchanged from before)
@@ -356,10 +454,13 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                 } else {
                     launchTopMatch()
                 }
-                return true
+                return finish("enter_launch", true)
             }
             KeyEvent.KEYCODE_BACK,
-            KeyEvent.KEYCODE_ESCAPE -> return handleDismissKeyDown(keyCode, event)
+            KeyEvent.KEYCODE_ESCAPE -> {
+                val consumed = handleDismissKeyDown(keyCode, event)
+                return finish("dismiss_key_down", consumed)
+            }
             KeyEvent.KEYCODE_DEL -> {
                 if (query.isNotEmpty()) {
                     query = query.dropLast(1)
@@ -367,7 +468,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                     selectedIndex = -1
                     refreshFilteredCommands()
                 }
-                return true
+                return finish("del_backspace", true)
             }
         }
 
@@ -378,11 +479,14 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                 launchedAutomatically = false
                 selectedIndex = -1
                 refreshFilteredCommands()
-                return true
+                return finish("typed_text('$text')", true)
             }
         }
 
-        return false
+        return finish(
+            "no_branch(hardwareCtrl=$hardwareCtrl,plektraCtrl=$plektraCtrl,key=${KeyEvent.keyCodeToString(keyCode)})",
+            false
+        )
     }
 
     private fun isPlektraCtrlActive(): Boolean {
@@ -452,18 +556,34 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         refreshFilteredCommands()
     }
 
-    private fun handleQuickLauncherKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+    private fun handleQuickLauncherKeyUp(
+        keyCode: Int,
+        event: KeyEvent?,
+        entryPoint: String
+    ): Boolean {
+        fun finish(branch: String, consumed: Boolean): Boolean {
+            logQuickLauncherKeyPath(
+                entryPoint = entryPoint,
+                keyCode = keyCode,
+                event = event,
+                branch = branch,
+                consumed = consumed
+            )
+            return consumed
+        }
+
         if (pendingDismissKeyCode == keyCode) {
-            return handleDismissKeyUp(keyCode, event)
+            val consumed = handleDismissKeyUp(keyCode, event)
+            return finish("pending_dismiss_key_up", consumed)
         }
 
         if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
             modifierStateController.handleCtrlKeyUp(keyCode)
-            return true
+            return finish("ctrl_key_up_track", true)
         }
 
         if (isSymQuickLauncherToggle(keyCode, event)) {
-            return true
+            return finish("sym_toggle_key_up", true)
         }
 
         if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
@@ -475,14 +595,15 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                 }
             }
             enterHandledOnKeyDown = false
-            return true
+            return finish("enter_or_dpad_center_key_up", true)
         }
 
         if (isDismissKey(keyCode)) {
-            return handleDismissKeyUp(keyCode, event)
+            val consumed = handleDismissKeyUp(keyCode, event)
+            return finish("dismiss_key_up", consumed)
         }
 
-        return false
+        return finish("no_branch_key_up", false)
     }
 
     override fun finish() {
@@ -717,7 +838,8 @@ private fun QuickLauncherSheet(
     onCustomizationsReloadRequested: () -> Unit,
     onMoveFavorite: (String, Int) -> Unit,
     onDismiss: () -> Unit,
-    onDismissAnimationFinished: () -> Unit
+    onDismissAnimationFinished: () -> Unit,
+    onSearchFieldKeyEvent: (KeyEvent) -> Boolean = { false }
 ) {
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
     val visible = remember { MutableTransitionState(false) }
@@ -811,7 +933,11 @@ private fun QuickLauncherSheet(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     shape = RoundedCornerShape(28.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent { composeEvent ->
+                            onSearchFieldKeyEvent(composeEvent.nativeKeyEvent)
+                        }
                 ) {
                     Row(
                         modifier = Modifier

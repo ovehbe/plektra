@@ -265,6 +265,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     
     // Flag to track whether we are in a valid input context
     private var isInputViewActive = false
+    private var imeInputBound = false
     private var emojiSearchExternalSelectionStart: Int? = null
     private var emojiSearchExternalSelectionEnd: Int? = null
     private var emojiSearchCursorAnchorMonitoringRequested: Boolean = false
@@ -3876,6 +3877,17 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         pendingKeyboardSurfaceTransition?.let(uiHandler::removeCallbacks)
         pendingKeyboardSurfaceTransition = null
         isInputViewActive = false
+        imeInputBound = false
+        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            ModifierDebugLog.logImeLifecycle(
+                phase = "onUnbindInput",
+                bound = false,
+                inputViewActive = isInputViewActive,
+                packageName = currentPackageName,
+                fieldId = null,
+                inputType = null
+            )
+        }
         if (::keyboardVisibilityController.isInitialized) keyboardVisibilityController.onInputUnbound()
         traceImeVisibility("onUnbindInput")
         super.onUnbindInput()
@@ -3883,6 +3895,17 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
     override fun onBindInput() {
         super.onBindInput()
+        imeInputBound = true
+        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            ModifierDebugLog.logImeLifecycle(
+                phase = "onBindInput",
+                bound = true,
+                inputViewActive = isInputViewActive,
+                packageName = currentPackageName,
+                fieldId = null,
+                inputType = null
+            )
+        }
         traceImeVisibility("onBindInput")
     }
 
@@ -3913,6 +3936,17 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         
         currentPackageName = info?.packageName
         updateDebugImeContextSnapshot(info)
+        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            ModifierDebugLog.logImeLifecycle(
+                phase = "onStartInput",
+                bound = imeInputBound,
+                inputViewActive = isInputViewActive,
+                packageName = info?.packageName,
+                fieldId = info?.fieldId,
+                inputType = info?.inputType,
+                restarting = restarting
+            )
+        }
         
         // Reset clipboard overlay when starting new input
 
@@ -4017,6 +4051,17 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
         updateInputContextState(info)
         isInputViewActive = inputContextState.isEditable
+        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            ModifierDebugLog.logImeLifecycle(
+                phase = "onStartInputView",
+                bound = imeInputBound,
+                inputViewActive = isInputViewActive,
+                packageName = info?.packageName,
+                fieldId = info?.fieldId,
+                inputType = info?.inputType,
+                restarting = restarting
+            )
+        }
         traceImeVisibility("onStartInputView restarting=$restarting")
         initializeInputContext(restarting)
         suggestionController.onContextReset()
@@ -4081,6 +4126,16 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onFinishInput() {
+        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            ModifierDebugLog.logImeLifecycle(
+                phase = "onFinishInput",
+                bound = imeInputBound,
+                inputViewActive = isInputViewActive,
+                packageName = currentPackageName,
+                fieldId = null,
+                inputType = null
+            )
+        }
         cancelSpeechRecognition()
         ++speechEditorSession
         disableSmoothCaretExperiment()
@@ -4118,6 +4173,16 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (::textExpansionController.isInitialized) textExpansionController.clear()
         // Finishing a view does not finish the editor session (Back and backend transitions).
         isInputViewActive = !finishingInput && inputContextState.isEditable
+        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            ModifierDebugLog.logImeLifecycle(
+                phase = "onFinishInputView finishing=$finishingInput",
+                bound = imeInputBound,
+                inputViewActive = isInputViewActive,
+                packageName = currentPackageName,
+                fieldId = null,
+                inputType = null
+            )
+        }
         traceImeVisibility("onFinishInputView finishing=$finishingInput")
         if (::candidatesBarController.isInitialized) {
             candidatesBarController.resetSuggestionActionMode()
@@ -4935,7 +5000,44 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         return super.onKeyLongPress(keyCode, event)
     }
 
+
+    private inline fun withModifierKeyDebug(
+        action: String,
+        keyCode: Int,
+        event: KeyEvent?,
+        block: () -> Boolean
+    ): Boolean {
+        if (!BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            return block()
+        }
+        val altBefore = modifierStateController.captureAltStateString()
+        val shiftBefore = modifierStateController.captureShiftStateString()
+        val ctrlBefore = modifierStateController.captureCtrlStateString()
+        val consumed = block()
+        ModifierDebugLog.logKeyEventFromEvent(
+            event = event,
+            action = action,
+            keyCode = keyCode,
+            handledBy = "ime.$action",
+            altStateBefore = altBefore,
+            altStateAfter = modifierStateController.captureAltStateString(),
+            shiftStateBefore = shiftBefore,
+            shiftStateAfter = modifierStateController.captureShiftStateString(),
+            ctrlStateBefore = ctrlBefore,
+            ctrlStateAfter = modifierStateController.captureCtrlStateString(),
+            consumed = consumed,
+            note = "isInputViewActive=$isInputViewActive package=$currentPackageName"
+        )
+        return consumed
+    }
+
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
+        return withModifierKeyDebug("KEY_DOWN", keyCode_, event_) {
+            onKeyDownInternal(keyCode_, event_)
+        }
+    }
+
+    private fun onKeyDownInternal(keyCode_: Int, event_: KeyEvent?): Boolean {
         if (liveSpeechEditor != null && (event_?.unicodeChar?.let { it != 0 } == true ||
             keyCode_ in listOf(KeyEvent.KEYCODE_DEL, KeyEvent.KEYCODE_FORWARD_DEL, KeyEvent.KEYCODE_ENTER,
                 KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN))) {
@@ -5955,6 +6057,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyUp(keyCode_: Int, event_: KeyEvent?): Boolean {
+        return withModifierKeyDebug("KEY_UP", keyCode_, event_) {
+            onKeyUpInternal(keyCode_, event_)
+        }
+    }
+
+    private fun onKeyUpInternal(keyCode_: Int, event_: KeyEvent?): Boolean {
         if (!replayingProtectedNumberKey) {
             when (val result = accidentalKeyPressFilter.onKeyUp(keyCode_, event_)) {
                 is AccidentalKeyPressFilter.KeyUpResult.Suppressed -> {

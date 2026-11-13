@@ -10,7 +10,11 @@ import rocks.pkb.plektra.inputDeviceSettingEntries
 class UpdateCheckerFlavorLogicTest {
     @Test
     fun buildVariantAndServiceCapabilityAgree() {
-        val reduced = BuildConfig.FLAVOR in setOf("stableNoAccessibility", "nightlyNoAccessibility")
+        val reduced = BuildConfig.FLAVOR in setOf(
+            "stableNoAccessibility",
+            "nightlyNoAccessibility",
+            "sideload"
+        )
         assertEquals(if (reduced) "no-accessibility" else "full", BuildConfig.APK_VARIANT)
         assertEquals(!reduced, BuildConfig.ENABLE_ACCESSIBILITY_SERVICE)
         assertEquals(!reduced, inputDeviceSettingEntries().any { it.id == "clicks.buttons.launcher_button" })
