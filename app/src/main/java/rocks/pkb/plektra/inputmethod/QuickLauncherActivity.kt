@@ -89,6 +89,7 @@ import rocks.pkb.plektra.commands.CommandRegistry
 import rocks.pkb.plektra.commands.CommandSourceId
 import rocks.pkb.plektra.commands.CommandSurface
 import rocks.pkb.plektra.commands.CommandTarget
+import rocks.pkb.plektra.core.ModifierStateController
 import rocks.pkb.plektra.data.layout.JsonLayoutLoader
 import rocks.pkb.plektra.data.layout.LayoutMapping
 import rocks.pkb.plektra.data.layout.LayoutMappingRepository
@@ -127,6 +128,10 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var dismissInProgress = false
     private var quickLauncherPrefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var selectedIndex by mutableStateOf(-1) // -1 means no selection, 0+ is the index
+    private val fallbackModifierStateController = ModifierStateController(300L) { false }
+    private val modifierStateController: ModifierStateController
+        get() = PhysicalKeyboardInputMethodService.activeModifierStateController()
+            ?: fallbackModifierStateController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -217,36 +222,56 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        return when (event.action) {
+        val (keyCode, mappedEvent) = remapHardwareEvent(event.keyCode, event)
+        val effectiveEvent = mappedEvent ?: event
+        return when (effectiveEvent.action) {
             KeyEvent.ACTION_DOWN -> {
-                if (handleQuickLauncherKeyDown(event.keyCode, event)) {
+                if (handleQuickLauncherKeyDown(keyCode, effectiveEvent)) {
                     true
                 } else {
-                    super.dispatchKeyEvent(event)
+                    super.dispatchKeyEvent(effectiveEvent)
                 }
             }
             KeyEvent.ACTION_UP -> {
-                if (handleQuickLauncherKeyUp(event.keyCode, event)) {
+                if (handleQuickLauncherKeyUp(keyCode, effectiveEvent)) {
                     true
                 } else {
-                    super.dispatchKeyEvent(event)
+                    super.dispatchKeyEvent(effectiveEvent)
                 }
             }
-            else -> super.dispatchKeyEvent(event)
+            else -> super.dispatchKeyEvent(effectiveEvent)
         }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return handleQuickLauncherKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+        val (mappedKeyCode, mappedEvent) = remapHardwareEvent(keyCode, event)
+        return handleQuickLauncherKeyDown(mappedKeyCode, mappedEvent) ||
+            super.onKeyDown(mappedKeyCode, mappedEvent)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        return handleQuickLauncherKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
+        val (mappedKeyCode, mappedEvent) = remapHardwareEvent(keyCode, event)
+        return handleQuickLauncherKeyUp(mappedKeyCode, mappedEvent) ||
+            super.onKeyUp(mappedKeyCode, mappedEvent)
+    }
+
+    private fun remapHardwareEvent(keyCode: Int, event: KeyEvent?): Pair<Int, KeyEvent?> {
+        val remapped = DeviceSpecific.remapHardwareKeyEvent(
+            keyCode,
+            event,
+            SettingsManager.getPhysicalKeyboardProfileOverride(this)
+        )
+        return remapped.keyCode to remapped.event
     }
 
     private fun handleQuickLauncherKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (isSymQuickLauncherToggle(keyCode, event)) {
             return handleDismissKeyDown(keyCode, event)
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
+            modifierStateController.handleCtrlKeyDown(keyCode, isInputViewActive = false)
+            return true
         }
 
         // Handle D-pad navigation first (before other key handling)
@@ -282,42 +307,43 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
             }
         }
 
-        // Handle Ctrl shortcuts (only when Ctrl is actually pressed)
+        // Hardware META_CTRL_ON or Plektra held/one-shot/latched Ctrl (shared with IME).
         val isCtrl = event?.isCtrlPressed == true || isPlektraCtrlActive()
         if (isCtrl) {
-            when (keyCode) {
+            val handledShortcut = when (keyCode) {
                 KeyEvent.KEYCODE_A -> {
                     // Ctrl+A: select all (no-op since query is always fully selected)
-                    return true
+                    true
                 }
                 KeyEvent.KEYCODE_C -> {
-                    // Ctrl+C: copy
                     copyQueryToClipboard()
-                    return true
+                    true
                 }
                 KeyEvent.KEYCODE_X -> {
-                    // Ctrl+X: cut
                     copyQueryToClipboard()
                     query = ""
                     launchedAutomatically = false
                     selectedIndex = -1
                     refreshFilteredCommands()
-                    return true
+                    true
                 }
                 KeyEvent.KEYCODE_V -> {
-                    // Ctrl+V: paste
                     pasteFromClipboard()
-                    return true
+                    true
                 }
                 KeyEvent.KEYCODE_Z -> {
                     // Ctrl+Z: undo (not supported in current implementation)
-                    return true
+                    true
                 }
                 KeyEvent.KEYCODE_DEL -> {
-                    // Ctrl+Backspace: delete previous word
                     deletePreviousWord()
-                    return true
+                    true
                 }
+                else -> false
+            }
+            if (handledShortcut) {
+                consumeCtrlOneShotAfterShortcut()
+                return true
             }
         }
 
@@ -345,7 +371,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
             }
         }
 
-        if (event?.isCtrlPressed != true) {
+        if (event?.isCtrlPressed != true && !isPlektraCtrlActive()) {
             val text = resolveTypedText(keyCode, event)
             if (!text.isNullOrEmpty()) {
                 query += text
@@ -358,12 +384,21 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
 
         return false
     }
-    
+
     private fun isPlektraCtrlActive(): Boolean {
-        // Cannot read Plektra's internal one-shot/latched Ctrl state from this activity context.
-        // The IME service runs in a separate process and does not expose modifier state via IPC.
-        // Only hardware Ctrl key presses (META_CTRL_ON) are detectable here.
-        return false
+        val state = modifierStateController
+        return state.ctrlPressed ||
+            state.ctrlPhysicallyPressed ||
+            state.ctrlOneShot ||
+            state.ctrlLatchActive ||
+            state.ctrlLatchFromNavMode
+    }
+
+    private fun consumeCtrlOneShotAfterShortcut() {
+        val state = modifierStateController
+        if (state.ctrlOneShot && !state.ctrlLatchActive && !state.ctrlLatchFromNavMode) {
+            state.ctrlOneShot = false
+        }
     }
     
     private fun copyQueryToClipboard() {
@@ -420,6 +455,11 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private fun handleQuickLauncherKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (pendingDismissKeyCode == keyCode) {
             return handleDismissKeyUp(keyCode, event)
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
+            modifierStateController.handleCtrlKeyUp(keyCode)
+            return true
         }
 
         if (isSymQuickLauncherToggle(keyCode, event)) {
