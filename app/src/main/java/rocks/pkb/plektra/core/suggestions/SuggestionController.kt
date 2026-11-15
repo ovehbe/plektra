@@ -37,7 +37,8 @@ class SuggestionController(
         Boolean
     ) -> DictionaryRepository)? = null,
     nextWordPredictorOverride: NextWordPredictor? = null,
-    private val activeSuggestionLocalesProvider: (() -> List<Locale>)? = null
+    private val activeSuggestionLocalesProvider: (() -> List<Locale>)? = null,
+    private val numberDigitMapProvider: () -> Map<Char, Char> = { emptyMap() }
 ) {
 
     private val appContext = context.applicationContext
@@ -558,6 +559,10 @@ class SuggestionController(
 
     internal fun flushNextWordLearningForTests() {
         nextWordPredictor.flushLearningForTests()
+    }
+
+    internal fun awaitSuggestionJobForTests() {
+        kotlinx.coroutines.runBlocking { suggestionJob?.join() }
     }
 
     fun destroy() {

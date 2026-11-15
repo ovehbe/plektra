@@ -1615,7 +1615,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     forceWordStartCapital,
                     locale
                 )
-                SuggestionKind.CURRENT_WORD -> suggestion.candidate
+                SuggestionKind.CURRENT_WORD,
+                SuggestionKind.NUMBER -> suggestion.candidate
             }
         }
     }

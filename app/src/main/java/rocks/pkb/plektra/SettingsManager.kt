@@ -407,9 +407,12 @@ object SettingsManager {
     private const val KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED = "experimental_candidates_view_enabled"
     private const val KEY_USE_KEYBOARD_PROXIMITY = "use_keyboard_proximity"
     private const val KEY_USE_EDIT_TYPE_RANKING = "use_edit_type_ranking"
+    private const val KEY_NUMBER_SUGGESTIONS_ENABLED = "number_suggestions_enabled"
+    private const val KEY_NUMBER_SUGGESTIONS_EXCLUDED_APPS = "number_suggestions_excluded_apps"
 
     private const val DEFAULT_USE_KEYBOARD_PROXIMITY = false
     private const val DEFAULT_USE_EDIT_TYPE_RANKING = false
+    private const val DEFAULT_NUMBER_SUGGESTIONS_ENABLED = false
     private const val DEFAULT_IME_OVERLAY_DEBUG_LOGGING = false
     private const val DEFAULT_CLIPBOARD_HISTORY_ENABLED = true
     private const val DEFAULT_CLIPBOARD_RETENTION_TIME = 0L // Keep normal entries until deleted
@@ -3345,6 +3348,31 @@ object SettingsManager {
             .putBoolean(KEY_USE_EDIT_TYPE_RANKING, enabled)
             .apply()
     }
+
+    /** Letters typed on digit keys (e.g. "w00") are also offered as the number ("100"). */
+    fun getNumberSuggestionsEnabled(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_NUMBER_SUGGESTIONS_ENABLED, DEFAULT_NUMBER_SUGGESTIONS_ENABLED)
+
+    fun setNumberSuggestionsEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit()
+            .putBoolean(KEY_NUMBER_SUGGESTIONS_ENABLED, enabled)
+            .apply()
+    }
+
+    fun getNumberSuggestionsExcludedPackages(context: Context): Set<String> =
+        getPreferences(context).getStringSet(KEY_NUMBER_SUGGESTIONS_EXCLUDED_APPS, emptySet()) ?: emptySet()
+
+    fun isNumberSuggestionsExcludedApp(context: Context, packageName: String?): Boolean = false
+
+    fun setNumberSuggestionsExcludedApp(context: Context, packageName: String, excluded: Boolean) {
+        val current = getNumberSuggestionsExcludedPackages(context).toMutableSet()
+        if (excluded) current.add(packageName) else current.remove(packageName)
+        getPreferences(context).edit()
+            .putStringSet(KEY_NUMBER_SUGGESTIONS_EXCLUDED_APPS, current)
+            .apply()
+    }
+
+    fun isNumberSuggestionsActive(context: Context, editorInfo: android.view.inputmethod.EditorInfo?): Boolean = false
 
     /**
      * Returns the list of languages enabled for auto-correction.
