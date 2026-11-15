@@ -8,6 +8,7 @@
 - Prepared geometry, content placement, LED paths and touch regions replace repeated pixel searches.
 - Effective system-theme selection and previews, dynamic snippet visibility, safer accent-aware autocorrection and 250px Titan 2 Elite flick defaults.
 - Optional keyboard-bar visibility on the Niagara home screen.
+- Optional number suggestions (26.10.11): letters on the Alt digit keys are offered as numbers (w00 → 100, ed0.000 → 250.000), below real words, with per-app exclusions.
 
 
 ## New Features Pastiera 0.2
