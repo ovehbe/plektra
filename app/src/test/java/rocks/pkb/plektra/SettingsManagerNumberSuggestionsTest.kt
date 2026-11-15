@@ -75,7 +75,16 @@ class SettingsManagerNumberSuggestionsTest {
             Case("on, visible password", true, false, TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD, expected = false),
             Case("on, web password", true, false, TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD, expected = false),
             Case("on, number password", true, false, InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD, expected = false),
-            Case("on, no-suggestions flag", true, false, TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, expected = false),
+            // The IME itself sets NO_SUGGESTIONS on every editable field before onStartInputView.
+            Case("on, no-suggestions flag", true, false, TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, expected = true),
+            Case(
+                "on, WhatsApp message field after onStartInput",
+                true,
+                false,
+                TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
+                    InputType.TYPE_TEXT_FLAG_AUTO_CORRECT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                expected = true
+            ),
             Case("on, email", true, false, TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS, expected = false),
             Case("on, exact typing app", true, false, TEXT, rawMode = true, expected = false)
         )

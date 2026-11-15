@@ -102,20 +102,24 @@ object NumberSuggestions {
     }
 
     /**
-     * Places [number] right after the last real-word candidate among the visible slots,
-     * keeping every word in its original order; looser fuzzy matches stay below it.
-     * With a single slot a real word keeps it.
+     * Places [number] right after the last real-word candidate, keeping every word in its
+     * original order; looser fuzzy matches stay below it. The number always lands within the
+     * first [visibleSlots] entries (fewer than [limit] when the bar gives a slot to the
+     * add-word button), taking the last of them when real words fill the rest.
+     * With a single visible slot a real word keeps it.
      */
     fun insert(
         words: List<SuggestionResult>,
         number: String,
         limit: Int,
-        isRealWordCandidate: (SuggestionResult) -> Boolean
+        isRealWordCandidate: (SuggestionResult) -> Boolean,
+        visibleSlots: Int = limit
     ): List<SuggestionResult> {
         if (limit <= 0) return words
+        val slots = visibleSlots.coerceIn(1, limit)
         val others = words.filterNot { it.candidate == number }
-        val index = others.take(maxOf(1, limit - 1)).indexOfLast(isRealWordCandidate) + 1
-        if (index >= limit) return others.take(limit)
+        val index = others.take(maxOf(1, slots - 1)).indexOfLast(isRealWordCandidate) + 1
+        if (index >= slots) return others.take(limit)
         val result = SuggestionResult(
             candidate = number,
             distance = 0,
@@ -130,13 +134,15 @@ object NumberSuggestions {
      * A word candidate outranks the number only if it completes what was typed or is within
      * [maxDistance] edits of it. Suggestion lookup strips digits, so "r00" is searched as "r"
      * and its completions ("reduce") would otherwise bury every digit-key number; distance is
-     * therefore measured on the raw typed characters.
+     * therefore measured on the raw typed characters, and capped by the typed length so a
+     * high autocorrect distance cannot make "each" a close match for the three keys "e00".
      */
     fun isRealWordCandidate(result: SuggestionResult, typedSegment: String, maxDistance: Int): Boolean {
         if (result.kind != SuggestionKind.CURRENT_WORD) return false
         val typed = typedSegment.lowercase()
         val candidate = result.candidate.lowercase()
-        return candidate.startsWith(typed) || withinDistance(typed, candidate, maxDistance)
+        val allowed = minOf(maxDistance, maxOf(1, (typed.length - 1) / 2))
+        return candidate.startsWith(typed) || withinDistance(typed, candidate, allowed)
     }
 
     private fun withinDistance(a: String, b: String, maxDistance: Int): Boolean {

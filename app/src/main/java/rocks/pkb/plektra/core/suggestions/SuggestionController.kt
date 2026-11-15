@@ -314,10 +314,19 @@ class SuggestionController(
 
             coroutineContext.ensureActive()
             val words = mergeSuggestionResults(primary, extraSuggestions, settings.maxSuggestions, localeSnapshot)
-            val next = numberSnapshot?.let {
-                NumberSuggestions.insert(words, it, settings.maxSuggestions, numberRealWordFilter(wordSnapshot, settings))
-            } ?: words
             val pendingCandidate = addWordCandidateFor(wordSnapshot, primaryRepository)
+            // The bar shows the add-word button in place of the last suggestion.
+            val addButtonShown = pendingCandidate != null &&
+                words.none { it.candidate.equals(pendingCandidate, ignoreCase = true) }
+            val next = numberSnapshot?.let {
+                NumberSuggestions.insert(
+                    words,
+                    it,
+                    settings.maxSuggestions,
+                    numberRealWordFilter(wordSnapshot, settings),
+                    visibleSlots = if (addButtonShown) settings.maxSuggestions - 1 else settings.maxSuggestions
+                )
+            } ?: words
 
             cursorHandler.post {
                 if (!isEnabled() || generation != suggestionGeneration || tracker.currentWord != wordSnapshot) {

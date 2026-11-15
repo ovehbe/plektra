@@ -130,7 +130,11 @@ class NumberSuggestionScenarioTest {
         val failures = mutableListOf<String>()
         barCases.forEach { case ->
             val off = typeAndReadBar(case.typed, numberSuggestions = false)
-            val on = typeAndReadBar(case.typed, numberSuggestions = true)
+            val onHarness = Harness(numberSuggestions = true, autoCorrect = false).apply { type(case.typed) }
+            val on = onHarness.bar()
+            val addButton = onHarness.addWordCandidate()
+                ?.takeUnless { add -> off.any { it.candidate.equals(add, ignoreCase = true) } }
+            val visibleSlots = if (addButton != null) MAX_SUGGESTIONS - 1 else MAX_SUGGESTIONS
             val onCandidates = on.map { it.candidate }
             val offCandidates = off.map { it.candidate }
             val label = "'${case.typed}' off=$offCandidates on=$onCandidates"
@@ -149,10 +153,11 @@ class NumberSuggestionScenarioTest {
                 failures += "$label: word candidates changed"
             }
             val segment = case.typed.takeLastWhile { it.isLetterOrDigit() }
-            val strongBefore = off.take(MAX_SUGGESTIONS - 1).indexOfLast { isRealWord(it, segment) } + 1
+            val strongBefore = off.take(visibleSlots - 1).indexOfLast { isRealWord(it, segment) } + 1
             if (index != strongBefore) {
                 failures += "$label: number at $index, expected right after real words ($strongBefore)"
             }
+            if (index >= visibleSlots) failures += "$label: number hidden behind the add-word button"
             when (case.top) {
                 true -> if (index != 0) failures += "$label: expected number on top"
                 false -> if (index == 0) failures += "$label: expected number below word candidates"
@@ -448,6 +453,8 @@ class NumberSuggestionScenarioTest {
             controller.onCursorMoved(editor)
             shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(200))
         }
+
+        fun addWordCandidate(): String? = controller.pendingAddWord()
 
         fun undoBackspace(): Boolean = controller.handleBackspaceUndo(KeyEvent.KEYCODE_DEL, editor)
 

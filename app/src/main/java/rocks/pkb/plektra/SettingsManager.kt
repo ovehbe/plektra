@@ -3381,7 +3381,8 @@ object SettingsManager {
         if (editorInfo == null || !getNumberSuggestionsEnabled(context)) return false
         val packageName = editorInfo.packageName
         if (isNumberSuggestionsExcludedApp(context, packageName)) return false
-        if ((editorInfo.inputType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0) return false
+        // NO_SUGGESTIONS is not a signal here: the IME adds it to every editable field in onStartInput
+        // (to silence the app's own spell checker) before onStartInputView re-reads the same EditorInfo.
         val state = rocks.pkb.plektra.core.InputContextState.fromEditorInfo(
             editorInfo,
             isRawModeApp = isRawModeApp(context, packageName)
