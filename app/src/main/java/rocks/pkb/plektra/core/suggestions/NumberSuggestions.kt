@@ -102,18 +102,20 @@ object NumberSuggestions {
     }
 
     /**
-     * Places [number] right after the last real-word candidate, keeping every word in its
-     * original order. Fuzzy candidates further away than [strongDistance] stay below it.
+     * Places [number] right after the last real-word candidate among the visible slots,
+     * keeping every word in its original order; looser fuzzy matches stay below it.
+     * With a single slot a real word keeps it.
      */
     fun insert(
         words: List<SuggestionResult>,
         number: String,
         limit: Int,
-        strongDistance: Int
+        isRealWordCandidate: (SuggestionResult) -> Boolean
     ): List<SuggestionResult> {
         if (limit <= 0) return words
         val others = words.filterNot { it.candidate == number }
-        val index = others.take(limit - 1).indexOfLast { isStrongWordCandidate(it, strongDistance) } + 1
+        val index = others.take(maxOf(1, limit - 1)).indexOfLast(isRealWordCandidate) + 1
+        if (index >= limit) return others.take(limit)
         val result = SuggestionResult(
             candidate = number,
             distance = 0,
@@ -124,6 +126,31 @@ object NumberSuggestions {
         return (others.take(index) + result + others.drop(index)).take(limit)
     }
 
-    fun isStrongWordCandidate(result: SuggestionResult, strongDistance: Int): Boolean =
-        result.kind == SuggestionKind.CURRENT_WORD && result.distance <= strongDistance
+    /**
+     * A word candidate outranks the number only if it completes what was typed or is within
+     * [maxDistance] edits of it. Suggestion lookup strips digits, so "r00" is searched as "r"
+     * and its completions ("reduce") would otherwise bury every digit-key number; distance is
+     * therefore measured on the raw typed characters.
+     */
+    fun isRealWordCandidate(result: SuggestionResult, typedSegment: String, maxDistance: Int): Boolean {
+        if (result.kind != SuggestionKind.CURRENT_WORD) return false
+        val typed = typedSegment.lowercase()
+        val candidate = result.candidate.lowercase()
+        return candidate.startsWith(typed) || withinDistance(typed, candidate, maxDistance)
+    }
+
+    private fun withinDistance(a: String, b: String, maxDistance: Int): Boolean {
+        if (kotlin.math.abs(a.length - b.length) > maxDistance) return false
+        var prev = IntArray(b.length + 1) { it }
+        for (i in 1..a.length) {
+            val curr = IntArray(b.length + 1)
+            curr[0] = i
+            for (j in 1..b.length) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                curr[j] = minOf(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost)
+            }
+            prev = curr
+        }
+        return prev[b.length] <= maxDistance
+    }
 }

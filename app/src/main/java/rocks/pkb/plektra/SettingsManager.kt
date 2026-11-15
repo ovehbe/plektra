@@ -3362,7 +3362,12 @@ object SettingsManager {
     fun getNumberSuggestionsExcludedPackages(context: Context): Set<String> =
         getPreferences(context).getStringSet(KEY_NUMBER_SUGGESTIONS_EXCLUDED_APPS, emptySet()) ?: emptySet()
 
-    fun isNumberSuggestionsExcludedApp(context: Context, packageName: String?): Boolean = false
+    fun isNumberSuggestionsExcludedApp(context: Context, packageName: String?): Boolean {
+        if (packageName.isNullOrEmpty()) return false
+        val packages = getNumberSuggestionsExcludedPackages(context)
+        if (packageName in packages) return true
+        return packageName in rocks.pkb.plektra.inputmethod.WebApkHost.expandWithHosts(context, packages)
+    }
 
     fun setNumberSuggestionsExcludedApp(context: Context, packageName: String, excluded: Boolean) {
         val current = getNumberSuggestionsExcludedPackages(context).toMutableSet()
@@ -3372,7 +3377,17 @@ object SettingsManager {
             .apply()
     }
 
-    fun isNumberSuggestionsActive(context: Context, editorInfo: android.view.inputmethod.EditorInfo?): Boolean = false
+    fun isNumberSuggestionsActive(context: Context, editorInfo: android.view.inputmethod.EditorInfo?): Boolean {
+        if (editorInfo == null || !getNumberSuggestionsEnabled(context)) return false
+        val packageName = editorInfo.packageName
+        if (isNumberSuggestionsExcludedApp(context, packageName)) return false
+        if ((editorInfo.inputType and android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0) return false
+        val state = rocks.pkb.plektra.core.InputContextState.fromEditorInfo(
+            editorInfo,
+            isRawModeApp = isRawModeApp(context, packageName)
+        )
+        return !state.shouldDisableSuggestions
+    }
 
     /**
      * Returns the list of languages enabled for auto-correction.

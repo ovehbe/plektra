@@ -148,7 +148,8 @@ class NumberSuggestionScenarioTest {
             if (wordsOnly != offCandidates.take(wordsOnly.size)) {
                 failures += "$label: word candidates changed"
             }
-            val strongBefore = off.take(MAX_SUGGESTIONS - 1).indexOfLast { it.distance <= 1 } + 1
+            val segment = case.typed.takeLastWhile { it.isLetterOrDigit() }
+            val strongBefore = off.take(MAX_SUGGESTIONS - 1).indexOfLast { isRealWord(it, segment) } + 1
             if (index != strongBefore) {
                 failures += "$label: number at $index, expected right after real words ($strongBefore)"
             }
@@ -159,6 +160,40 @@ class NumberSuggestionScenarioTest {
             }
         }
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    /**
+     * A word that completes what was typed, or is one typo away from it. Fuzzy completions
+     * such as "reduce" for "r00" are not real alternatives to the number.
+     */
+    private fun isRealWord(result: SuggestionResult, typed: String): Boolean {
+        if (result.kind != SuggestionKind.CURRENT_WORD) return false
+        val candidate = result.candidate.lowercase()
+        val input = typed.lowercase()
+        return candidate.startsWith(input) || levenshtein(input, candidate) <= 1
+    }
+
+    private fun levenshtein(a: String, b: String): Int {
+        var prev = IntArray(b.length + 1) { it }
+        for (i in 1..a.length) {
+            val curr = IntArray(b.length + 1)
+            curr[0] = i
+            for (j in 1..b.length) {
+                val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+                curr[j] = minOf(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost)
+            }
+            prev = curr
+        }
+        return prev[b.length]
+    }
+
+    @Test
+    fun realWordsWithDigitTyposStillOutrankTheNumber() {
+        val harness = Harness(numberSuggestions = true, autoCorrect = true)
+        harness.type("w0rd")
+        assertEquals("word", harness.bar().first().candidate)
+        harness.type(" ")
+        assertEquals("word ", harness.editor.text)
     }
 
     @Test
@@ -364,6 +399,7 @@ class NumberSuggestionScenarioTest {
         addTestEntry("we", 250)
         addTestEntry("hello", 240)
         addTestEntry("sad", 200)
+        addTestEntry("word", 220)
     }
 
     private inner class Harness(
