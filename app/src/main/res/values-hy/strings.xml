@@ -934,4 +934,18 @@ Nav Mode-ը օգտագործում է ստեղնի ֆիզիկական դիրքը
     <string name="number_suggestions_excluded_apps_description">Այստեղ ընտրված հավելվածներում Plektra-ն երբեք չի առաջարկում և ավտոմատ չի ուղղում Alt թվային ստեղների տառերը թվերի (օրինակ՝ w00-ը 100-ի)։ Սովորական բառային առաջարկները և ավտոուղղումը չեն փոխվում։</string>
     <string name="number_suggestions_excluded_apps_webapk_note">Վեբ հավելված՝ մուտքագրում է %1$s-ի ներսում, ուստի %1$s-ը նույնպես բացառված է</string>
     <string name="kw_auto_correction_number_suggestions">թվեր, թվանշաններ, alt, w00, 100, փոխարկել, ըստ հավելվածի, բացառել</string>
+    <string name="always_show_suggestions_bar_title">Միշտ ցուցադրել առաջարկների պանելը</string>
+    <string name="always_show_suggestions_bar_summary">Թույլ չի տալիս առաջարկների պանելին ինքնաբերաբար թաքնվել (Alt նշաններից, կետադրությունից և այլն հետո), որպեսզի հավելվածի պատուհանի չափը մնա անփոփոխ։</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
+    <string name="clicks_button_mode_quick_launcher_description">Ուղղակիորեն բացում է Plektra Quick Launcher-ը և ստեղնի իրադարձությունը չի փոխանցում հավելվածին։</string>
+    <string name="clicks_recommended_settings_description">Վերականգնում է Tab-ի և Alt-ի բնիկ ելքերը, խոսափողի կոճակը նշանակում է Plektra-ի թելադրությանը, կարմիր Clicks կոճակը և Launcher կոճակը ուղղակիորեն նշանակում է Quick Launcher-ին և անջատում է Caps Lock-ը և Cursor Mode-ը։</string>
+    <string name="emoji_picker_invalid_unicode">Անվավեր Unicode կոդ</string>
+    <string name="emoji_picker_use_code">Օգտագործել</string>
+    <string name="quick_launcher_alt_space_text_fields_description">Բացում է Quick Launcher-ը Alt+Space-ով։ Միացնելը անջատում է Alt+Space-ը նախորդ մուտքագրման լեզվի համար։</string>
+    <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>
+    <string name="quick_launcher_provider_title">Quick Launcher-ի վարքագիծ</string>
+    <string name="setting_link_quick_launcher_customize_entries">Հարմարեցնել Quick Launcher-ի գրառումները</string>
+    <string name="setting_link_quick_launcher_entries">Quick Launcher-ի գրառումներ</string>
+    <string name="setting_link_quick_launcher_favorite_color">Quick Launcher-ի ընտրյալների ընդգծման գույնը</string>
+    <string name="setting_link_quick_launcher_top_match_color">Quick Launcher-ի լավագույն համընկնման ընդգծման գույնը</string>
 </resources>

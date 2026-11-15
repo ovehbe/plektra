@@ -1777,4 +1777,12 @@ QWERTZ σε φυσικό QWERTY
     <string name="number_suggestions_excluded_apps_description">Στις εφαρμογές που επιλέγετε εδώ, το Plektra δεν προτείνει ούτε διορθώνει αυτόματα ποτέ σε αριθμούς τα γράμματα των πλήκτρων ψηφίων του Alt (για παράδειγμα w00 σε 100). Οι κανονικές προτάσεις λέξεων και η αυτόματη διόρθωση δεν αλλάζουν.</string>
     <string name="number_suggestions_excluded_apps_webapk_note">Εφαρμογή ιστού — πληκτρολογεί μέσα στο %1$s, οπότε εξαιρείται και το %1$s</string>
     <string name="kw_auto_correction_number_suggestions">αριθμοί, ψηφία, alt, w00, 100, μετατροπή, ανά εφαρμογή, εξαίρεση</string>
+    <string name="always_show_suggestions_bar_title">Να εμφανίζεται πάντα η γραμμή προτάσεων</string>
+    <string name="always_show_suggestions_bar_summary">Αποτρέπει την αυτόματη απόκρυψη της γραμμής προτάσεων (μετά από σύμβολα Alt, σημεία στίξης κ.λπ.) ώστε το μέγεθος του παραθύρου της εφαρμογής να μένει σταθερό.</string>
+    <string name="emoji_picker_invalid_unicode">Μη έγκυρος κωδικός Unicode</string>
+    <string name="emoji_picker_use_code">Χρήση</string>
+    <string name="setting_link_quick_launcher_customize_entries">Προσαρμογή καταχωρίσεων Quick Launcher</string>
+    <string name="setting_link_quick_launcher_entries">Καταχωρίσεις Quick Launcher</string>
+    <string name="setting_link_quick_launcher_favorite_color">Χρώμα επισήμανσης αγαπημένων Quick Launcher</string>
+    <string name="setting_link_quick_launcher_top_match_color">Χρώμα επισήμανσης κορυφαίου αποτελέσματος Quick Launcher</string>
 </resources>
