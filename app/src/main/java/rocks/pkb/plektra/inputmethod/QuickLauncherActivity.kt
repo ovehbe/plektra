@@ -1,5 +1,6 @@
 package rocks.pkb.plektra.inputmethod
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -242,6 +243,11 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         super.onDestroy()
     }
 
+    // Remapped hardware keys must be swapped in before the focused search field sees them, so this
+    // has to stay a dispatchKeyEvent override. Lint flags it only because androidx.core's
+    // ComponentActivity redeclares the method @RestrictTo; from API 28 (minSdk is 29) that
+    // redeclaration forwards straight to the public Activity.dispatchKeyEvent.
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val (keyCode, mappedEvent) = remapHardwareEvent(event.keyCode, event)
         val effectiveEvent = mappedEvent ?: event
