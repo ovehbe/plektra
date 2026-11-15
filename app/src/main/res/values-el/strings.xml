@@ -1770,4 +1770,12 @@ QWERTZ σε φυσικό QWERTY
     <string name="kaomoji_placement_emoji">Μετά τα emoji</string>
     <string name="kaomoji_placement_off">Ανενεργό</string>
     <string name="emoji_picker_extras_title">Σύμβολα κειμένου και καομότζι στον επιλογέα emoji</string>
+    <string name="always_show_suggestions_bar_title">Να εμφανίζεται πάντα η γραμμή προτάσεων</string>
+    <string name="always_show_suggestions_bar_summary">Αποτρέπει την αυτόματη απόκρυψη της γραμμής προτάσεων (μετά από σύμβολα Alt, σημεία στίξης κ.λπ.) ώστε το μέγεθος του παραθύρου της εφαρμογής να μένει σταθερό.</string>
+    <string name="emoji_picker_invalid_unicode">Μη έγκυρος κωδικός Unicode</string>
+    <string name="emoji_picker_use_code">Χρήση</string>
+    <string name="setting_link_quick_launcher_customize_entries">Προσαρμογή καταχωρίσεων Quick Launcher</string>
+    <string name="setting_link_quick_launcher_entries">Καταχωρίσεις Quick Launcher</string>
+    <string name="setting_link_quick_launcher_favorite_color">Χρώμα επισήμανσης αγαπημένων Quick Launcher</string>
+    <string name="setting_link_quick_launcher_top_match_color">Χρώμα επισήμανσης κορυφαίου αποτελέσματος Quick Launcher</string>
 </resources>

@@ -928,4 +928,18 @@ Chaque touche peut être configurée comme Keycode, Action, Native Ctrl ou Aucun
     <string name="kaomoji_placement_emoji">Après les emoji</string>
     <string name="kaomoji_placement_off">Désactivé</string>
     <string name="emoji_picker_extras_title">Symboles textuels et kaomoji dans le sélecteur d’emoji</string>
+    <string name="always_show_suggestions_bar_title">Toujours afficher la barre de suggestions</string>
+    <string name="always_show_suggestions_bar_summary">Empêche la barre de suggestions de se masquer automatiquement (après les symboles Alt, la ponctuation, etc.) pour garder constante la taille de la fenêtre de l\'app.</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
+    <string name="clicks_button_mode_quick_launcher_description">Ouvre directement Plektra Quick Launcher sans transmettre l\'événement de touche à l\'app.</string>
+    <string name="clicks_recommended_settings_description">Rétablit les sorties natives de Tab et Alt ; attribue le bouton micro à la dictée Plektra ; attribue le bouton rouge Clicks et le bouton Launcher directement à Quick Launcher ; et désactive Caps Lock et Cursor Mode.</string>
+    <string name="emoji_picker_invalid_unicode">Code Unicode non valide</string>
+    <string name="emoji_picker_use_code">Utiliser</string>
+    <string name="quick_launcher_alt_space_text_fields_description">Ouvre Quick Launcher avec Alt+Espace. L\'activer désactive Alt+Espace pour la langue de saisie précédente.</string>
+    <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>
+    <string name="quick_launcher_provider_title">Comportement de Quick Launcher</string>
+    <string name="setting_link_quick_launcher_customize_entries">Personnaliser les entrées de Quick Launcher</string>
+    <string name="setting_link_quick_launcher_entries">Entrées de Quick Launcher</string>
+    <string name="setting_link_quick_launcher_favorite_color">Couleur de surbrillance des favoris de Quick Launcher</string>
+    <string name="setting_link_quick_launcher_top_match_color">Couleur de surbrillance du meilleur résultat de Quick Launcher</string>
 </resources>
