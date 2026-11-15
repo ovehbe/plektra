@@ -929,4 +929,18 @@ Nav Mode использует физическое положение клави
     <string name="kaomoji_placement_emoji">После эмодзи</string>
     <string name="kaomoji_placement_off">Выкл.</string>
     <string name="emoji_picker_extras_title">Текстовые символы и каомодзи в выборе эмодзи</string>
+    <string name="always_show_suggestions_bar_title">Всегда показывать панель предложений</string>
+    <string name="always_show_suggestions_bar_summary">Не даёт панели предложений автоматически скрываться (после символов Alt, знаков препинания и т. п.), чтобы размер окна приложения оставался постоянным.</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
+    <string name="clicks_button_mode_quick_launcher_description">Сразу открывает Plektra Quick Launcher и не передаёт нажатие клавиши приложению.</string>
+    <string name="clicks_recommended_settings_description">Восстанавливает исходный вывод Tab и Alt; назначает кнопку микрофона диктовке Plektra; назначает красную кнопку Clicks и кнопку Launcher напрямую Quick Launcher; и отключает Caps Lock и Cursor Mode.</string>
+    <string name="emoji_picker_invalid_unicode">Недопустимый код Unicode</string>
+    <string name="emoji_picker_use_code">Использовать</string>
+    <string name="quick_launcher_alt_space_text_fields_description">Открывает Quick Launcher по Alt+Пробел. При включении Alt+Пробел больше не переключает на предыдущий язык ввода.</string>
+    <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>
+    <string name="quick_launcher_provider_title">Поведение Quick Launcher</string>
+    <string name="setting_link_quick_launcher_customize_entries">Настроить элементы Quick Launcher</string>
+    <string name="setting_link_quick_launcher_entries">Элементы Quick Launcher</string>
+    <string name="setting_link_quick_launcher_favorite_color">Цвет выделения избранного в Quick Launcher</string>
+    <string name="setting_link_quick_launcher_top_match_color">Цвет выделения лучшего совпадения в Quick Launcher</string>
 </resources>
