@@ -57,9 +57,9 @@ import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils.languageCode
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils.localeString
 import rocks.pkb.plektra.inputmethod.NotificationHelper
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
-import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHost
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHost
 import android.content.res.AssetManager
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
