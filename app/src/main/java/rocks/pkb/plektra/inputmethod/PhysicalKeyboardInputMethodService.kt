@@ -5525,6 +5525,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                             now = ModifierKeyHandler.eventTimeOrUptime(event)
                         )
                     }
+                    // The router skips its refresh once the press is recorded here.
+                    updateStatusBarText()
                 }
                 KeyEvent.KEYCODE_SHIFT_LEFT, KeyEvent.KEYCODE_SHIFT_RIGHT -> {
                     val wasShiftOneShot = modifierStateController.shiftOneShot
@@ -5564,6 +5566,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     if (wasShiftOneShot && !modifierStateController.shiftOneShot) {
                         suppressAutoCapRenderingAtCursorIfNeeded()
                     }
+                    updateStatusBarText()
                 }
             }
         } else if (!isModifierKey && event?.repeatCount == 0) {
