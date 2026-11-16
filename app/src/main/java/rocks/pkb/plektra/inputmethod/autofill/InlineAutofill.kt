@@ -9,8 +9,8 @@ import android.view.inputmethod.InlineSuggestionsRequest
 import android.widget.inline.InlinePresentationSpec
 import androidx.annotation.RequiresApi
 import androidx.autofill.inline.UiVersions
-import androidx.autofill.inline.v1.InlineSuggestionUi
 import rocks.pkb.plektra.SettingsManager
+import rocks.pkb.plektra.inputmethod.ui.KeyboardThemeColors
 
 /**
  * Android's IME inline autofill: password managers render their own suggestions as opaque views
@@ -34,25 +34,23 @@ internal object InlineAutofill {
         context: Context,
         uiExtras: Bundle,
         hostAvailable: Boolean,
-        sdkInt: Int = Build.VERSION.SDK_INT
+        sdkInt: Int = Build.VERSION.SDK_INT,
+        theme: () -> KeyboardThemeColors
     ): InlineSuggestionsRequest? {
         if (!offersRequest(sdkInt, SettingsManager.getInlineAutofillEnabled(context), hostAvailable)) return null
         if (UiVersions.INLINE_UI_VERSION_1 !in UiVersions.getVersions(uiExtras)) return null
-        return buildRequest(context)
+        return buildRequest(context, theme())
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    internal fun buildRequest(context: Context): InlineSuggestionsRequest {
+    internal fun buildRequest(context: Context, theme: KeyboardThemeColors): InlineSuggestionsRequest {
         val metrics = context.resources.displayMetrics
         val height = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CHIP_HEIGHT_DP, metrics).toInt()
         val minWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, CHIP_MIN_WIDTH_DP, metrics).toInt()
-        val styles = UiVersions.newStylesBuilder()
-            .addStyle(InlineSuggestionUi.newStyleBuilder().build())
-            .build()
         val spec = InlinePresentationSpec.Builder(
             Size(minWidth, height),
             Size(maxOf(minWidth, metrics.widthPixels / 2), height)
-        ).setStyle(styles).build()
+        ).setStyle(InlineAutofillStyle.build(context, theme)).build()
         return InlineSuggestionsRequest.Builder(listOf(spec))
             .setMaxSuggestionCount(MAX_SUGGESTIONS)
             .build()

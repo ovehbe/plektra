@@ -59,9 +59,11 @@ import rocks.pkb.plektra.inputmethod.NotificationHelper
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHost
 import android.content.res.AssetManager
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.children
 import androidx.core.view.updatePadding
 import rocks.pkb.plektra.SettingsActivity
 
@@ -418,6 +420,9 @@ class StatusBarController(
     private var fullSuggestionsBar: FullSuggestionsBar? = null
     private var expansionSuggestions: List<String> = emptyList()
     private var onExpansionSuggestionSelected: ((String) -> Unit)? = null
+    private var inlineAutofillHost: InlineAutofillChipHost? = null
+    private var inlineAutofillActive = false
+    private var rerenderLastUpdate: (() -> Unit)? = null
     private var baseLeftPadding: Int = 0
     private var baseRightPadding: Int = 0
     private var baseBottomPadding: Int = 0
@@ -536,6 +541,7 @@ class StatusBarController(
         hamburgerMenuView?.themeOverride = activeColors
         clipboardHistoryView?.themeOverride = activeColors
         emojiPickerView?.themeOverride = activeColors
+        inlineAutofillHost?.theme = activeColors
         applySurfaceCloseButtonTheme(activeColors)
     }
 
@@ -928,6 +934,65 @@ class StatusBarController(
         expansionSuggestions = emptyList()
         onExpansionSuggestionSelected = null
     }
+
+    /**
+     * Hosts autofill chips in the actions row when it is shown, otherwise in the suggestions row,
+     * which then appears even without word suggestions. False when this bar shows no chrome.
+     */
+    fun showInlineAutofill(views: List<View>, pinnedFlags: List<Boolean>): Boolean {
+        val rerender = rerenderLastUpdate
+        if (views.isEmpty() || rerender == null) {
+            clearInlineAutofill()
+            return false
+        }
+        val host = inlineAutofillHost ?: InlineAutofillChipHost(context).also { inlineAutofillHost = it }
+        host.setChips(views, pinnedFlags)
+        inlineAutofillActive = true
+        rerender()
+        if (isInlineAutofillShown()) return true
+        clearInlineAutofill()
+        return false
+    }
+
+    fun clearInlineAutofill() {
+        if (!inlineAutofillActive) return
+        inlineAutofillActive = false
+        inlineAutofillHost?.clearChips()
+        placeInlineAutofillHost(null)
+        rerenderLastUpdate?.invoke()
+    }
+
+    fun inlineAutofillTheme(): KeyboardThemeColors = activeThemeColors()
+
+    private fun isInlineAutofillShown(): Boolean {
+        val layout = statusBarLayout ?: return false
+        if (layout.layoutParams?.height == 0) return false
+        var view: View? = inlineAutofillHost?.takeIf { it.parent != null } ?: return false
+        while (view != null) {
+            if (view.visibility != View.VISIBLE) return false
+            if (view === layout) return true
+            view = view.parent as? View
+        }
+        return false
+    }
+
+    /** Rows move as whole views in [ensureMainChildOrder], so a host inside a row follows it. */
+    private fun placeInlineAutofillHost(target: InlineAutofillTarget?) {
+        val host = inlineAutofillHost ?: return
+        fullSuggestionsBar?.inlineContent = if (target == InlineAutofillTarget.SUGGESTIONS) host else null
+        val wrapper = variationsWrapper as? ViewGroup
+        if (target == InlineAutofillTarget.ACTIONS && wrapper != null) {
+            if (host.parent !== wrapper) {
+                (host.parent as? ViewGroup)?.removeView(host)
+                wrapper.addView(host, FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            }
+        } else if (host.parent === wrapper) {
+            wrapper?.removeView(host)
+        }
+    }
+
+    private enum class InlineAutofillTarget { ACTIONS, SUGGESTIONS }
 
     fun cancelSoftwareKeyboardTouchState() {
         // The software keyboard can also sit below the emoji picker while its search is
@@ -3274,6 +3339,7 @@ class StatusBarController(
     
 
     fun update(snapshot: StatusSnapshot, emojiMapText: String = "", inputConnection: android.view.inputmethod.InputConnection? = null, symMappings: Map<Int, String>? = null) {
+        rerenderLastUpdate = { update(snapshot, emojiMapText, inputConnection, symMappings) }
         isTitan2Layout = SettingsManager.isTitan2LayoutEnabled(context)
         buttonRegistry.keypadAccessAvailable = snapshot.keypadAccessAvailable
         val isFullSoftwareKeyboardMode =
@@ -3300,7 +3366,16 @@ class StatusBarController(
         val showSlimMenuButtons = hasConfiguredMenuButtons && !isFullSoftwareKeyboardMode &&
             snapshot.symPage == 0 && !snapshot.clipboardOverlay
         val expansionActive = expansionSuggestions.isNotEmpty()
-        val suggestionsAvailable = barPresentation.suggestions && !snapshot.shouldDisableSuggestions &&
+        // Chips count as content wherever a configured bar row can be on screen; word suggestions pause meanwhile.
+        val inlineAutofillTarget = when {
+            !inlineAutofillActive || snapshot.clipboardOverlay ||
+                (snapshot.symPage != 0 && !isSoftwareKeyboardOverlayPage) ||
+                !(barPresentation.hasPersistentContent || hasConfiguredMenuButtons || isFullSoftwareKeyboardMode) -> null
+            barPresentation.actions && !sharedRow -> InlineAutofillTarget.ACTIONS
+            else -> InlineAutofillTarget.SUGGESTIONS
+        }
+        val suggestionsAvailable = inlineAutofillTarget == null &&
+            barPresentation.suggestions && !snapshot.shouldDisableSuggestions &&
             (SettingsManager.isExperimentalSuggestionsEnabled(context) || isFullSoftwareKeyboardMode || snapshot.speechPreviewActive) &&
             (snapshot.suggestions.isNotEmpty() || !snapshot.addWordCandidate.isNullOrBlank())
         val hasSuggestionRow = expansionActive || suggestionsAvailable
@@ -3322,12 +3397,14 @@ class StatusBarController(
         
         val layout = ensureLayoutCreated(emojiMapText) ?: return
         if ((!hasSuggestionRow && !showSlimMenuButtons && !barPresentation.actions && !barPresentation.bottomIndicators && !isFullSoftwareKeyboardMode &&
-                snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty()) || snapshot.navModeActive) {
+                snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty() &&
+                inlineAutofillTarget == null) || snapshot.navModeActive) {
             collapseLayout()
             return
         }
         restoreLayoutHeight(layout)
         ensureMainChildOrder()
+        placeInlineAutofillHost(inlineAutofillTarget)
         applyChromeZOrder()
         applyKeyboardThemeOverrides(activeColors)
         applyAccessibilitySecondRowReadPreference()
@@ -3410,7 +3487,8 @@ class StatusBarController(
             inputConnection,
             onVariationSelectedListener,
             if (expansionActive || sharedVariations.isNotEmpty()) false else snapshot.shouldDisableSuggestions,
-            if (expansionActive || sharedVariations.isNotEmpty() || snapshot.shouldDisableSuggestions) null else snapshot.addWordCandidate,
+            if (expansionActive || sharedVariations.isNotEmpty() || snapshot.shouldDisableSuggestions ||
+                inlineAutofillTarget != null) null else snapshot.addWordCandidate,
             onAddUserWord,
             onAddUserWordSubstitutionRequested,
             onSuggestionCommitted,
@@ -3682,8 +3760,18 @@ class StatusBarController(
         }
 
         variationsWrapper?.let { wrapper ->
-            if (wrapper.importantForAccessibility != importance) {
-                wrapper.importantForAccessibility = importance
+            val chips = inlineAutofillHost?.takeIf { it.parent === wrapper }
+            val wrapperImportance = if (chips != null) View.IMPORTANT_FOR_ACCESSIBILITY_YES else importance
+            if (wrapper.importantForAccessibility != wrapperImportance) {
+                wrapper.importantForAccessibility = wrapperImportance
+            }
+            // Chips cover the actions row; the buttons underneath must not be read either.
+            (wrapper as? ViewGroup)?.children?.filter { it !== inlineAutofillHost }?.forEach { covered ->
+                covered.importantForAccessibility = if (chips != null) {
+                    View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                } else {
+                    View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+                }
             }
         }
         modifiersContainer?.let { container ->

@@ -1994,6 +1994,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (!lockedAtCreate) startClipboardHistory()
 
         candidatesBarController = CandidatesBarController(this, clipboardHistoryManager, assets, PhysicalKeyboardInputMethodService::class.java)
+        candidatesBarController.isSurfaceBlocked = { keyboardBarHiddenInEditor }
         val snippetExpansionSource = SnippetExpansionSource {
             SettingsManager.getSnippets(this)
         }
@@ -3244,7 +3245,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? =
-        InlineAutofill.createRequest(this, uiExtras, hostAvailable = false)
+        InlineAutofill.createRequest(this, uiExtras, hostAvailable = false) { candidatesBarController.inlineAutofillTheme() }
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean = false
@@ -4163,6 +4164,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         isInputViewActive = false
         if (::candidatesBarController.isInitialized) {
             candidatesBarController.resetSuggestionActionMode()
+            candidatesBarController.clearInlineAutofill()
         }
         inputContextState = InputContextState.EMPTY
         multiTapController.cancelAll()
