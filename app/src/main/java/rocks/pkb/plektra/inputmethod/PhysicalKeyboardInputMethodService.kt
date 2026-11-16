@@ -64,6 +64,7 @@ import rocks.pkb.plektra.data.variation.VariationRepository
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofill
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChips
 import androidx.annotation.RequiresApi
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
@@ -188,6 +189,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private lateinit var smoothCaretOverlayController: SmoothCaretOverlayController
     private var smoothCaretEditorHidden = false
     private lateinit var candidatesBarController: CandidatesBarController
+    private lateinit var inlineAutofillChips: InlineAutofillChips
     private lateinit var textExpansionController: TextExpansionController
     private lateinit var emojiShortcodeSource: EmojiShortcodeSource
     private lateinit var symbolShortcodeSource: SymbolShortcodeSource
@@ -2085,6 +2087,11 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
         candidatesBarController = CandidatesBarController(this, clipboardHistoryManager, assets, PhysicalKeyboardInputMethodService::class.java)
         candidatesBarController.isSurfaceBlocked = { keyboardBarHiddenInEditor }
+        inlineAutofillChips = InlineAutofillChips(
+            canHost = { inlineAutofillChipHeightPx() != null },
+            show = candidatesBarController::showInlineAutofill,
+            clearSurfaces = candidatesBarController::clearInlineAutofill
+        )
         val snippetExpansionSource = SnippetExpansionSource {
             SettingsManager.getSnippets(this)
         }
@@ -3245,10 +3252,39 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? =
-        InlineAutofill.createRequest(this, uiExtras, hostAvailable = false) { candidatesBarController.inlineAutofillTheme() }
+        InlineAutofill.createRequest(this, uiExtras, inlineAutofillChipHeightPx()) {
+            candidatesBarController.inlineAutofillTheme()
+        }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean = false
+    override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean =
+        ::inlineAutofillChips.isInitialized &&
+            inlineAutofillChips.onResponse(InlineAutofill.pendingChips(this, response.inlineSuggestions))
+
+    /**
+     * Chip height for the bar row that would show chips right now, or null when no row would be
+     * on screen. Android asks before onStartInput has re-read the editor, so the app block is
+     * looked up here.
+     */
+    private fun inlineAutofillChipHeightPx(): Int? {
+        if (!::candidatesBarController.isInitialized || !::keyboardVisibilityController.isInitialized) return null
+        if (SettingsManager.isKeyboardBarHiddenInApp(this, currentInputEditorInfo?.packageName)) return null
+        if (!keyboardVisibilityController.allowsSurface()) return null
+        // Autofill hands chips over once the input view starts; the candidates-only surface never starts one.
+        val inputViewShows = isInputViewShown || (
+            !keyboardVisibilityController.usesCandidatesView() &&
+                keyboardVisibilityController.shouldShowSurfaceOnInputStart(
+                    autoShowKeyboardEnabled = SettingsManager.getAutoShowKeyboard(this),
+                    respectAppVisibility = SettingsManager.getAutoShowRespectAppVisibility(this)
+                )
+            )
+        if (!inputViewShows) return null
+        return candidatesBarController.inlineAutofillChipHeightPx(symPage, ctrlLatchActive && ctrlLatchFromNavMode)
+    }
+
+    private fun clearInlineAutofill() {
+        if (::inlineAutofillChips.isInitialized) inlineAutofillChips.clear()
+    }
 
     override fun onStartCandidatesView(info: EditorInfo?, restarting: Boolean) {
         super.onStartCandidatesView(info, restarting)
@@ -3945,6 +3981,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ++speechEditorSession
         }
         super.onStartInput(info, restarting)
+        clearInlineAutofill()
         if (::textExpansionController.isInitialized) textExpansionController.clear()
         if (
             !restarting ||
@@ -4180,8 +4217,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         isInputViewActive = false
         if (::candidatesBarController.isInitialized) {
             candidatesBarController.resetSuggestionActionMode()
-            candidatesBarController.clearInlineAutofill()
         }
+        clearInlineAutofill()
         inputContextState = InputContextState.EMPTY
         multiTapController.cancelAll()
         disableEmojiSearchInputCapture()
@@ -4216,6 +4253,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (::candidatesBarController.isInitialized) {
             candidatesBarController.resetSuggestionActionMode()
         }
+        // Autofill also withdraws its chips here and sends them again when an input view starts.
+        clearInlineAutofill()
         // Retention cleanup continues while the IME service lives, including on the lock screen.
         if (finishingInput) {
             multiTapController.cancelAll()

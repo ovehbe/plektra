@@ -462,12 +462,8 @@ class CandidatesBarController(
             clearInlineAutofill()
             return false
         }
-        val (active, inactive) = if (candidatesSurfaceActive) {
-            candidatesStatusBar to inputStatusBar
-        } else {
-            inputStatusBar to candidatesStatusBar
-        }
-        inactive.clearInlineAutofill()
+        val active = activeStatusBar()
+        (if (active === inputStatusBar) candidatesStatusBar else inputStatusBar).clearInlineAutofill()
         return active.showInlineAutofill(views, pinnedFlags)
     }
 
@@ -476,8 +472,13 @@ class CandidatesBarController(
         candidatesStatusBar.clearInlineAutofill()
     }
 
-    fun inlineAutofillTheme(): KeyboardThemeColors =
-        (if (candidatesSurfaceActive) candidatesStatusBar else inputStatusBar).inlineAutofillTheme()
+    fun inlineAutofillTheme(): KeyboardThemeColors = activeStatusBar().inlineAutofillTheme()
+
+    /** Chip height on the active surface, or null when chips shown now would not be on screen. */
+    fun inlineAutofillChipHeightPx(symPage: Int, navModeActive: Boolean): Int? =
+        if (isSurfaceBlocked()) null else activeStatusBar().inlineAutofillChipHeightPx(symPage, navModeActive)
+
+    private fun activeStatusBar() = if (candidatesSurfaceActive) candidatesStatusBar else inputStatusBar
 
     fun cancelSoftwareKeyboardTouchState() {
         inputStatusBar.cancelSoftwareKeyboardTouchState()
