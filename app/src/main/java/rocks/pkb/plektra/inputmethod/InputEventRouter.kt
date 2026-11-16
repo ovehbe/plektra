@@ -374,8 +374,9 @@ class InputEventRouter(
         }
         
         // Save original Shift one-shot state before clearing controller state
-        // The local variable will be used later to apply shift to letters
-        if (!isShiftKey && shiftOneShotActive) {
+        // The local variable will be used later to apply shift to letters.
+        // Pressing Alt should not consume Shift one-shot.
+        if (!isShiftKey && !isAltKey && shiftOneShotActive) {
             callbacks.disableShiftOneShot()
             callbacks.refreshStatusBar()
             // Don't set shiftOneShotActive = false here - keep it true so letter
