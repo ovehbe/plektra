@@ -26,6 +26,8 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
+import android.view.inputmethod.InlineSuggestionsRequest
+import android.view.inputmethod.InlineSuggestionsResponse
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.CursorAnchorInfo
 import rocks.pkb.plektra.inputmethod.KeyboardEventTracker
@@ -61,6 +63,8 @@ import rocks.pkb.plektra.data.mappings.AltModifierMappingResolver
 import rocks.pkb.plektra.data.variation.VariationRepository
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofill
+import androidx.annotation.RequiresApi
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils.localeString
@@ -3237,6 +3241,13 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
      * Uses a separate StatusBarController instance to provide identical functionality.
      */
     override fun onCreateCandidatesView(): View? = keyboardVisibilityController.onCreateCandidatesView()
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? =
+        InlineAutofill.createRequest(this, uiExtras, hostAvailable = false)
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean = false
 
     override fun onStartCandidatesView(info: EditorInfo?, restarting: Boolean) {
         super.onStartCandidatesView(info, restarting)

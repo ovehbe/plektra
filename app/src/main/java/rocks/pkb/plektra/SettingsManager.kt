@@ -405,6 +405,7 @@ object SettingsManager {
     private const val KEY_SUGGESTION_DEBUG_LOGGING = "suggestion_debug_logging"
     private const val KEY_IME_OVERLAY_DEBUG_LOGGING = "ime_overlay_debug_logging"
     private const val KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED = "experimental_candidates_view_enabled"
+    private const val KEY_INLINE_AUTOFILL_ENABLED = "inline_autofill_enabled"
     private const val KEY_USE_KEYBOARD_PROXIMITY = "use_keyboard_proximity"
     private const val KEY_USE_EDIT_TYPE_RANKING = "use_edit_type_ranking"
     private const val KEY_NUMBER_SUGGESTIONS_ENABLED = "number_suggestions_enabled"
@@ -3252,6 +3253,14 @@ object SettingsManager {
         getPreferences(context).edit()
             .putBoolean(KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED, enabled)
             .apply()
+    }
+
+    /** Password-manager suggestions shown in the keyboard bar through Android's inline autofill. */
+    fun getInlineAutofillEnabled(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_INLINE_AUTOFILL_ENABLED, true)
+
+    fun setInlineAutofillEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_INLINE_AUTOFILL_ENABLED, enabled).apply()
     }
 
     /**
