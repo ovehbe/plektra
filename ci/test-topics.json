@@ -212,6 +212,7 @@
       "rocks.pkb.plektra.inputmethod.SoftwareKeypadPolicyTest",
       "rocks.pkb.plektra.inputmethod.SoftwareKeypadServiceIntegrationTest",
       "rocks.pkb.plektra.inputmethod.SymEditShortcutsServiceTest",
+      "rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHostTest",
       "rocks.pkb.plektra.inputmethod.autofill.InlineAutofillTest"
     ]
   },

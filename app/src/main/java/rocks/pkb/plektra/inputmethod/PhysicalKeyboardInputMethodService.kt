@@ -447,6 +447,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val isRawModeApp = SettingsManager.isRawModeApp(this, info?.packageName)
         inputContextState = InputContextState.fromEditorInfo(info, isRawModeApp)
         keyboardBarHiddenInEditor = SettingsManager.isKeyboardBarHiddenInApp(this, info?.packageName)
+        if (::candidatesBarController.isInitialized) {
+            candidatesBarController.setInlineAutofillBlocked(keyboardBarHiddenInEditor)
+        }
     }
 
     private fun markSelectionUpdateSkipAfterCommit() {
@@ -2675,6 +2678,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     )
                     // Closes an open clipboard or emoji picker page and drops invisible candidates.
                     symLayoutController.currentSymPage()
+                    if (::candidatesBarController.isInitialized) {
+                        candidatesBarController.setInlineAutofillBlocked(keyboardBarHiddenInEditor)
+                    }
                     if (keyboardBarHiddenInEditor) {
                         if (::textExpansionController.isInitialized) textExpansionController.clear()
                         // Back to the hardware surface: no open keypad decision or field-scoped keypad.
@@ -4163,6 +4169,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         isInputViewActive = false
         if (::candidatesBarController.isInitialized) {
             candidatesBarController.resetSuggestionActionMode()
+            candidatesBarController.onFinishInput()
         }
         inputContextState = InputContextState.EMPTY
         multiTapController.cancelAll()
@@ -4187,6 +4194,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         traceImeVisibility("onFinishInputView finishing=$finishingInput")
         if (::candidatesBarController.isInitialized) {
             candidatesBarController.resetSuggestionActionMode()
+            candidatesBarController.onFinishInput()
         }
         // Retention cleanup continues while the IME service lives, including on the lock screen.
         if (finishingInput) {

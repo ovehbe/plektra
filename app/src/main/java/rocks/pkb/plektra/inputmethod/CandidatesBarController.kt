@@ -297,8 +297,46 @@ class CandidatesBarController(
      * restore it before returning to hardware/candidates-only mode.
      */
     fun setCandidatesSurfaceActive(active: Boolean) {
+        if (candidatesSurfaceActive != active) clearInlineAutofill()
         candidatesSurfaceActive = active
         if (active) candidatesStatusBar.expandLayout() else candidatesStatusBar.collapseLayout()
+    }
+
+    /**
+     * Each surface gets its own views: one [android.view.View] cannot be attached to both bars.
+     * [viewsFor] is called once per surface that can show the chips.
+     */
+    fun showInlineAutofill(
+        pinnedFlags: List<Boolean>,
+        viewsFor: (StatusBarController.Mode) -> List<View>
+    ): Boolean {
+        val inputShown = inputStatusBar.showInlineAutofill(
+            viewsFor(StatusBarController.Mode.INPUT_VIEW),
+            pinnedFlags
+        )
+        val candidatesShown = if (candidatesSurfaceActive) {
+            candidatesStatusBar.showInlineAutofill(
+                viewsFor(StatusBarController.Mode.CANDIDATES_ONLY),
+                pinnedFlags
+            )
+        } else {
+            false
+        }
+        return inputShown || candidatesShown
+    }
+
+    fun clearInlineAutofill() {
+        inputStatusBar.clearInlineAutofill()
+        candidatesStatusBar.clearInlineAutofill()
+    }
+
+    fun onFinishInput() {
+        clearInlineAutofill()
+    }
+
+    fun setInlineAutofillBlocked(blocked: Boolean) {
+        inputStatusBar.setInlineAutofillBlocked(blocked)
+        candidatesStatusBar.setInlineAutofillBlocked(blocked)
     }
 
     fun isInputViewActuallyRendered(): Boolean =

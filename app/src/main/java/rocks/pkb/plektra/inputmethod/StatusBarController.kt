@@ -49,6 +49,8 @@ import rocks.pkb.plektra.inputmethod.ui.ModifierLedLayouts
 import rocks.pkb.plektra.inputmethod.ui.VariationBarView
 import rocks.pkb.plektra.inputmethod.ui.KeyboardThemeColors
 import rocks.pkb.plektra.inputmethod.suggestions.ui.FullSuggestionsBar
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofill
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHost
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonRegistry
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonPosition
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarCallbacks
@@ -416,6 +418,10 @@ class StatusBarController(
     val hasTransientContent: Boolean
         get() = hasTransientSurface || expansionSuggestions.isNotEmpty()
     private var fullSuggestionsBar: FullSuggestionsBar? = null
+    private var inlineChipViews: List<View>? = null
+    private var inlinePinnedFlags: List<Boolean> = emptyList()
+    private var inlineAutofillBlocked: Boolean = false
+    private var inlineHost: InlineAutofillChipHost? = null
     private var expansionSuggestions: List<String> = emptyList()
     private var onExpansionSuggestionSelected: ((String) -> Unit)? = null
     private var baseLeftPadding: Int = 0
@@ -683,6 +689,132 @@ class StatusBarController(
         restoreLayoutHeight(layout)
         layout.requestLayout()
         (layout.parent as? View)?.requestLayout()
+    }
+
+    /** Per-app "never show the bar". A blocked surface cannot host chips. */
+    fun setInlineAutofillBlocked(blocked: Boolean) {
+        inlineAutofillBlocked = blocked
+        if (blocked) clearInlineAutofill()
+    }
+
+    /**
+     * Shows [views] in the variations content area when that row is on screen, otherwise in the
+     * suggestions row. Returns false when the surface is blocked or no bar chrome can draw them.
+     * Word suggestions are cleared while the chips are up, and the chips stay out of that row's
+     * accessibility live region.
+     */
+    fun showInlineAutofill(views: List<View>, pinnedFlags: List<Boolean>): Boolean {
+        if (inlineAutofillBlocked || views.isEmpty() || !inlineChromeCanHost()) {
+            clearInlineAutofill()
+            return false
+        }
+        inlineChipViews = views
+        inlinePinnedFlags = pinnedFlags
+        return refreshInlineAutofill()
+    }
+
+    fun clearInlineAutofill() {
+        inlineChipViews = null
+        inlinePinnedFlags = emptyList()
+        inlineHost?.let { host -> (host.parent as? ViewGroup)?.removeView(host) }
+    }
+
+    private fun inlineChromeCanHost(): Boolean {
+        if (inlineAutofillBlocked || statusBarLayout == null) return false
+        val presentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
+        val ledOnly = presentation.bottomIndicators && !presentation.suggestions && !presentation.actions && !hasTransientSurface
+        if (ledOnly || (!presentation.suggestions && !presentation.actions)) return false
+        return true
+    }
+
+    private fun refreshInlineAutofill(): Boolean {
+        val views = inlineChipViews ?: return false
+        if (!inlineChromeCanHost()) {
+            clearInlineAutofill()
+            return false
+        }
+        val host = inlineHost ?: InlineAutofillChipHost(context).also { inlineHost = it }
+        host.setChips(views, inlinePinnedFlags)
+        host.applyTheme(InlineAutofill.solidColor(activeThemeSettings().suggestion, activeThemeSettings().normalKey))
+        val placed = if (prefersVariationsArea()) placeInlineHostInVariations(host) else placeInlineHostInSuggestions(host)
+        if (!placed) {
+            clearInlineAutofill()
+            return false
+        }
+        pauseWordSuggestions(host)
+        return true
+    }
+
+    private fun prefersVariationsArea(): Boolean {
+        val presentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
+        return presentation.actions &&
+            presentation.arrangement != rocks.pkb.plektra.KeyboardBarArrangement.SHARED &&
+            variationsWrapper?.visibility == View.VISIBLE
+    }
+
+    private fun placeInlineHostInVariations(host: InlineAutofillChipHost): Boolean {
+        val wrapper = variationsWrapper as? ViewGroup ?: return false
+        if (wrapper.visibility != View.VISIBLE) return false
+        val row = (0 until wrapper.childCount)
+            .map { wrapper.getChildAt(it) }
+            .filterIsInstance<LinearLayout>()
+            .firstOrNull { it.orientation == LinearLayout.HORIZONTAL } ?: return false
+        val params = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f)
+        val displaced = mutableListOf<View>()
+        var insertAt = row.childCount
+        for (index in 0 until row.childCount) {
+            val child = row.getChildAt(index)
+            if (child === host) continue
+            val weight = (child.layoutParams as? LinearLayout.LayoutParams)?.weight ?: 0f
+            if (weight > 0f) {
+                if (displaced.isEmpty()) insertAt = index
+                displaced += child
+            }
+        }
+        displaced.forEach { row.removeView(it) }
+        (host.parent as? ViewGroup)?.takeIf { it !== row }?.removeView(host)
+        if (host.parent !== row) row.addView(host, insertAt.coerceAtMost(row.childCount), params)
+        else host.layoutParams = params
+        host.visibility = View.VISIBLE
+        return true
+    }
+
+    private fun placeInlineHostInSuggestions(host: View): Boolean {
+        val layout = statusBarLayout ?: return false
+        if (layout.visibility != View.VISIBLE || layout.layoutParams?.height == 0) {
+            expandLayout()
+            layout.visibility = View.VISIBLE
+        }
+        val frame = fullSuggestionsBar?.ensureView() ?: return false
+        frame.visibility = View.VISIBLE
+        (host.parent as? ViewGroup)?.takeIf { it !== frame }?.removeView(host)
+        if (host.parent !== frame) {
+            frame.addView(
+                host,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    Gravity.CENTER_VERTICAL
+                )
+            )
+        }
+        host.visibility = View.VISIBLE
+        return true
+    }
+
+    private fun pauseWordSuggestions(host: View) {
+        val frame = fullSuggestionsBar?.ensureView() ?: return
+        for (index in 0 until frame.childCount) {
+            val child = frame.getChildAt(index)
+            if (child === host || child !is LinearLayout) continue
+            val width = (child.layoutParams as? FrameLayout.LayoutParams)?.width ?: continue
+            if (width != ViewGroup.LayoutParams.MATCH_PARENT) continue
+            for (slot in 0 until child.childCount) {
+                (child.getChildAt(slot) as? TextView)?.text = ""
+            }
+            child.visibility = View.GONE
+            child.accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_NONE
+        }
     }
 
     fun getOrCreateLayout(emojiMapText: String = ""): LinearLayout {
@@ -3321,8 +3453,12 @@ class StatusBarController(
         }
         
         val layout = ensureLayoutCreated(emojiMapText) ?: return
+        val inlineNeedsChrome = inlineChipViews != null && !inlineAutofillBlocked &&
+            (barPresentation.suggestions || barPresentation.actions) &&
+            !(barPresentation.bottomIndicators && !barPresentation.suggestions && !barPresentation.actions && !hasTransientSurface)
         if ((!hasSuggestionRow && !showSlimMenuButtons && !barPresentation.actions && !barPresentation.bottomIndicators && !isFullSoftwareKeyboardMode &&
-                snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty()) || snapshot.navModeActive) {
+                snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty() && !inlineNeedsChrome) || snapshot.navModeActive) {
+            if (snapshot.navModeActive || inlineChipViews != null) clearInlineAutofill()
             collapseLayout()
             return
         }
@@ -3648,6 +3784,7 @@ class StatusBarController(
             wasSymActive = false
             lastSymPageRendered = 0 // Reset when closing SYM page
         }
+        if (inlineChipViews != null) refreshInlineAutofill()
         if (fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE &&
             variationsWrapper?.visibility != View.VISIBLE && !showLedStrip) collapseLayout()
     }
