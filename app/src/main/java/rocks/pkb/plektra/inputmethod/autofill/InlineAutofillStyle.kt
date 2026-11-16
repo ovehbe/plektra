@@ -1,5 +1,6 @@
 package rocks.pkb.plektra.inputmethod.autofill
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.Icon
@@ -33,6 +34,8 @@ internal object InlineAutofillStyle {
 
     fun textColor(theme: KeyboardThemeColors): Int = opaque(theme.textAndIcons)
 
+    // ViewStyle.Builder is public but inherits its setters from a @RestrictTo base class.
+    @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.R)
     fun build(context: Context, theme: KeyboardThemeColors): Bundle {
         val padding = TypedValue.applyDimension(
