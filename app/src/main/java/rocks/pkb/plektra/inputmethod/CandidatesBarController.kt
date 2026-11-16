@@ -7,6 +7,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.widget.LinearLayout
 import android.view.inputmethod.InputConnection
+import rocks.pkb.plektra.inputmethod.ui.KeyboardThemeColors
 
 /**
  * Coordinates the two StatusBarController instances (full input view vs
@@ -290,6 +291,7 @@ class CandidatesBarController(
      * restore it before returning to hardware/candidates-only mode.
      */
     fun setCandidatesSurfaceActive(active: Boolean) {
+        if (active != candidatesSurfaceActive) clearInlineAutofill()
         candidatesSurfaceActive = active
         if (active) candidatesStatusBar.expandLayout() else candidatesStatusBar.collapseLayout()
     }
@@ -411,6 +413,7 @@ class CandidatesBarController(
         inputConnection: InputConnection?,
         symMappings: Map<Int, String>?
     ) {
+        if (isSurfaceBlocked()) clearInlineAutofill()
         inputStatusBar.update(snapshot, emojiMapText, inputConnection, symMappings)
         if (candidatesSurfaceActive) {
             candidatesStatusBar.update(snapshot, emojiMapText, inputConnection, symMappings)
@@ -446,6 +449,35 @@ class CandidatesBarController(
         inputStatusBar.clearExpansionSuggestions()
         candidatesStatusBar.clearExpansionSuggestions()
     }
+
+    /** Per-app "never show the bar": autofill chips are refused and cleared while it holds. */
+    var isSurfaceBlocked: () -> Boolean = { false }
+
+    /**
+     * Shows opaque autofill chips on the active surface. False means they are not on screen
+     * (blocked surface, or no bar chrome), so Android's own autofill UI must remain.
+     */
+    fun showInlineAutofill(views: List<View>, pinnedFlags: List<Boolean>): Boolean {
+        if (isSurfaceBlocked()) {
+            clearInlineAutofill()
+            return false
+        }
+        val (active, inactive) = if (candidatesSurfaceActive) {
+            candidatesStatusBar to inputStatusBar
+        } else {
+            inputStatusBar to candidatesStatusBar
+        }
+        inactive.clearInlineAutofill()
+        return active.showInlineAutofill(views, pinnedFlags)
+    }
+
+    fun clearInlineAutofill() {
+        inputStatusBar.clearInlineAutofill()
+        candidatesStatusBar.clearInlineAutofill()
+    }
+
+    fun inlineAutofillTheme(): KeyboardThemeColors =
+        (if (candidatesSurfaceActive) candidatesStatusBar else inputStatusBar).inlineAutofillTheme()
 
     fun cancelSoftwareKeyboardTouchState() {
         inputStatusBar.cancelSoftwareKeyboardTouchState()

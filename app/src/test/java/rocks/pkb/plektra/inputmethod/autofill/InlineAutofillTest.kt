@@ -1,9 +1,17 @@
 package rocks.pkb.plektra.inputmethod.autofill
 
+import android.app.PendingIntent
+import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.InlineSuggestionsResponse
+import android.widget.TextView
+import androidx.autofill.inline.Renderer
 import androidx.autofill.inline.UiVersions
 import androidx.autofill.inline.v1.InlineSuggestionUi
+import androidx.core.graphics.ColorUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -21,12 +29,27 @@ import org.xmlpull.v1.XmlPullParser
 import rocks.pkb.plektra.R
 import rocks.pkb.plektra.SettingsManager
 import rocks.pkb.plektra.inputmethod.PhysicalKeyboardInputMethodService
+import rocks.pkb.plektra.inputmethod.ui.KeyboardThemeColors
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30, 34])
 class InlineAutofillTest {
 
     private val context get() = RuntimeEnvironment.getApplication()
+
+    /** Translucent tokens, as textured and custom themes produce them. */
+    private val theme = KeyboardThemeColors(
+        background = 0x00000000,
+        divider = 0xFF2C3136.toInt(),
+        normalKey = 0xFF15191D.toInt(),
+        specialKey = 0xFF2B3138.toInt(),
+        textAndIcons = 0xCCE8EAED.toInt(),
+        ledInactive = 0xFF444444.toInt(),
+        ledActive = 0xFF4C8DFF.toInt(),
+        ledLocked = 0xFFFF8A00.toInt(),
+        accent = 0xFF4C8DFF.toInt(),
+        suggestion = 0x8033AAFF.toInt()
+    )
 
     private data class Row(
         val sdk: Int,
@@ -65,7 +88,7 @@ class InlineAutofillTest {
             SettingsManager.setInlineAutofillEnabled(context, row.enabled)
             val request = InlineAutofill.createRequest(
                 context, uiExtras(row.uiVersion1), row.hostAvailable, sdkInt = row.sdk
-            )
+            ) { theme }
             assertEquals("$row", row.offered, request != null)
             assertEquals(
                 "$row",
@@ -77,7 +100,7 @@ class InlineAutofillTest {
 
     @Test
     fun offeredRequest_carriesStyleBundleAndBoundedSizes() {
-        val request = InlineAutofill.createRequest(context, uiExtras(true), hostAvailable = true)
+        val request = InlineAutofill.createRequest(context, uiExtras(true), hostAvailable = true) { theme }
         assertNotNull(request)
         request!!
         assertTrue(request.maxSuggestionCount in 1..5)
@@ -88,6 +111,36 @@ class InlineAutofillTest {
             assertTrue(spec.minSize.width <= spec.maxSize.width)
             assertTrue(spec.minSize.height <= spec.maxSize.height)
         }
+    }
+
+    @Test
+    fun styleColors_areSolidThemeTokens() {
+        val host = InlineAutofillStyle.hostColor(theme)
+        val chip = InlineAutofillStyle.chipColor(theme)
+        val text = InlineAutofillStyle.textColor(theme)
+        listOf(host, chip, text).forEach { assertEquals(0xFF, Color.alpha(it)) }
+        assertEquals(Color.BLACK, host)
+        assertEquals(ColorUtils.compositeColors(theme.suggestion, Color.BLACK), chip)
+        assertEquals(0xFFE8EAED.toInt(), text)
+    }
+
+    @Test
+    fun offeredRequest_rendersChipsWithThemeStyle() {
+        val request = InlineAutofill.createRequest(context, uiExtras(true), hostAvailable = true) { theme }!!
+        val attribution = PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE)
+        val content = InlineSuggestionUi.newContentBuilder(attribution).setTitle("title").build()
+
+        val chip = Renderer.render(context, content.slice, request.inlinePresentationSpecs.single().style)
+
+        assertNotNull(chip)
+        assertNotNull(chip!!.background)
+        assertEquals(InlineAutofillStyle.textColor(theme), findText(chip, "title")?.currentTextColor)
+    }
+
+    private fun findText(view: View, text: String): TextView? = when {
+        view is TextView && view.text.toString() == text -> view
+        view is ViewGroup -> (0 until view.childCount).firstNotNullOfOrNull { findText(view.getChildAt(it), text) }
+        else -> null
     }
 
     /** The full service cannot be created on Robolectric's API 30 (dynamic-receiver permission shim). */

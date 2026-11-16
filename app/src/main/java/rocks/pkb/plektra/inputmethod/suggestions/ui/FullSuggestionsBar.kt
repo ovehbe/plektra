@@ -108,6 +108,14 @@ class FullSuggestionsBar(
     private var actionCandidate: String? = null
     private var actionSlots: List<String?> = emptyList()
     private var currentInputConnection: android.view.inputmethod.InputConnection? = null
+
+    /** Shown instead of the suggestion slots, never among them, and keeps the row visible. */
+    var inlineContent: View? = null
+        set(value) {
+            if (field === value) return
+            field?.let { old -> if (old.parent === frameContainer) frameContainer?.removeView(old) }
+            field = value
+        }
     var onCursorMovedListener: (() -> Unit)? = null
     var themeOverride: KeyboardThemeColors? = null
         set(value) {
@@ -406,6 +414,10 @@ class FullSuggestionsBar(
             lastSuggestionsBold = suggestionsBold
             lastSlots = emptyList()
         }
+        inlineContent?.let { content ->
+            showInlineContent(content, frame, bar)
+            return
+        }
         val canShowSuggestions = contentEnabled && shouldShow && !shouldDisableSuggestions &&
             (suggestions.isNotEmpty() || !addWordCandidate.isNullOrBlank())
         val shouldKeepBarVisible = reserveEmptyRow || alwaysShowSuggestionsBar
@@ -482,6 +494,32 @@ class FullSuggestionsBar(
             onSuggestionSelectedOverride
         )
         lastSlots = slots
+    }
+
+    private fun showInlineContent(content: View, frame: FrameLayout, bar: LinearLayout) {
+        cancelPendingSuggestionsAccessibilityEnable()
+        suggestionButtons.clear()
+        bar.visibility = View.GONE
+        bar.removeAllViews()
+        lastSlots = emptyList()
+        lastAnnouncedSlots = emptyList()
+        actionCandidate = null
+        actionSlots = emptyList()
+        frame.visibility = View.VISIBLE
+        frame.alpha = 1f
+        renderMinimalUiButtons()
+        val slotsParams = bar.layoutParams as FrameLayout.LayoutParams
+        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, targetHeightPx).apply {
+            marginStart = slotsParams.marginStart
+            marginEnd = slotsParams.marginEnd
+        }
+        if (content.parent !== frame) {
+            (content.parent as? ViewGroup)?.removeView(content)
+            frame.addView(content, frame.indexOfChild(bar) + 1, params)
+        } else {
+            content.layoutParams = params
+        }
+        content.visibility = View.VISIBLE
     }
 
     fun showPreview(suggestions: List<String>, showStatusButton: Boolean = false) {
