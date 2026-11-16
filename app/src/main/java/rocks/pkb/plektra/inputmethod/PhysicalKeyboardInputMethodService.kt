@@ -6272,7 +6272,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                         currentInputConnection,
                         shouldDisableAutoCapitalize,
                         enableShift = { requestAutoCapShiftOneShot() },
-                        disableShift = { modifierStateController.clearAutomaticShiftOneShot() },
+                        disableShift = { modifierStateController.consumeShiftOneShot() },
                         onUpdateStatusBar = { updateStatusBarText() },
                         inputContextState = inputContextState
                     )
