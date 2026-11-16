@@ -7,6 +7,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedText
 import android.view.inputmethod.InputConnection
 import java.lang.reflect.Proxy
+import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -251,14 +252,26 @@ class Q25ModifierIndicatorMatrixTest {
     }
 
     private fun keyDown(code: Int, meta: Int) {
+        val before = committed.length
         val event = KeyEvent(time, time, KeyEvent.ACTION_DOWN, code, 0, meta)
         if (!service.onKeyDown(code, event)) appendUnhandledKey(event)
+        reportSelectionChange(before)
         time += 30
     }
 
     private fun keyUp(code: Int, meta: Int) {
+        val before = committed.length
         service.onKeyUp(code, KeyEvent(time, time, KeyEvent.ACTION_UP, code, 0, meta))
+        reportSelectionChange(before)
         time += 300
+    }
+
+    // A real editor reports the cursor move after every edit; the service reacts after a delay.
+    private fun reportSelectionChange(before: Int) {
+        val after = committed.length
+        if (after == before) return
+        service.onUpdateSelection(before, before, after, after, -1, -1)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(SELECTION_SETTLE_MS))
     }
 
     // Keys the service declines reach the app, which inserts their plain character.
@@ -369,6 +382,7 @@ class Q25ModifierIndicatorMatrixTest {
     }
 
     private companion object {
+        const val SELECTION_SETTLE_MS = 200L
         val ALT = KeyEvent.META_ALT_ON or KeyEvent.META_ALT_LEFT_ON
         val SYM = KeyEvent.META_ALT_ON or KeyEvent.META_ALT_RIGHT_ON
         val SHIFT = KeyEvent.META_SHIFT_ON or KeyEvent.META_SHIFT_LEFT_ON
