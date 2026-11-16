@@ -144,6 +144,25 @@ class InlineAutofillChipHostTest {
     }
 
     @Test
+    fun aNewBatchStartsScrolledToTheStart() {
+        configure(actions = false, suggestions = true)
+        val (controller, view) = inputSurface()
+        val wide = { View(context).apply { layoutParams = ViewGroup.LayoutParams(600, 30) } }
+        val first = List(4) { wide() }
+        assertTrue(controller.showInlineAutofill(first, List(4) { false }))
+        layout(view)
+        val scroller = first[0].parent.parent as HorizontalScrollView
+        scroller.scrollTo(900, 0)
+        assertEquals(900, scroller.scrollX)
+
+        val next = List(4) { wide() }
+        assertTrue(controller.showInlineAutofill(next, List(4) { false }))
+        layout(view)
+
+        assertEquals(0, scroller.scrollX)
+    }
+
+    @Test
     fun clearingResumesWordSuggestions() {
         configure(actions = false, suggestions = true)
         val (controller, view) = inputSurface()

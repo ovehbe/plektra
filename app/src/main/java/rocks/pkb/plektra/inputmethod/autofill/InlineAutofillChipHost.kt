@@ -22,6 +22,11 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
     ).toInt()
     private val pinnedRow = chipRow(context)
     private val scrollingRow = chipRow(context)
+    private val scroller = HorizontalScrollView(context).apply {
+        isHorizontalScrollBarEnabled = false
+        overScrollMode = View.OVER_SCROLL_NEVER
+        addView(scrollingRow, ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT))
+    }
 
     var theme: KeyboardThemeColors? = null
         set(value) {
@@ -38,15 +43,12 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
         // Chips are announced by their own content, never as word suggestions.
         accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_NONE
         addView(pinnedRow, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT))
-        addView(HorizontalScrollView(context).apply {
-            isHorizontalScrollBarEnabled = false
-            overScrollMode = View.OVER_SCROLL_NEVER
-            addView(scrollingRow, ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        }, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
+        addView(scroller, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
     }
 
     fun setChips(chips: List<View>, pinned: List<Boolean>) {
         clearChips()
+        scroller.scrollTo(0, 0)
         chips.forEachIndexed { index, chip ->
             (chip.parent as? ViewGroup)?.removeView(chip)
             val row = if (pinned.getOrElse(index) { false }) pinnedRow else scrollingRow
