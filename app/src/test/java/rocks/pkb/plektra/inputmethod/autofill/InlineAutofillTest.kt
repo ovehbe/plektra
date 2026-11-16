@@ -87,7 +87,7 @@ class InlineAutofillTest {
         rows.forEach { row ->
             SettingsManager.setInlineAutofillEnabled(context, row.enabled)
             val request = InlineAutofill.createRequest(
-                context, uiExtras(row.uiVersion1), row.hostAvailable, sdkInt = row.sdk
+                context, uiExtras(row.uiVersion1), CHIP_HEIGHT_PX.takeIf { row.hostAvailable }, sdkInt = row.sdk
             ) { theme }
             assertEquals("$row", row.offered, request != null)
             assertEquals(
@@ -99,17 +99,19 @@ class InlineAutofillTest {
     }
 
     @Test
-    fun offeredRequest_carriesStyleBundleAndBoundedSizes() {
-        val request = InlineAutofill.createRequest(context, uiExtras(true), hostAvailable = true) { theme }
+    fun offeredRequest_carriesStyleBundleAndRowSizedSpecs() {
+        val request = InlineAutofill.createRequest(context, uiExtras(true), CHIP_HEIGHT_PX) { theme }
         assertNotNull(request)
         request!!
-        assertTrue(request.maxSuggestionCount in 1..5)
+        val screenWidth = context.resources.displayMetrics.widthPixels
+        assertEquals(InlineAutofill.MAX_SUGGESTIONS, request.maxSuggestionCount)
         assertTrue(request.inlinePresentationSpecs.isNotEmpty())
         request.inlinePresentationSpecs.forEach { spec ->
             assertTrue(UiVersions.INLINE_UI_VERSION_1 in UiVersions.getVersions(spec.style))
-            assertTrue(spec.minSize.height > 0 && spec.minSize.width > 0)
-            assertTrue(spec.minSize.width <= spec.maxSize.width)
-            assertTrue(spec.minSize.height <= spec.maxSize.height)
+            assertEquals(CHIP_HEIGHT_PX, spec.minSize.height)
+            assertEquals(CHIP_HEIGHT_PX, spec.maxSize.height)
+            assertTrue(spec.minSize.width in 1..spec.maxSize.width)
+            assertEquals(screenWidth * 2 / 3, spec.maxSize.width)
         }
     }
 
@@ -126,7 +128,7 @@ class InlineAutofillTest {
 
     @Test
     fun offeredRequest_rendersChipsWithThemeStyle() {
-        val request = InlineAutofill.createRequest(context, uiExtras(true), hostAvailable = true) { theme }!!
+        val request = InlineAutofill.createRequest(context, uiExtras(true), CHIP_HEIGHT_PX) { theme }!!
         val attribution = PendingIntent.getActivity(context, 0, Intent(), PendingIntent.FLAG_IMMUTABLE)
         val content = InlineSuggestionUi.newContentBuilder(attribution).setTitle("title").build()
 
@@ -176,5 +178,6 @@ class InlineAutofillTest {
 
     private companion object {
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
+        const val CHIP_HEIGHT_PX = 96
     }
 }

@@ -67,6 +67,9 @@ class VariationBarView(
         private const val SWIPE_HINT_SHOW_DELAY_MS = 1000L
         private const val BASE_HEIGHT_DP = 55f
         private const val BASE_VERTICAL_PADDING_DP = 4f
+
+        /** Row height in dp for the theme's variations height scale. */
+        internal fun rowHeightDp(heightScale: Float): Float = BASE_HEIGHT_DP * heightScale.coerceIn(0.65f, 1.6f)
     }
 
     var onVariationSelectedListener: VariationButtonHandler.OnVariationSelectedListener? = null
@@ -278,7 +281,7 @@ class VariationBarView(
     private fun targetHeightPx(): Int =
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
-            BASE_HEIGHT_DP * (themeOverride?.variationsHeightScale ?: 1f).coerceIn(0.65f, 1.6f),
+            rowHeightDp(themeOverride?.variationsHeightScale ?: 1f),
             context.resources.displayMetrics
         ).toInt()
 
