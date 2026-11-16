@@ -303,6 +303,7 @@ class StatusBarController(
         private val DEFAULT_BACKGROUND = Color.parseColor("#000000")
         private const val TITAN_2_ELITE_CORNER_FALLBACK_RADIUS_DP = 50f
         private const val HARDWARE_SYM_KEY_HEIGHT_DP = 56f
+        private const val INLINE_AUTOFILL_CHIP_INSET_DP = 4f
     }
 
     data class StatusSnapshot(
@@ -423,6 +424,7 @@ class StatusBarController(
     private var inlineAutofillHost: InlineAutofillChipHost? = null
     private var inlineAutofillActive = false
     private var rerenderLastUpdate: (() -> Unit)? = null
+    private var lastClipboardOverlay = false
     private var baseLeftPadding: Int = 0
     private var baseRightPadding: Int = 0
     private var baseBottomPadding: Int = 0
@@ -964,6 +966,33 @@ class StatusBarController(
 
     fun inlineAutofillTheme(): KeyboardThemeColors = activeThemeColors()
 
+    /**
+     * Chip height for the row that would host chips now, or null when none would be on screen.
+     * [symPage] and [navModeActive] are live state; everything else follows the last render.
+     */
+    fun inlineAutofillChipHeightPx(symPage: Int, navModeActive: Boolean): Int? {
+        if (rerenderLastUpdate == null) return null
+        val isFullSoftwareKeyboardMode = mode == Mode.INPUT_VIEW &&
+            SettingsManager.resolveEffectiveSoftwareKeyboardMode(context) == SettingsManager.SoftwareKeyboardMode.FORCE_VIRTUAL
+        val barPresentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
+        val target = inlineAutofillTarget(
+            barPresentation, isFullSoftwareKeyboardMode, symPage, navModeActive, lastClipboardOverlay
+        ) ?: return null
+        val theme = activeThemeColors(isFullSoftwareKeyboardMode)
+        val rowHeightDp = when (target) {
+            InlineAutofillTarget.ACTIONS -> VariationBarView.rowHeightDp(theme.variationsHeightScale)
+            InlineAutofillTarget.SUGGESTIONS -> FullSuggestionsBar.rowHeightDp(
+                hasConfiguredMenuButtons && !isFullSoftwareKeyboardMode && symPage == 0 && !lastClipboardOverlay,
+                theme.suggestionsHeightScale
+            )
+        }
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            rowHeightDp - 2 * INLINE_AUTOFILL_CHIP_INSET_DP,
+            context.resources.displayMetrics
+        ).toInt()
+    }
+
     private fun isInlineAutofillShown(): Boolean {
         val layout = statusBarLayout ?: return false
         if (layout.layoutParams?.height == 0) return false
@@ -989,6 +1018,25 @@ class StatusBarController(
             }
         } else if (host.parent === wrapper) {
             wrapper?.removeView(host)
+        }
+    }
+
+    /** Chips count as content wherever a configured bar row can be on screen. */
+    private fun inlineAutofillTarget(
+        barPresentation: rocks.pkb.plektra.KeyboardBarPresentation,
+        isFullSoftwareKeyboardMode: Boolean,
+        symPage: Int,
+        navModeActive: Boolean,
+        clipboardOverlay: Boolean
+    ): InlineAutofillTarget? {
+        val softwareOverlayPage = isFullSoftwareKeyboardMode && symPage in 1..5
+        val sharedRow = barPresentation.arrangement == rocks.pkb.plektra.KeyboardBarArrangement.SHARED &&
+            !isFullSoftwareKeyboardMode && symPage == 0 && !clipboardOverlay
+        return when {
+            navModeActive || clipboardOverlay || (symPage != 0 && !softwareOverlayPage) ||
+                !(barPresentation.hasPersistentContent || hasConfiguredMenuButtons || isFullSoftwareKeyboardMode) -> null
+            barPresentation.actions && !sharedRow -> InlineAutofillTarget.ACTIONS
+            else -> InlineAutofillTarget.SUGGESTIONS
         }
     }
 
@@ -3366,13 +3414,14 @@ class StatusBarController(
         val showSlimMenuButtons = hasConfiguredMenuButtons && !isFullSoftwareKeyboardMode &&
             snapshot.symPage == 0 && !snapshot.clipboardOverlay
         val expansionActive = expansionSuggestions.isNotEmpty()
-        // Chips count as content wherever a configured bar row can be on screen; word suggestions pause meanwhile.
-        val inlineAutofillTarget = when {
-            !inlineAutofillActive || snapshot.clipboardOverlay ||
-                (snapshot.symPage != 0 && !isSoftwareKeyboardOverlayPage) ||
-                !(barPresentation.hasPersistentContent || hasConfiguredMenuButtons || isFullSoftwareKeyboardMode) -> null
-            barPresentation.actions && !sharedRow -> InlineAutofillTarget.ACTIONS
-            else -> InlineAutofillTarget.SUGGESTIONS
+        lastClipboardOverlay = snapshot.clipboardOverlay
+        // Word suggestions pause while chips show.
+        val inlineAutofillTarget = if (inlineAutofillActive) {
+            inlineAutofillTarget(
+                barPresentation, isFullSoftwareKeyboardMode, snapshot.symPage, snapshot.navModeActive, snapshot.clipboardOverlay
+            )
+        } else {
+            null
         }
         val suggestionsAvailable = inlineAutofillTarget == null &&
             barPresentation.suggestions && !snapshot.shouldDisableSuggestions &&
