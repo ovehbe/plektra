@@ -58,6 +58,7 @@ class InlineAutofillServiceTest {
         val enabled: Boolean = true,
         val uiVersion1: Boolean = true,
         val neverShowApp: Boolean = false,
+        val previousAppNeverShow: Boolean = false,
         val navMode: Boolean = false,
         val symPage: Boolean = false,
         val candidatesOnly: Boolean = false,
@@ -72,6 +73,7 @@ class InlineAutofillServiceTest {
         RequestRow("setting off", Bar.NONE, enabled = false),
         RequestRow("no inline UI version 1", Bar.NONE, uiVersion1 = false),
         RequestRow("never-show app", Bar.NONE, neverShowApp = true),
+        RequestRow("arriving from a never-show app", Bar.ACTIONS_ROW, previousAppNeverShow = true),
         RequestRow("no bar content", Bar.NONE, actions = false, suggestions = false),
         RequestRow("nav mode", Bar.NONE, navMode = true),
         RequestRow("hardware SYM page", Bar.NONE, symPage = true),
@@ -94,6 +96,8 @@ class InlineAutofillServiceTest {
             }
             SettingsManager.setKeyboardBarHiddenInApp(context, APP, row.neverShowApp)
             val ime = startService()
+            // Android asks before onStartInput has re-read the editor, so the last editor's state is still held.
+            if (row.previousAppNeverShow) ReflectionHelpers.setField(ime, "keyboardBarHiddenInEditor", true)
             if (row.navMode) modifiers(ime).apply { ctrlLatchActive = true; ctrlLatchFromNavMode = true }
             if (row.symPage) symLayout(ime).toggleSymPage()
 
