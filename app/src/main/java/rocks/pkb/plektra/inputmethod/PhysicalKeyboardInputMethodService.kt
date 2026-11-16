@@ -3268,8 +3268,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
      */
     private fun inlineAutofillChipHeightPx(): Int? {
         if (!::candidatesBarController.isInitialized || !::keyboardVisibilityController.isInitialized) return null
-        if (SettingsManager.isKeyboardBarHiddenInApp(this, currentInputEditorInfo?.packageName)) return null
-        if (!keyboardVisibilityController.allowsSurface()) return null
+        // Android asks before onStartInput, so re-read the editor's block before the surface checks consult it.
+        keyboardBarHiddenInEditor = SettingsManager.isKeyboardBarHiddenInApp(this, currentInputEditorInfo?.packageName)
+        if (keyboardBarHiddenInEditor || !keyboardVisibilityController.allowsSurface()) return null
         // Autofill hands chips over once the input view starts; the candidates-only surface never starts one.
         val inputViewShows = isInputViewShown || (
             !keyboardVisibilityController.usesCandidatesView() &&
