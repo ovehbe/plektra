@@ -521,7 +521,6 @@ class FullSuggestionsBar(
         frame.alpha = 1f
         renderMinimalUiButtons()
         val slotsParams = bar.layoutParams as FrameLayout.LayoutParams
-        applyHeight()
         val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, inlineContentHeightPx).apply {
             marginStart = slotsParams.marginStart
             marginEnd = slotsParams.marginEnd
