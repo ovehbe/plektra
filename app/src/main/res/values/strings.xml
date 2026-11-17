@@ -863,6 +863,7 @@
     <string name="keyboard_theme_suggestions_height">Suggestions height</string>
     <string name="keyboard_theme_variations_height">Variations height</string>
     <string name="keyboard_theme_autofill_row_height">Autofill row height</string>
+    <string name="keyboard_theme_sym_page_size">SYM page size</string>
     <string name="keyboard_theme_show_leds">Show LEDs</string>
     <string name="keyboard_theme_distribute_spacing">Distribute spacing</string>
     <string name="keyboard_theme_ortholinear">Ortholinear</string>

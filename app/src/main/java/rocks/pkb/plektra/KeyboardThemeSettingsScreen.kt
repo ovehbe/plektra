@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import rocks.pkb.plektra.inputmethod.PhysicalKeyboardInputMethodService
 import rocks.pkb.plektra.inputmethod.SubtypeCycler
+import rocks.pkb.plektra.inputmethod.SymPageSize
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils.localeString
@@ -1840,6 +1841,7 @@ private fun keyboardThemesEquivalent(
         close(left.suggestionsHeightScale, right.suggestionsHeightScale) &&
         close(left.variationsHeightScale, right.variationsHeightScale) &&
         close(left.autofillRowHeightScale, right.autofillRowHeightScale) &&
+        close(left.symPageScale, right.symPageScale) &&
         left.keyPopupStyle == right.keyPopupStyle &&
         left.keyPopupAttached == right.keyPopupAttached &&
         left.keyPopupTailEnabled == right.keyPopupTailEnabled &&
@@ -2400,6 +2402,16 @@ private fun KeyboardThemeKeysEditor(
             valueRange = InlineAutofillRowHeight.SCALE_RANGE,
             onValueChanged = { onThemeChanged(theme.copy(autofillRowHeightScale = it)) }
         )
+        if (!isSoftware) {
+            KeyboardThemeSliderRow(
+                label = stringResource(R.string.keyboard_theme_sym_page_size),
+                linkId = "keyboard_theme.hardware.sym_page_size",
+                value = theme.symPageScale,
+                presetValue = preset.symPageScale,
+                valueRange = SymPageSize.SCALE_RANGE,
+                onValueChanged = { onThemeChanged(theme.copy(symPageScale = it)) }
+            )
+        }
         if (isSoftware) {
 
             KeyboardThemeSliderRow(

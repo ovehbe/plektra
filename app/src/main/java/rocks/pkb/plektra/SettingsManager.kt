@@ -525,7 +525,8 @@ object SettingsManager {
         val keyPreviewAfterLongPress: Boolean = false,
         val keyAlternatesPopupEnabled: Boolean = true,
         val textures: Map<String, KeyboardThemeTexture> = emptyMap(),
-        val autofillRowHeightScale: Float = 1f
+        val autofillRowHeightScale: Float = 1f,
+        val symPageScale: Float = 1f
     ) {
         fun toKeyboardThemeColors(): KeyboardThemeColors =
             textures.renderable().let { shown ->
@@ -549,6 +550,7 @@ object SettingsManager {
                     suggestionsHeightScale = suggestionsHeightScale,
                     variationsHeightScale = variationsHeightScale,
                     autofillRowHeightScale = autofillRowHeightScale,
+                    symPageScale = symPageScale,
                     textures = shown
                 )
             }
@@ -1005,6 +1007,7 @@ object SettingsManager {
                 suggestionsHeightScale = json.optDouble("suggestions_height_scale", defaults.suggestionsHeightScale.toDouble()).toFloat(),
                 variationsHeightScale = json.optDouble("variations_height_scale", defaults.variationsHeightScale.toDouble()).toFloat(),
                 autofillRowHeightScale = json.optDouble("autofill_row_height_scale", defaults.autofillRowHeightScale.toDouble()).toFloat(),
+                symPageScale = json.optDouble("sym_page_scale", defaults.symPageScale.toDouble()).toFloat(),
                 keyPopupStyle = normalizeKeyboardThemePopupStyle(json.optString("key_popup_style", defaults.keyPopupStyle)),
                 keyPopupAttached = json.optBoolean("key_popup_attached", defaults.keyPopupAttached),
                 keyPopupTailEnabled = json.optBoolean("key_popup_tail_enabled", defaults.keyPopupTailEnabled),
@@ -1285,7 +1288,8 @@ object SettingsManager {
             "number_row_height_scale",
             "suggestions_height_scale",
             "variations_height_scale",
-            "autofill_row_height_scale"
+            "autofill_row_height_scale",
+            "sym_page_scale"
         )
         val requiredBooleanKeys = listOf(
             "distribute_horizontal_spacing",
@@ -1476,6 +1480,7 @@ object SettingsManager {
             suggestionsHeightScale = json.optDouble("suggestions_height_scale", defaults.suggestionsHeightScale.toDouble()).toFloat(),
             variationsHeightScale = json.optDouble("variations_height_scale", defaults.variationsHeightScale.toDouble()).toFloat(),
             autofillRowHeightScale = json.optDouble("autofill_row_height_scale", defaults.autofillRowHeightScale.toDouble()).toFloat(),
+            symPageScale = json.optDouble("sym_page_scale", defaults.symPageScale.toDouble()).toFloat(),
             keyPopupStyle = normalizeKeyboardThemePopupStyle(json.optString("key_popup_style", defaults.keyPopupStyle)),
             keyPopupAttached = json.optBoolean("key_popup_attached", defaults.keyPopupAttached),
             keyPopupTailEnabled = json.optBoolean("key_popup_tail_enabled", defaults.keyPopupTailEnabled),
@@ -1512,6 +1517,7 @@ object SettingsManager {
             put("suggestions_height_scale", theme.suggestionsHeightScale.toDouble())
             put("variations_height_scale", theme.variationsHeightScale.toDouble())
             put("autofill_row_height_scale", theme.autofillRowHeightScale.toDouble())
+            put("sym_page_scale", theme.symPageScale.toDouble())
             put("key_popup_style", normalizeKeyboardThemePopupStyle(theme.keyPopupStyle))
             put("key_popup_attached", theme.keyPopupAttached)
             put("key_popup_tail_enabled", theme.keyPopupTailEnabled)

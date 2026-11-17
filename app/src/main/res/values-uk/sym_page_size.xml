@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_theme_sym_page_size">Розмір сторінки SYM</string>
+    <string name="setting_link_theme_hardware_sym_page_size">Фізична клавіатура: розмір сторінки SYM</string>
+</resources>

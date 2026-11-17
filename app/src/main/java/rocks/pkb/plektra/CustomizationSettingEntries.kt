@@ -598,6 +598,16 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
         )
     ),
     SettingEntry(
+        id = "keyboard_theme.hardware.sym_page_size",
+        titleRes = R.string.setting_link_theme_hardware_sym_page_size,
+        route = SettingRoute(
+            destination = SettingsDestination.Customization,
+            customizationDestination = "keyboard_theme",
+            keyboardThemeTarget = SettingsManager.KeyboardThemeTarget.HARDWARE,
+            keyboardThemeTab = KeyboardThemeEditorTab.Keys
+        )
+    ),
+    SettingEntry(
         id = "keyboard_theme.software.autofill_row_height",
         titleRes = R.string.setting_link_theme_software_autofill_row_height,
         route = SettingRoute(
