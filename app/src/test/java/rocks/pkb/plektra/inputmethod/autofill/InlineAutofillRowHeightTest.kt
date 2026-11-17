@@ -100,6 +100,7 @@ class InlineAutofillRowHeightTest {
                 setTheme(row, setting)
                 focus(ime)
                 val withoutChips = settle(root, chrome)
+                val rowsWithoutChips = rowHeights(chrome)
 
                 val request = ime.onCreateInlineSuggestionsRequest(uiExtras())
                 val rowPx = dp(row.host.baseDp * row.hostScale * applied)
@@ -119,6 +120,20 @@ class InlineAutofillRowHeightTest {
                 expect(label, "row height", rowPx, (host.parent as View).height)
                 expect(label, "chip host height", rowPx, host.height)
                 expect(label, "chip height", chipPx, chips[0].height)
+                val chipRow = rowOf(host, chrome)
+                if (row.host == Host.SUGGESTIONS) {
+                    val variations = ReflectionHelpers.getField<rocks.pkb.plektra.inputmethod.ui.VariationBarView?>(
+                        ReflectionHelpers.getField<StatusBarController>(
+                            ReflectionHelpers.getField<CandidatesBarController>(ime, "candidatesBarController"), "inputStatusBar"
+                        ), "variationBarView")
+                    expect(label, "variations row hosts chips", false, variations?.hostsInlineContent)
+                }
+                rowHeights(chrome).forEach { (other, height) ->
+                    val before = rowsWithoutChips[other]
+                    if (other !== chipRow && before != null && before != height) {
+                        failures += "$label: ${other.javaClass.simpleName} row changed from $before to $height"
+                    }
+                }
                 val chipCenter = chips[0].topIn(host) + chips[0].height / 2f
                 if (kotlin.math.abs(chipCenter - host.height / 2f) > 1f) {
                     failures += "$label: chip centered at $chipCenter in a ${host.height}px row"
@@ -284,6 +299,17 @@ class InlineAutofillRowHeightTest {
 
     private fun dp(value: Float) =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, context.resources.displayMetrics).toInt()
+
+    private fun rowHeights(chrome: ViewGroup): Map<View, Int> =
+        (0 until chrome.childCount).map { chrome.getChildAt(it) }
+            .filter { it.visibility == View.VISIBLE && it.height > 0 }
+            .associateWith { it.height }
+
+    private fun rowOf(view: View, root: ViewGroup): View {
+        var row = view
+        while (row.parent !== root) row = row.parent as View
+        return row
+    }
 
     private fun hostOf(chip: View): InlineAutofillChipHost {
         var view = chip.parent
