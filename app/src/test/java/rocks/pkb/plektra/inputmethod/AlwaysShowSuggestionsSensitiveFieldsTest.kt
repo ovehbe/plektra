@@ -187,6 +187,59 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
     }
 
     @Test
+    fun barHeightAnimatesOnlyWhenARowComesOrGoes() {
+        val text = fields.first { it.name == "text" }
+        val webText = fields.first { it.name == "web form text" }
+        val password = fields.first { it.name == "password" }
+        val number = fields.first { it.name == "number" }
+        for (alwaysShow in listOf(true, false)) for (animate in listOf(true, false)) {
+            configure(Bar.ACTIONS_ROW, alwaysShow, hideSensitive = true)
+            SettingsManager.setKeyboardBarHeightAnimation(context, animate)
+            val (ime, view) = startService()
+            val chrome = ReflectionHelpers.getField<ImeChromeLayout>(
+                ReflectionHelpers.getField<StatusBarController>(
+                    ReflectionHelpers.getField<CandidatesBarController>(ime, "candidatesBarController"), "inputStatusBar"
+                ), "statusBarLayout"
+            )
+            val animated = mutableListOf<String>()
+            var lastAnimator: Any? = null
+            var settledHeight = -1
+            fun step(label: String, action: () -> Unit) {
+                action()
+                val firstFrame = observe(ime, view).heightPx
+                val animator = ReflectionHelpers.getField<Any?>(chrome, "heightAnimator")
+                if (animator != null && animator !== lastAnimator) animated += label
+                lastAnimator = animator
+                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+                val settled = observe(ime, view).heightPx
+                if (settledHeight >= 0) {
+                    assertEquals("$label alwaysShow=$alwaysShow animate=$animate first frame",
+                        if (animate) settledHeight else settled, firstFrame)
+                }
+                settledHeight = settled
+            }
+            step("focus text") { focus(ime, text) }
+            step("predictions") { deliverPredictions(ime) }
+            step("other predictions") { deliverPredictions(ime, listOf("delta", "echo", "foxtrot")) }
+            step("no predictions") { deliverPredictions(ime, emptyList()) }
+            step("focus web text") { focus(ime, webText) }
+            step("focus password") { focus(ime, password) }
+            step("focus number") { focus(ime, number) }
+            step("focus text again") { focus(ime, text) }
+            step("chips") { deliverChips(ime) }
+            step("chips gone") { focus(ime, text, restarting = true) }
+            val expected = when {
+                !animate -> emptyList()
+                alwaysShow -> listOf("focus password", "focus text again", "chips", "chips gone")
+                else -> listOf("predictions", "no predictions")
+            }
+            assertEquals("alwaysShow=$alwaysShow animate=$animate", expected, animated)
+            service?.destroy()
+            service = null
+        }
+    }
+
+    @Test
     fun addWordCandidateInANumberFieldIsHiddenOnlyWithAlwaysShowAndTheSwitch() {
         val number = fields.first { it.name == "number" }
         for (alwaysShow in listOf(false, true)) for (hideSensitive in listOf(false, true)) {
@@ -242,6 +295,8 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         KeyboardBarConfiguration.setArrangement(context, KeyboardBarArrangement.SUGGESTIONS_FIRST)
         SettingsManager.setAlwaysShowSuggestionsBar(context, alwaysShow)
         SettingsManager.setAlwaysShowSuggestionsBarHideSensitive(context, hideSensitive)
+        // Heights are compared across scenarios; barHeightAnimatesOnlyWhenARowComesOrGoes covers the animation.
+        SettingsManager.setKeyboardBarHeightAnimation(context, false)
     }
 
     private fun startService(): Pair<PhysicalKeyboardInputMethodService, ViewGroup> {

@@ -3438,6 +3438,7 @@ class StatusBarController(
             return
         }
         restoreLayoutHeight(layout)
+        (layout as? ImeChromeLayout)?.rowChangeAnimationMs = SettingsManager.keyboardBarHeightAnimationDurationMs(context)
         ensureMainChildOrder()
         placeInlineAutofillHost(inlineAutofillTarget)
         applyChromeZOrder()

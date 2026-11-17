@@ -45,6 +45,9 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
     private var modeTransitionStartHeight: Int? = null
     private var animatedHeight: Int? = null
     private var heightAnimator: ValueAnimator? = null
+    private var lastTargetHeight: Int? = null
+    /** Animates hardware-mode height changes, which come only from rows being added or removed; 0 snaps. */
+    var rowChangeAnimationMs: Long = 0L
     private val calibrationPreviewListener: () -> Unit = {
         geometry.refreshSettings(forceCalibration = true)
         applyBottomCornerClip()
@@ -451,6 +454,7 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         heightAnimator = null
         animatedHeight = null
         modeTransitionStartHeight = null
+        lastTargetHeight = null
         foldScope?.cancel()
         foldScope = null
         foldingFeatures = emptyList()
@@ -465,7 +469,7 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         if (!softwareKeyboardModeActive || surface == null || surface.visibility == View.GONE) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             val target = measuredHeight
-            setMeasuredDimension(measuredWidth, animatedModeHeight(target))
+            setMeasuredDimension(measuredWidth, animatedModeHeight(target, animateRowChanges = !softwareKeyboardModeActive))
             return
         }
 
@@ -505,23 +509,55 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         setMeasuredDimension(measuredWidth, measuredHeight)
     }
 
-    private fun animatedModeHeight(target: Int): Int {
+    private fun animatedModeHeight(target: Int, animateRowChanges: Boolean = false): Int {
+        val previousTarget = lastTargetHeight
+        lastTargetHeight = target
         modeTransitionStartHeight?.let { start ->
             modeTransitionStartHeight = null
-            if (start != target && android.animation.ValueAnimator.areAnimatorsEnabled()) {
-                animatedHeight = start
-                heightAnimator = ValueAnimator.ofInt(start, target).apply {
-                    duration = 180L
-                    addUpdateListener {
-                        animatedHeight = it.animatedValue as Int
-                        if (it.animatedFraction == 1f) animatedHeight = null
-                        requestLayout()
-                    }
-                    start()
-                }
+            if (start != target && ValueAnimator.areAnimatorsEnabled()) {
+                animateHeight(start, target, 180L)
             } else animatedHeight = null
+            return animatedHeight ?: target
+        }
+        // Each animation frame measures the same target again, so only a new target restarts it.
+        if (animateRowChanges && previousTarget != null && previousTarget != target &&
+            rowChangeAnimationMs > 0 && ValueAnimator.areAnimatorsEnabled()
+        ) {
+            animateHeight(animatedHeight ?: previousTarget, target, rowChangeAnimationMs)
         }
         return animatedHeight ?: target
+    }
+
+    private fun animateHeight(start: Int, target: Int, durationMs: Long) {
+        heightAnimator?.cancel()
+        animatedHeight = start
+        heightAnimator = ValueAnimator.ofInt(start, target).apply {
+            duration = durationMs
+            addUpdateListener {
+                animatedHeight = it.animatedValue as Int
+                if (it.animatedFraction == 1f) animatedHeight = null
+                requestLayout()
+            }
+            start()
+        }
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (visibility != View.VISIBLE) forgetHeight()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility != View.VISIBLE) forgetHeight()
+    }
+
+    /** A hidden bar or keyboard shows again at its new height; only on-screen row changes animate. */
+    private fun forgetHeight() {
+        heightAnimator?.cancel()
+        heightAnimator = null
+        animatedHeight = null
+        lastTargetHeight = null
     }
 
     private fun foldHeightLimitPx(): Int? {

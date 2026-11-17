@@ -79,6 +79,8 @@ object SettingsManager {
     private const val KEY_SUGGESTIONS_BOLD = "suggestions_bold"
     private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR = "always_show_suggestions_bar"
     private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = "always_show_suggestions_bar_hide_sensitive"
+    private const val KEY_KEYBOARD_BAR_HEIGHT_ANIMATION = "keyboard_bar_height_animation"
+    private const val KEY_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = "keyboard_bar_height_animation_ms"
     private const val KEY_SNIPPETS_ENABLED = "snippets_enabled"
     private const val KEY_SNIPPETS_PREFIX = "snippets_prefix"
     private const val KEY_SNIPPETS = "snippets_v1"
@@ -358,6 +360,10 @@ object SettingsManager {
     private const val DEFAULT_SUGGESTIONS_ENABLED = true
     private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR = false
     private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = true
+    private const val DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION = true
+    const val DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 120
+    const val MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 50
+    const val MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 300
     private const val DEFAULT_SNIPPETS_ENABLED = false
     private const val DEFAULT_SNIPPETS_PREFIX = "!"
     private const val DEFAULT_ACCENT_MATCHING_ENABLED = true
@@ -3224,6 +3230,26 @@ object SettingsManager {
     fun setAlwaysShowSuggestionsBarHideSensitive(context: Context, enabled: Boolean) {
         getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE, enabled).apply()
     }
+
+    fun getKeyboardBarHeightAnimation(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION, DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION)
+
+    fun setKeyboardBarHeightAnimation(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION, enabled).apply()
+    }
+
+    fun getKeyboardBarHeightAnimationMs(context: Context): Int =
+        getPreferences(context).getInt(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION_MS)
+            .coerceIn(MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS)
+
+    fun setKeyboardBarHeightAnimationMs(context: Context, durationMs: Int) {
+        getPreferences(context).edit().putInt(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION_MS,
+            durationMs.coerceIn(MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS)).apply()
+    }
+
+    /** 0 when bar height changes should snap. */
+    fun keyboardBarHeightAnimationDurationMs(context: Context): Long =
+        if (getKeyboardBarHeightAnimation(context)) getKeyboardBarHeightAnimationMs(context).toLong() else 0L
 
     /**
      * Returns whether accent matching should be applied to suggestions and auto-replace.
