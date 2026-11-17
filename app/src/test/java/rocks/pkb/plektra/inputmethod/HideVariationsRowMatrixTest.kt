@@ -26,6 +26,7 @@ import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChips
 import rocks.pkb.plektra.inputmethod.autofill.PendingInlineChip
 import rocks.pkb.plektra.inputmethod.suggestions.ui.FullSuggestionsBar
 import rocks.pkb.plektra.inputmethod.ui.CursorSwipeLayout
+import rocks.pkb.plektra.inputmethod.ui.LedStatusView
 
 /**
  * "Also hide the variations row" drops the variations row wherever "Hide where it stays empty"
@@ -80,6 +81,7 @@ class HideVariationsRowMatrixTest {
 
     private data class Scenario(
         val keyboard: Keyboard,
+        val indicatorStrip: Boolean,
         val alwaysShow: Boolean,
         val hideEmpty: Boolean,
         val hideVariations: Boolean,
@@ -87,7 +89,7 @@ class HideVariationsRowMatrixTest {
         val field: Field,
         val chips: Boolean
     ) {
-        override fun toString() = "$keyboard alwaysShow=$alwaysShow hideEmpty=$hideEmpty hideVariations=$hideVariations " +
+        override fun toString() = "$keyboard strip=$indicatorStrip alwaysShow=$alwaysShow hideEmpty=$hideEmpty hideVariations=$hideVariations " +
             "animate=$animate ${field.name} chips=$chips"
     }
 
@@ -102,20 +104,22 @@ class HideVariationsRowMatrixTest {
     fun variationsRowHidesOnlyWithBothSwitchesWhereTheRowStaysEmpty() {
         val observed = linkedMapOf<Scenario, BarState>()
         val failures = mutableListOf<String>()
-        for (keyboard in Keyboard.values()) for (alwaysShow in listOf(false, true)) for (hideEmpty in listOf(false, true))
-            for (hideVariations in listOf(false, true)) for (animate in listOf(false, true)) {
-            configure(keyboard, alwaysShow, hideEmpty, hideVariations, animate)
+        var stripPx = 0
+        for (keyboard in Keyboard.values()) for (strip in listOf(false, true)) for (alwaysShow in listOf(false, true))
+            for (hideEmpty in listOf(false, true)) for (hideVariations in listOf(false, true)) for (animate in listOf(false, true)) {
+            configure(keyboard, strip, alwaysShow, hideEmpty, hideVariations, animate)
             val (ime, root) = startService()
             val frames = FrameChecker(ime, root, keyboard, animate, failures)
             // One service per configuration: every focus below is a move from the previous field.
             for (field in fields) for (chips in listOf(false, true)) {
-                val scenario = Scenario(keyboard, alwaysShow, hideEmpty, hideVariations, animate, field, chips)
+                val scenario = Scenario(keyboard, strip, alwaysShow, hideEmpty, hideVariations, animate, field, chips)
                 frames.step("$scenario focus") { focus(ime, field) }
                 if (chips) frames.step("$scenario chips arrive") {
                     if (!deliverChips(ime)) failures += "$scenario: chips found no host"
                 }
                 observed[scenario] = observe(ime, root)
             }
+            stripPx = ReflectionHelpers.getField<LedStatusView>(inputBar(ime), "ledStatusView").reservedStripHeightPx()
             if (animate && !keyboard.software && alwaysShow && hideEmpty && hideVariations && frames.animatedSteps < fields.size) {
                 failures += "$keyboard: only ${frames.animatedSteps} animated row changes"
             }
@@ -137,7 +141,11 @@ class HideVariationsRowMatrixTest {
                 expect(scenario, "variations row", 0, state.actionsRowPx)
                 expect(scenario, "chips", Placement.NONE, state.chips)
                 expect(scenario, "suggestions row", false, state.suggestionsRow)
-                expect(scenario, "bar height with nothing to show", 0, state.heightPx)
+                if (scenario.indicatorStrip) {
+                    expect(scenario, "only the indicator strip", stripPx, state.heightPx)
+                } else {
+                    expect(scenario, "bar height with nothing to show", 0, state.heightPx)
+                }
             }
             if (scenario.chips) {
                 val expectedRow = if (scenario.keyboard == Keyboard.HARDWARE_SHARED_ROW) Placement.SUGGESTIONS else Placement.ACTIONS
@@ -155,7 +163,7 @@ class HideVariationsRowMatrixTest {
         }
         println("Hide variations row matrix: ${observed.size} scenarios, ${failures.size} failures")
         assertTrue(failures.take(400).joinToString("\n", prefix = "${failures.size} failed expectations:\n"), failures.isEmpty())
-        assertEquals(Keyboard.values().size * 2 * 2 * 2 * 2 * fields.size * 2, observed.size)
+        assertEquals(Keyboard.values().size * 2 * 2 * 2 * 2 * 2 * fields.size * 2, observed.size)
     }
 
     @Test
@@ -238,13 +246,16 @@ class HideVariationsRowMatrixTest {
         }
     }
 
-    private fun configure(keyboard: Keyboard, alwaysShow: Boolean, hideEmpty: Boolean, hideVariations: Boolean, animate: Boolean) {
+    private fun configure(
+        keyboard: Keyboard, strip: Boolean, alwaysShow: Boolean, hideEmpty: Boolean, hideVariations: Boolean, animate: Boolean
+    ) {
         SettingsManager.getPreferences(context).edit().clear().commit()
         SettingsManager.setSoftwareKeyboardMode(context,
             if (keyboard.software) SettingsManager.SoftwareKeyboardMode.FORCE_VIRTUAL else SettingsManager.SoftwareKeyboardMode.FORCE_HARDWARE)
         SettingsManager.setStatusBarVariationsVisible(context, true)
         SettingsManager.setSuggestionsEnabled(context, true)
-        SettingsManager.setModifierIndicators(context, emptySet())
+        SettingsManager.setModifierIndicators(context,
+            if (strip) setOf(SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP) else emptySet())
         KeyboardBarConfiguration.setArrangement(context, keyboard.arrangement)
         SettingsManager.setInlineAutofillEnabled(context, true)
         // Robolectric never reports the input view as shown; auto-show stands in for it.
