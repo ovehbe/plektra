@@ -1040,6 +1040,15 @@ class StatusBarController(
 
     private enum class InlineAutofillTarget { ACTIONS, SUGGESTIONS }
 
+    /**
+     * Fields where Always show's reserved row could never get predictions: sensitive fields,
+     * fields that disable suggestions (URL, email, password, raw mode), and fields where
+     * autofill chips pause them. Ordinary text fields keep the row so it doesn't come and go
+     * between keystrokes.
+     */
+    private fun alwaysShowRowStaysEmpty(snapshot: StatusSnapshot, inlineChipsShowing: Boolean): Boolean =
+        snapshot.suggestionsRowSensitiveField || snapshot.shouldDisableSuggestions || inlineChipsShowing
+
     fun cancelSoftwareKeyboardTouchState() {
         // The software keyboard can also sit below the emoji picker while its search is
         // active, so prefer the cached instance over the container's first child.
@@ -3536,7 +3545,8 @@ class StatusBarController(
             continuousPreview = snapshot.speechPreviewActive && !expansionActive && sharedVariations.isEmpty() &&
                 rocks.pkb.plektra.inputmethod.speech.SpeechSettings.continuousPreview(context),
             alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context) &&
-                !(snapshot.suggestionsRowSensitiveField && SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context))
+                !(SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context) &&
+                    alwaysShowRowStaysEmpty(snapshot, inlineAutofillTarget != null))
         )
         ledStatusView.compactOnly = fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE && !barPresentation.actions && !hasTransientSurface
         val ledOnly = ledStatusView.compactOnly && showLedStrip
