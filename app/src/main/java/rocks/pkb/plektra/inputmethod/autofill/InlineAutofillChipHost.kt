@@ -22,6 +22,7 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
     ).toInt()
     private val pinnedRow = chipRow(context)
     private val scrollingRow = chipRow(context)
+    // Known limitation: on Android 11 the chips' surfaces ignore this clip, so scrolled chips draw over the pinned ones.
     private val scroller = HorizontalScrollView(context).apply {
         isHorizontalScrollBarEnabled = false
         overScrollMode = View.OVER_SCROLL_NEVER
