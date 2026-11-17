@@ -941,21 +941,20 @@ class StatusBarController(
 
     /**
      * Hosts autofill chips in the actions row when it is shown, otherwise in the suggestions row,
-     * which then appears even without word suggestions. False when this bar shows no chrome.
+     * which then appears even without word suggestions. False when they are not on screen yet.
+     * Android sends a response once per input-view start, so chips stay until cleared and appear
+     * when a row can show them again (SYM page or nav mode closed, first render done).
      */
     fun showInlineAutofill(views: List<View>, pinnedFlags: List<Boolean>): Boolean {
-        val rerender = rerenderLastUpdate
-        if (views.isEmpty() || rerender == null) {
+        if (views.isEmpty()) {
             clearInlineAutofill()
             return false
         }
         val host = inlineAutofillHost ?: InlineAutofillChipHost(context).also { inlineAutofillHost = it }
         host.setChips(views, pinnedFlags)
         inlineAutofillActive = true
-        rerender()
-        if (isInlineAutofillShown()) return true
-        clearInlineAutofill()
-        return false
+        rerenderLastUpdate?.invoke()
+        return isInlineAutofillShown()
     }
 
     fun clearInlineAutofill() {
@@ -3745,6 +3744,8 @@ class StatusBarController(
                 variationsBar?.showVariations(snapshotForVariations, inputConnection)
                 setSurfaceCloseVisible(false)
                 resetSymSurfaceToLedOnly(symSurfaceView)
+                // The row only returns now, after the empty-bar check below collapsed the layout.
+                if (layout.visibility != View.VISIBLE) rerenderLastUpdate?.invoke()
             }
             symShown = false
             wasSymActive = false

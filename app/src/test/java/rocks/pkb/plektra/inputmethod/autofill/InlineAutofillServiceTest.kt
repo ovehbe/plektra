@@ -77,8 +77,8 @@ class InlineAutofillServiceTest {
         RequestRow("arriving from a never-show app", Bar.ACTIONS_ROW, previousAppNeverShow = true),
         RequestRow("no bar content", Bar.NONE, actions = false, suggestions = false),
         RequestRow("LED strip only grows a chip row", Bar.SUGGESTIONS_ROW, actions = false, suggestions = false, ledStrip = true),
-        RequestRow("nav mode", Bar.NONE, navMode = true),
-        RequestRow("hardware SYM page", Bar.NONE, symPage = true),
+        RequestRow("nav mode still latched from the page", Bar.ACTIONS_ROW, navMode = true),
+        RequestRow("hardware SYM page still open", Bar.ACTIONS_ROW, symPage = true),
         RequestRow("candidates-only before an input view", Bar.NONE, candidatesOnly = true),
         RequestRow("virtual keyboard shows on input start", Bar.ACTIONS_ROW, virtualKeyboard = true),
         RequestRow("virtual keyboard waits for the app", Bar.NONE, virtualKeyboard = true, respectAppVisibility = true)

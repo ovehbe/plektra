@@ -17,12 +17,13 @@ internal class InlineAutofillChips(
     private var generation = 0
 
     /**
-     * True when a visible host takes this batch. Android needs the answer before inflation ends;
-     * a batch that can no longer attach then is dropped and the bar shows no chips.
+     * True when a visible host takes this batch now. Android needs the answer before inflation
+     * ends, and it does not resend the response when the bar later can show chips, so a batch
+     * without a visible host is still handed to the bar, which shows it once a row allows.
      */
     fun onResponse(chips: List<PendingInlineChip>): Boolean {
         val batch = ++generation
-        if (chips.isEmpty() || !canHost()) {
+        if (chips.isEmpty()) {
             clearSurfaces()
             return false
         }
@@ -35,7 +36,7 @@ internal class InlineAutofillChips(
                 if (--pending == 0) attach(chips, views)
             }
         }
-        return true
+        return canHost()
     }
 
     fun clear() {

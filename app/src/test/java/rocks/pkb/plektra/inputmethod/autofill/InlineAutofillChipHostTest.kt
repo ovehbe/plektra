@@ -92,8 +92,14 @@ class InlineAutofillChipHostTest {
                 if (shown) {
                     assertTrue(label, chips.all { it.width > 0 && it.height > 0 })
                     assertTrue(label, visibleTexts(active).intersect(WORDS.toSet()).isEmpty())
-                } else {
+                } else if (row.blocked) {
                     assertTrue(label, chips.all { it.parent == null })
+                }
+                if (row.navMode || row.symPage != 0) {
+                    controller.updateStatusBars(snapshot(row.copy(navMode = false, symPage = 0)), "", null, null)
+                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
+                    layout(active)
+                    assertEquals("$label, after it closes", Placement.ACTIONS, placementOf(chips.first(), active))
                 }
             }
         }
@@ -208,14 +214,19 @@ class InlineAutofillChipHostTest {
     }
 
     @Test
-    fun barWithoutAnyUpdateShowsNoChrome() {
+    fun chipsBeforeTheFirstRenderShowWithIt() {
         configure(actions = true, suggestions = true)
         val controller = CandidatesBarController(context)
-        controller.getInputView()
+        val view = controller.getInputView()
         controller.setCandidatesSurfaceActive(false)
         val chip = chip()
         assertFalse(controller.showInlineAutofill(listOf(chip), listOf(false)))
-        assertNull(chip.parent)
+        assertEquals(Placement.NONE, placementOf(chip, view))
+
+        controller.updateStatusBars(snapshot(), "", null, null)
+        layout(view)
+
+        assertEquals(Placement.ACTIONS, placementOf(chip, view))
     }
 
     @Test
