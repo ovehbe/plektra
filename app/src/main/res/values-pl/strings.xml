@@ -942,6 +942,8 @@ Każdy klawisz można skonfigurować jako Keycode, Akcja, Native Ctrl lub Brak. 
     <string name="kw_auto_correction_number_suggestions">liczby, cyfry, alt, w00, 100, konwersja, dla aplikacji, wyklucz</string>
     <string name="always_show_suggestions_bar_title">Zawsze pokazuj pasek sugestii</string>
     <string name="always_show_suggestions_bar_summary">Zapobiega automatycznemu ukrywaniu paska sugestii (po symbolach Alt, interpunkcji itp.), aby rozmiar okna aplikacji pozostał stały.</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_title">Ukrywaj w polach liczbowych i hasła</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Bez paska sugestii i podpowiedzi słów w polach hasła, liczby, telefonu i daty</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Otwiera bezpośrednio Plektra Quick Launcher i nie przekazuje zdarzenia klawisza do aplikacji.</string>
     <string name="clicks_recommended_settings_description">Przywraca natywne działanie Tab i Alt; przypisuje przycisk mikrofonu do dyktowania Plektra; przypisuje czerwony przycisk Clicks i przycisk Launcher bezpośrednio do Quick Launcher; oraz wyłącza Caps Lock i Cursor Mode.</string>

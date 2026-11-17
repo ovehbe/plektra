@@ -942,6 +942,8 @@ Ctrl-ярлики застосунків із урахуванням розкл�
     <string name="kw_auto_correction_number_suggestions">числа, цифри, alt, w00, 100, перетворити, для застосунку, виключити</string>
     <string name="always_show_suggestions_bar_title">Завжди показувати панель пропозицій</string>
     <string name="always_show_suggestions_bar_summary">Не дає панелі пропозицій автоматично ховатися (після символів Alt, розділових знаків тощо), щоб розмір вікна застосунку залишався незмінним.</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_title">Ховати в числових полях і полях пароля</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Без панелі пропозицій і підказок слів у полях пароля, чисел, телефону й дати</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Одразу відкриває Plektra Quick Launcher і не передає натискання клавіші застосунку.</string>
     <string name="clicks_recommended_settings_description">Відновлює рідний вивід Tab і Alt; призначає кнопку мікрофона диктуванню Plektra; призначає червону кнопку Clicks і кнопку Launcher безпосередньо Quick Launcher; і вимикає Caps Lock і Cursor Mode.</string>

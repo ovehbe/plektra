@@ -332,6 +332,8 @@ class StatusBarController(
         val shouldDisableDoubleSpaceToPeriod: Boolean = false,
         val shouldDisableVariations: Boolean = false,
         val isEmailField: Boolean = false,
+        /** Password, number, phone or date field: Always show may leave the suggestions row out. */
+        val suggestionsRowSensitiveField: Boolean = false,
         // UI latch flags for static variation bar layers.
         val shiftLayerLatched: Boolean = false,
         val altModifierLayerLatched: Boolean = false,
@@ -3533,7 +3535,8 @@ class StatusBarController(
             displayOnly = snapshot.speechPreviewActive && !expansionActive && sharedVariations.isEmpty(),
             continuousPreview = snapshot.speechPreviewActive && !expansionActive && sharedVariations.isEmpty() &&
                 rocks.pkb.plektra.inputmethod.speech.SpeechSettings.continuousPreview(context),
-            alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context)
+            alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context) &&
+                !(snapshot.suggestionsRowSensitiveField && SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context))
         )
         ledStatusView.compactOnly = fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE && !barPresentation.actions && !hasTransientSurface
         val ledOnly = ledStatusView.compactOnly && showLedStrip

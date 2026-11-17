@@ -67,6 +67,9 @@ internal fun KeyboardBarSettingsScreen(
     var suggestionsEnabled by remember { mutableStateOf(SettingsManager.getSuggestionsEnabled(context)) }
     var suggestionsBold by remember { mutableStateOf(SettingsManager.getSuggestionsBold(context)) }
     var alwaysShowSuggestionsBar by remember { mutableStateOf(SettingsManager.getAlwaysShowSuggestionsBar(context)) }
+    var alwaysShowHideSensitive by remember {
+        mutableStateOf(SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context))
+    }
     var showOnLauncher by remember { mutableStateOf(SettingsManager.getShowKeyboardBarOnLauncher(context)) }
     var inlineAutofill by remember { mutableStateOf(SettingsManager.getInlineAutofillEnabled(context)) }
     var candidatesView by remember { mutableStateOf(SettingsManager.getExperimentalCandidatesViewEnabled(context)) }
@@ -110,6 +113,8 @@ internal fun KeyboardBarSettingsScreen(
             leftSlots = SettingsManager.getStatusBarSlotsLeft(context)
             rightSlots = SettingsManager.getStatusBarSlotsRight(context)
             showOnLauncher = SettingsManager.getShowKeyboardBarOnLauncher(context)
+            alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context)
+            alwaysShowHideSensitive = SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context)
             inlineAutofill = SettingsManager.getInlineAutofillEnabled(context)
             candidatesView = SettingsManager.getExperimentalCandidatesViewEnabled(context)
             hiddenAppCount = SettingsManager.getKeyboardBarHiddenPackages(context).size
@@ -225,6 +230,14 @@ internal fun KeyboardBarSettingsScreen(
                 "keyboard_bar.always_show_suggestions", stringResource(R.string.always_show_suggestions_bar_summary)) {
                 alwaysShowSuggestionsBar = it
                 SettingsManager.setAlwaysShowSuggestionsBar(context, it)
+            }
+            if (alwaysShowSuggestionsBar) {
+                KeyboardBarCheckRow(stringResource(R.string.always_show_suggestions_bar_hide_sensitive_title),
+                    alwaysShowHideSensitive, "keyboard_bar.always_show_suggestions_hide_sensitive",
+                    stringResource(R.string.always_show_suggestions_bar_hide_sensitive_summary)) {
+                    alwaysShowHideSensitive = it
+                    SettingsManager.setAlwaysShowSuggestionsBarHideSensitive(context, it)
+                }
             }
             KeyboardBarCheckRow(stringResource(R.string.keyboard_bar_actions), displayedActions,
                 "status_bar.variations_visible") {
