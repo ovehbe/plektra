@@ -303,6 +303,8 @@ class StatusBarController(
         private val DEFAULT_BACKGROUND = Color.parseColor("#000000")
         private const val TITAN_2_ELITE_CORNER_FALLBACK_RADIUS_DP = 50f
         private const val HARDWARE_SYM_KEY_HEIGHT_DP = 56f
+        private const val SYM_KEY_HINT_TEXT_SIZE_SP = 12f
+        private const val GLYPH_REFERENCE_SIZE_SP = 100f
         private const val INLINE_AUTOFILL_CHIP_INSET_DP = 4f
     }
 
@@ -1675,7 +1677,11 @@ class StatusBarController(
         val totalSpacing = keySpacing * (maxKeysInRow - 1)
         val fixedKeyWidth = (availableWidth - totalSpacing) / maxKeysInRow
         
-        val keyHeight = hardwareSymKeyHeightPx()
+        val keyHeight = symPageKeyHeightPx(theme)
+        val pagedKind = rocks.pkb.plektra.core.SymLayoutController.shownPagedKind
+        val glyphTextSize = symPageGlyphTextSizeSp(
+            keyboardRows.flatten().mapNotNull { symMappings[it] }, page, fixedKeyWidth, keyHeight, pagedKind)
+        val hintTextSize = SYM_KEY_HINT_TEXT_SIZE_SP * keyHeight / hardwareSymKeyHeightPx(theme)
         
         // Crea ogni riga della tastiera
         for ((rowIndex, row) in keyboardRows.withIndex()) {
@@ -1696,7 +1702,7 @@ class StatusBarController(
                 rowLayout.gravity = Gravity.START
                 row.forEachIndexed { index, code ->
                     addKeyToRow(rowLayout, code, symMappings, fixedKeyWidth, keyHeight, keySpacing, page,
-                        inputConnection, rowIndex == 0 && index == row.lastIndex)
+                        inputConnection, rowIndex == 0 && index == row.lastIndex, glyphTextSize, hintTextSize)
                 }
                 if (rowIndex == 1) {
                     val picker = createKeyboardSelectionButton(keyHeight, fixedKeyWidth)
@@ -1714,19 +1720,19 @@ class StatusBarController(
                 when (rowIndex) {
                     0 -> { // Row 1: Q W E R T Y U I O P (10 keys)
                         for ((index, keyCode) in row.withIndex()) {
-                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, index == row.size - 1)
+                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, index == row.size - 1, glyphTextSize, hintTextSize)
                         }
                     }
                     1 -> { // Row 2: A S D F G H J K L (9 keys) -> Add placeholder at the end to make it 10
                         for ((index, keyCode) in row.withIndex()) {
-                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false)
+                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false, glyphTextSize, hintTextSize)
                         }
                         rowLayout.addView(View(context), LinearLayout.LayoutParams(fixedKeyWidth, keyHeight))
                     }
                     2 -> { // Row 3: Z X C V [Editor] [Globe] B N M [Close]
                         // Z X C V (4 keys)
                         for (i in 0..3) {
-                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false)
+                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false, glyphTextSize, hintTextSize)
                         }
                         
                         // Editor button (left part of spacebar area)
@@ -1741,7 +1747,7 @@ class StatusBarController(
                         
                         // B N M (3 keys)
                         for (i in 4..6) {
-                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false)
+                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false, glyphTextSize, hintTextSize)
                         }
 
                         rowLayout.addView(createSurfaceCloseSlot(), LinearLayout.LayoutParams(fixedKeyWidth, keyHeight))
@@ -1766,7 +1772,7 @@ class StatusBarController(
                 val label = keyLabels[keyCode] ?: ""
                 val content = symMappings[keyCode] ?: ""
                 
-                val keyButton = createEmojiKeyButton(label, content, keyHeight, page, rocks.pkb.plektra.core.SymLayoutController.shownPagedKind)
+                val keyButton = createEmojiKeyButton(label, content, keyHeight, page, pagedKind, glyphTextSize, hintTextSize)
                 emojiKeyButtons.add(keyButton)
                 keyButton.isLongClickable = true
                 keyButton.setOnLongClickListener {
@@ -2680,12 +2686,62 @@ class StatusBarController(
      * @param height L'altezza del tasto
      * @param page La pagina attiva (1=emoji, 2=caratteri)
      */
+    /** Emoji and characters fill most of the key's height. */
+    private fun heightFilledGlyphTextSizeSp(keyHeightPx: Int, page: Int): Float {
+        val heightInDp = keyHeightPx / context.resources.displayMetrics.density
+        val roundedCorners = SettingsManager.getTitan2EliteRoundedCornerInsetsEnabled(context)
+        return heightInDp * if (page == 2 || roundedCorners) 0.5f else 0.75f
+    }
+
+    private fun isTextLikeSymContent(content: String, pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind?): Boolean =
+        pagedKind == rocks.pkb.plektra.core.SymPagedLayer.Kind.KAOMOJI ||
+            content.codePointCount(0, content.length) > 3 && !content.any { Character.isSurrogate(it) }
+
+    /**
+     * One glyph size for the whole page, so keys look alike: the height-filling size, shrunk until
+     * the widest and tallest glyph fit a key. Narrow keys (720 px wide screens) would otherwise
+     * clip each emoji differently. Text-like content shrinks itself to fit.
+     */
+    private fun symPageGlyphTextSizeSp(
+        contents: Collection<String>,
+        page: Int,
+        keyWidthPx: Int,
+        keyHeightPx: Int,
+        pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind?
+    ): Float {
+        val glyphs = contents.filter { it.isNotEmpty() && !isTextLikeSymContent(it, pagedKind) }
+            .distinct()
+            .map { rocks.pkb.plektra.data.emoji.EmojiRendering.forDisplay(context, it) }
+        val probe = TextView(context).apply { if (page == 2) setTypeface(null, android.graphics.Typeface.BOLD) }
+        fun widest(sizeSp: Float): Float {
+            probe.textSize = sizeSp
+            return glyphs.maxOfOrNull { android.text.Layout.getDesiredWidth(it, probe.paint) } ?: 0f
+        }
+        fun tallest(sizeSp: Float): Float {
+            probe.textSize = sizeSp
+            return probe.paint.fontMetricsInt.let { (it.descent - it.ascent).toFloat() }
+        }
+        fun largestFitting(extent: (Float) -> Float, limitPx: Int): Float {
+            val reference = extent(GLYPH_REFERENCE_SIZE_SP).takeIf { it > 0f } ?: return Float.MAX_VALUE
+            var size = GLYPH_REFERENCE_SIZE_SP * limitPx / reference
+            while (size > 1f && extent(size) > limitPx) size *= 0.99f
+            return size
+        }
+        return minOf(
+            heightFilledGlyphTextSizeSp(keyHeightPx, page),
+            largestFitting(::widest, keyWidthPx),
+            largestFitting(::tallest, keyHeightPx)
+        )
+    }
+
     private fun createEmojiKeyButton(
         label: String,
         content: String,
         height: Int,
         page: Int,
-        pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind? = null
+        pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind? = null,
+        glyphTextSizeSp: Float? = null,
+        hintTextSizeSp: Float = SYM_KEY_HINT_TEXT_SIZE_SP
     ): View {
         val theme = activeThemeColors()
         val keyLayout = FrameLayout(context).apply {
@@ -2709,20 +2765,9 @@ class StatusBarController(
             setStroke(dpToPx(1f), theme.divider)
         }
         
-        // Emoji/carattere deve occupare tutto il tasto, centrata
-        // Calcola textSize in base all'altezza disponibile (convertendo da pixel a sp)
-        val heightInDp = height / context.resources.displayMetrics.density
         val roundedCorners = SettingsManager.getTitan2EliteRoundedCornerInsetsEnabled(context)
-        val contentTextSize = if (page == 2 || roundedCorners) {
-            // Per caratteri unicode, usa una dimensione più piccola
-            (heightInDp * 0.5f)
-        } else {
-            // Per emoji, usa la dimensione normale
-            (heightInDp * 0.75f)
-        }
-        
-        val textLike = pagedKind == rocks.pkb.plektra.core.SymPagedLayer.Kind.KAOMOJI ||
-            content.codePointCount(0, content.length) > 3 && !content.any { Character.isSurrogate(it) }
+        val contentTextSize = glyphTextSizeSp ?: heightFilledGlyphTextSizeSp(height, page)
+        val textLike = isTextLikeSymContent(content, pagedKind)
         val contentText = TextView(context).apply {
             text = rocks.pkb.plektra.data.emoji.EmojiRendering.forDisplay(context, content)
             textSize = contentTextSize // textSize è in sp
@@ -2760,7 +2805,7 @@ class StatusBarController(
         
         val labelText = TextView(context).apply {
             text = label
-            textSize = 12f
+            textSize = hintTextSizeSp
             setTextColor(theme.textAndIcons)
             gravity = Gravity.END or Gravity.BOTTOM
             layoutParams = FrameLayout.LayoutParams(
@@ -2996,7 +3041,9 @@ class StatusBarController(
         spacing: Int,
         page: Int,
         inputConnection: android.view.inputmethod.InputConnection?,
-        isLast: Boolean
+        isLast: Boolean,
+        glyphTextSizeSp: Float,
+        hintTextSizeSp: Float
     ) {
         val keyLabels = mapOf(
             android.view.KeyEvent.KEYCODE_Q to "Q", android.view.KeyEvent.KEYCODE_W to "W", android.view.KeyEvent.KEYCODE_E to "E",
@@ -3011,7 +3058,8 @@ class StatusBarController(
         )
         val label = keyLabels[keyCode] ?: ""
         val content = symMappings[keyCode] ?: ""
-        val keyButton = createEmojiKeyButton(label, content, height, page, rocks.pkb.plektra.core.SymLayoutController.shownPagedKind)
+        val keyButton = createEmojiKeyButton(label, content, height, page,
+            rocks.pkb.plektra.core.SymLayoutController.shownPagedKind, glyphTextSizeSp, hintTextSizeSp)
         keyButton.isLongClickable = true
         keyButton.setOnLongClickListener {
             if (onSymPageKeyLongPressed?.invoke(keyCode) != true) {
@@ -4047,8 +4095,7 @@ class StatusBarController(
         if (!isFullSoftwareKeyboardMode && snapshot.symPage in listOf(1, 2, 5)) {
             // All hardware SYM pages use the same three key rows. Do not let
             // measurement under the previous page's weighted layout resize them.
-            val gap = dpToPx(4f)
-            return 3 * hardwareSymKeyHeightPx() + 2 * gap
+            return SymPageSize.gridHeightPx(symPageKeyHeightPx(), dpToPx(4f))
         }
         if (snapshot.symPage == 4 && measuredHeight > 0) {
             return measuredHeight
@@ -4066,6 +4113,11 @@ class StatusBarController(
             context.resources.displayMetrics
         ).toInt()
     }
+
+    /** Keys of the SYM grid pages (1, 2 and 5), sized by the theme's SYM page size. */
+    private fun symPageKeyHeightPx(theme: KeyboardThemeColors = activeThemeColors()): Int =
+        SymPageSize.keyHeightPx(hardwareSymKeyHeightPx(theme), theme.symPageScale, dpToPx(4f),
+            context.resources.displayMetrics.heightPixels)
 
     private fun hardwareSymKeyHeightPx(theme: KeyboardThemeColors = activeThemeColors()): Int {
         if (!SettingsManager.getTitan2EliteRoundedCornerInsetsEnabled(context)) return dpToPx(HARDWARE_SYM_KEY_HEIGHT_DP)

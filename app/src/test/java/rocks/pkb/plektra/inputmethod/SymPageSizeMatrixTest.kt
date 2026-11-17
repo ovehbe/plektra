@@ -210,6 +210,13 @@ class SymPageSizeMatrixTest {
         assertEquals(2 * 2 * Sym.values().size * autofillScales.size * symSizes.size * 2, observed.size)
     }
 
+    @Test
+    fun defaultSymSizeKeepsTheOriginalKeyHeight() {
+        assertEquals(dp(56f), SymPageSize.keyHeightPx(dp(56f), SymPageSize.DEFAULT_SCALE, dp(4f), SCREEN_PX))
+        assertEquals(dp(56f), SymPageSize.keyHeightPx(dp(56f), SymPageSize.DEFAULT_SCALE, dp(4f), 2400))
+        assertEquals((dp(56f) * 1.75f).toInt(), SymPageSize.keyHeightPx(dp(56f), 1.75f, dp(4f), 2400))
+    }
+
     /** The original 56 dp key, scaled, and kept within 60% of the screen above the default. */
     private fun expectedKeyPx(symSize: Float): Int {
         val scaled = (dp(56f) * symSize).toInt()
