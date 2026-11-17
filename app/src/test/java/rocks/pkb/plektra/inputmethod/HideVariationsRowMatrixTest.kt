@@ -22,6 +22,7 @@ import org.robolectric.util.ReflectionHelpers
 import rocks.pkb.plektra.KeyboardBarArrangement
 import rocks.pkb.plektra.KeyboardBarConfiguration
 import rocks.pkb.plektra.SettingsManager
+import rocks.pkb.plektra.core.InputContextState
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChips
 import rocks.pkb.plektra.inputmethod.autofill.PendingInlineChip
 import rocks.pkb.plektra.inputmethod.suggestions.ui.FullSuggestionsBar
@@ -53,7 +54,13 @@ class HideVariationsRowMatrixTest {
     private enum class Placement { ACTIONS, SUGGESTIONS, NONE }
 
     /** [staysEmpty]: Always show's row is dropped there by "Hide where it stays empty". */
-    private data class Field(val name: String, val inputType: Int, val staysEmpty: Boolean)
+    private data class Field(
+        val name: String,
+        val inputType: Int,
+        val staysEmpty: Boolean,
+        val packageName: String = APP,
+        val privateImeOptions: String? = null
+    )
 
     private val fields = listOf(
         Field("text", InputType.TYPE_CLASS_TEXT, staysEmpty = false),
@@ -66,10 +73,17 @@ class HideVariationsRowMatrixTest {
         // What Chrome and WebView report for autofill.me's card name, card number and CVV inputs.
         Field("web form text", 0xc0a1, staysEmpty = false),
         Field("person name", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PERSON_NAME, staysEmpty = false),
+        Field("postal address", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_POSTAL_ADDRESS, staysEmpty = false),
+        Field("filter", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_FILTER, staysEmpty = true),
+        Field("literal entry", InputType.TYPE_CLASS_TEXT, staysEmpty = true,
+            privateImeOptions = InputContextState.LITERAL_ENTRY_IME_OPTION),
+        Field("text in a raw-mode app", InputType.TYPE_CLASS_TEXT, staysEmpty = true, packageName = RAW_MODE_APP),
         Field("password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD, staysEmpty = true),
         Field("visible password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD, staysEmpty = true),
         Field("web password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD, staysEmpty = true),
         Field("number", InputType.TYPE_CLASS_NUMBER, staysEmpty = true),
+        Field("signed number", InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED, staysEmpty = true),
+        Field("decimal number", InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL, staysEmpty = true),
         Field("signed decimal number",
             InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED or InputType.TYPE_NUMBER_FLAG_DECIMAL, staysEmpty = true),
         Field("number password", InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD, staysEmpty = true),
@@ -254,6 +268,7 @@ class HideVariationsRowMatrixTest {
             if (keyboard.software) SettingsManager.SoftwareKeyboardMode.FORCE_VIRTUAL else SettingsManager.SoftwareKeyboardMode.FORCE_HARDWARE)
         SettingsManager.setStatusBarVariationsVisible(context, true)
         SettingsManager.setSuggestionsEnabled(context, true)
+        SettingsManager.setRawModeApp(context, RAW_MODE_APP, true)
         SettingsManager.setModifierIndicators(context,
             if (strip) setOf(SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP) else emptySet())
         KeyboardBarConfiguration.setArrangement(context, keyboard.arrangement)
@@ -285,7 +300,8 @@ class HideVariationsRowMatrixTest {
     }
 
     private fun editorInfo(field: Field) = EditorInfo().apply {
-        packageName = APP
+        packageName = field.packageName
+        privateImeOptions = field.privateImeOptions
         inputType = field.inputType
         fieldId = field.name.hashCode()
     }
@@ -355,6 +371,7 @@ class HideVariationsRowMatrixTest {
 
     private companion object {
         const val APP = "com.example.login"
+        const val RAW_MODE_APP = "com.example.terminal"
         const val CHIP = "test inline chip"
     }
 }
