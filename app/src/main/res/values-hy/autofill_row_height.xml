@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_theme_autofill_row_height">Ինքնալրացման տողի բարձրություն</string>
+    <string name="setting_link_theme_hardware_autofill_row_height">Ֆիզիկական ստեղնաշար՝ ինքնալրացման տողի բարձրություն</string>
+    <string name="setting_link_theme_software_autofill_row_height">Էկրանային ստեղնաշար՝ ինքնալրացման տողի բարձրություն</string>
+</resources>

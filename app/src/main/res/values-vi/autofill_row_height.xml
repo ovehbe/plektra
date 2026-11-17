@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_theme_autofill_row_height">Chiều cao hàng tự động điền</string>
+    <string name="setting_link_theme_hardware_autofill_row_height">Bàn phím vật lý: chiều cao hàng tự động điền</string>
+    <string name="setting_link_theme_software_autofill_row_height">Bàn phím ảo: chiều cao hàng tự động điền</string>
+</resources>

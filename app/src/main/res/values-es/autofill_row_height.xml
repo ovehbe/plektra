@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_theme_autofill_row_height">Altura de la fila de autocompletar</string>
+    <string name="setting_link_theme_hardware_autofill_row_height">Teclado físico: altura de la fila de autocompletar</string>
+    <string name="setting_link_theme_software_autofill_row_height">Teclado en pantalla: altura de la fila de autocompletar</string>
+</resources>
