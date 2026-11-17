@@ -129,6 +129,24 @@ class KeyboardThemeImportTest {
     }
 
     @Test
+    fun symPageSize_roundTripsAndOlderExportsKeepTheDefault() {
+        for (scale in listOf(0.75f, 1f, 1.75f)) {
+            val theme = distinctTheme(0xFF203040.toInt()).copy(symPageScale = scale)
+            val exported = JSONObject(SettingsManager.keyboardThemeToJsonString(theme))
+            assertEquals(scale.toDouble(), exported.getDouble("sym_page_scale"), 0.0001)
+            assertEquals(theme, SettingsManager.keyboardThemeFromJsonString(exported.toString()))
+        }
+
+        val older = JSONObject(
+            SettingsManager.keyboardThemeToJsonString(SettingsManager.defaultKeyboardTheme().copy(symPageScale = 1.5f))
+        ).apply { remove("sym_page_scale") }
+        assertEquals(1f, SettingsManager.keyboardThemeFromJsonString(older.toString())!!.symPageScale)
+
+        val wrongType = JSONObject(older.toString()).apply { put("sym_page_scale", "1.5") }
+        assertNull(SettingsManager.keyboardThemeFromJsonString(wrongType.toString()))
+    }
+
+    @Test
     fun wrongTypesAndUnsupportedPopupStyle_areRejected() {
         val exported = SettingsManager.keyboardThemeToJsonString(SettingsManager.defaultKeyboardTheme())
         val stringColor = JSONObject(exported).apply { put("background", "-1") }

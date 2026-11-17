@@ -37,7 +37,8 @@ internal data class KeyboardThemePreset(
     val keyPreviewAfterLongPress: Boolean = false,
     val keyAlternatesPopupEnabled: Boolean = true,
     val textures: Map<String, KeyboardThemeTexture> = emptyMap(),
-    val autofillRowHeightScale: Float = 1f
+    val autofillRowHeightScale: Float = 1f,
+    val symPageScale: Float = 1f
 )
 
 internal data class KeyboardThemeOption(
@@ -126,6 +127,7 @@ internal fun KeyboardThemePreset.toKeyboardThemeColors(): KeyboardThemeColors =
             suggestionsHeightScale = suggestionsHeightScale,
             variationsHeightScale = variationsHeightScale,
             autofillRowHeightScale = autofillRowHeightScale,
+            symPageScale = symPageScale,
             textures = shown
         )
     }
@@ -158,6 +160,7 @@ internal fun KeyboardThemePreset.toSettingsTheme(): SettingsManager.KeyboardThem
         suggestionsHeightScale = suggestionsHeightScale,
         variationsHeightScale = variationsHeightScale,
         autofillRowHeightScale = autofillRowHeightScale,
+        symPageScale = symPageScale,
         keyPopupStyle = keyPopupStyle,
         keyPopupAttached = keyPopupAttached,
         keyPopupTailEnabled = keyPopupTailEnabled,
@@ -195,6 +198,7 @@ internal fun SettingsManager.KeyboardThemeSettings.toKeyboardThemePreset(name: S
         suggestionsHeightScale = suggestionsHeightScale,
         variationsHeightScale = variationsHeightScale,
         autofillRowHeightScale = autofillRowHeightScale,
+        symPageScale = symPageScale,
         keyPopupStyle = keyPopupStyle,
         keyPopupAttached = keyPopupAttached,
         keyPopupTailEnabled = keyPopupTailEnabled,

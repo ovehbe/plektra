@@ -1840,6 +1840,7 @@ private fun keyboardThemesEquivalent(
         close(left.suggestionsHeightScale, right.suggestionsHeightScale) &&
         close(left.variationsHeightScale, right.variationsHeightScale) &&
         close(left.autofillRowHeightScale, right.autofillRowHeightScale) &&
+        close(left.symPageScale, right.symPageScale) &&
         left.keyPopupStyle == right.keyPopupStyle &&
         left.keyPopupAttached == right.keyPopupAttached &&
         left.keyPopupTailEnabled == right.keyPopupTailEnabled &&
