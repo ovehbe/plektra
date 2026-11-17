@@ -163,6 +163,29 @@ class InlineAutofillChipHostTest {
     }
 
     @Test
+    fun ledStripOnlyBarGrowsAChipRowAndShrinksBackWhenChipsClear() {
+        configure(actions = false, suggestions = false, ledStrip = true)
+        val (controller, view) = inputSurface()
+        controller.updateStatusBars(snapshot().copy(shouldDisableSuggestions = true), "", null, null)
+        layout(view)
+        val ledOnlyHeight = view.measuredHeight
+        assertTrue(ledOnlyHeight > 0)
+
+        repeat(2) { cycle ->
+            val chips = listOf(chip(), chip())
+            assertTrue(controller.showInlineAutofill(chips, listOf(false, false)))
+            layout(view)
+            assertEquals("cycle $cycle", Placement.SUGGESTIONS, placementOf(chips.first(), view))
+            assertTrue("cycle $cycle", view.measuredHeight > ledOnlyHeight)
+
+            controller.clearInlineAutofill()
+            layout(view)
+            assertTrue("cycle $cycle", chips.all { it.parent == null })
+            assertEquals("cycle $cycle", ledOnlyHeight, view.measuredHeight)
+        }
+    }
+
+    @Test
     fun clearingResumesWordSuggestions() {
         configure(actions = false, suggestions = true)
         val (controller, view) = inputSurface()
