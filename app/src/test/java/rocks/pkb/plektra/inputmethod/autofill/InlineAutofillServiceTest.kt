@@ -55,6 +55,7 @@ class InlineAutofillServiceTest {
         val expected: Bar,
         val actions: Boolean = true,
         val suggestions: Boolean = true,
+        val ledStrip: Boolean = false,
         val enabled: Boolean = true,
         val uiVersion1: Boolean = true,
         val neverShowApp: Boolean = false,
@@ -75,6 +76,7 @@ class InlineAutofillServiceTest {
         RequestRow("never-show app", Bar.NONE, neverShowApp = true),
         RequestRow("arriving from a never-show app", Bar.ACTIONS_ROW, previousAppNeverShow = true),
         RequestRow("no bar content", Bar.NONE, actions = false, suggestions = false),
+        RequestRow("LED strip only grows a chip row", Bar.SUGGESTIONS_ROW, actions = false, suggestions = false, ledStrip = true),
         RequestRow("nav mode", Bar.NONE, navMode = true),
         RequestRow("hardware SYM page", Bar.NONE, symPage = true),
         RequestRow("candidates-only before an input view", Bar.NONE, candidatesOnly = true),
@@ -85,7 +87,7 @@ class InlineAutofillServiceTest {
     @Test
     fun requestIsOfferedOnlyWhileABarRowCanShowChips_sizedToThatRow() {
         requestRows.forEach { row ->
-            configure(actions = row.actions, suggestions = row.suggestions,
+            configure(actions = row.actions, suggestions = row.suggestions, ledStrip = row.ledStrip,
                 arrangement = if (row.name == "shared row") KeyboardBarArrangement.SHARED else KeyboardBarArrangement.SUGGESTIONS_FIRST)
             SettingsManager.setInlineAutofillEnabled(context, row.enabled)
             SettingsManager.setExperimentalCandidatesViewEnabled(context, row.candidatesOnly)
@@ -350,12 +352,15 @@ class InlineAutofillServiceTest {
     private fun configure(
         actions: Boolean,
         suggestions: Boolean,
-        arrangement: KeyboardBarArrangement = KeyboardBarArrangement.SUGGESTIONS_FIRST
+        arrangement: KeyboardBarArrangement = KeyboardBarArrangement.SUGGESTIONS_FIRST,
+        ledStrip: Boolean = false
     ) {
         SettingsManager.setSoftwareKeyboardMode(context, SettingsManager.SoftwareKeyboardMode.FORCE_HARDWARE)
         SettingsManager.setStatusBarVariationsVisible(context, actions)
         SettingsManager.setSuggestionsEnabled(context, suggestions)
-        SettingsManager.setModifierIndicators(context, emptySet())
+        SettingsManager.setModifierIndicators(
+            context, if (ledStrip) setOf(SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP) else emptySet()
+        )
         KeyboardBarConfiguration.setArrangement(context, arrangement)
     }
 
