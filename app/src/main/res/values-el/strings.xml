@@ -1751,6 +1751,10 @@ QWERTZ σε φυσικό QWERTY
     <string name="caret_badge_custom_colors_title">Χρήση προσαρμοσμένων χρωμάτων</string>
     <string name="caret_badge_custom_colors_description">Αντικατάσταση των χρωμάτων του θέματος πληκτρολογίου.</string>
     <string name="keyboard_bar_hidden_apps_title">Να μην εμφανίζεται ποτέ η γραμμή</string>
+    <string name="inline_autofill_title">Προτάσεις διαχειριστή κωδικών πρόσβασης</string>
+    <string name="inline_autofill_description">Εμφάνιση στοιχείων αυτόματης συμπλήρωσης από τον διαχειριστή κωδικών πρόσβασης στη γραμμή</string>
+    <string name="inline_autofill_unsupported">Απαιτεί Android 11 ή νεότερο</string>
+    <string name="inline_autofill_candidates_view_note">Τα στοιχεία χρειάζονται την κανονική γραμμή· δεν εμφανίζονται με την πειραματική προβολή υποψηφίων</string>
     <string name="keyboard_bar_hidden_apps_row_description">Εφαρμογές όπου η γραμμή παραμένει κρυφή, ακόμη και με χειροκίνητο άνοιγμα</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Δεν επιλέχθηκαν εφαρμογές</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

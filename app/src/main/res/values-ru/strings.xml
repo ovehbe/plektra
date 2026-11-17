@@ -908,6 +908,10 @@ Nav Mode использует физическое положение клави
     <string name="alt_latch_stays_on_space_title">Сохранять Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Пробел и Enter сбрасывают одноразовый Alt, но оставляют Alt-Lock активным.</string>
     <string name="keyboard_bar_hidden_apps_title">Никогда не показывать панель</string>
+    <string name="inline_autofill_title">Подсказки менеджера паролей</string>
+    <string name="inline_autofill_description">Показывать на панели чипы автозаполнения из вашего менеджера паролей</string>
+    <string name="inline_autofill_unsupported">Требуется Android 11 или новее</string>
+    <string name="inline_autofill_candidates_view_note">Чипам нужна стандартная панель; в экспериментальном режиме кандидатов они не отображаются</string>
     <string name="keyboard_bar_hidden_apps_row_description">Приложения, в которых панель остаётся скрытой, даже при ручном открытии</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Приложения не выбраны</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

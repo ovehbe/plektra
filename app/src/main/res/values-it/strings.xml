@@ -1087,6 +1087,10 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="alt_latch_stays_on_space_title">Mantieni Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Spazio e Invio disattivano Alt singolo ma mantengono attivo Alt-Lock.</string>
     <string name="keyboard_bar_hidden_apps_title">Non mostrare mai la barra</string>
+    <string name="inline_autofill_title">Suggerimenti del gestore di password</string>
+    <string name="inline_autofill_description">Mostra nella barra i chip di compilazione automatica del tuo gestore di password</string>
+    <string name="inline_autofill_unsupported">Richiede Android 11 o versioni successive</string>
+    <string name="inline_autofill_candidates_view_note">I chip richiedono la barra standard; non vengono mostrati con la vista candidati sperimentale</string>
     <string name="keyboard_bar_hidden_apps_row_description">App in cui la barra resta nascosta, anche se aperta manualmente</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Nessuna app selezionata</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

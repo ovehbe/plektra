@@ -908,6 +908,10 @@ Każdy klawisz można skonfigurować jako Keycode, Akcja, Native Ctrl lub Brak. 
     <string name="alt_latch_stays_on_space_title">Zachowaj Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Spacja i Enter wyłączają jednorazowy Alt, ale pozostawiają Alt-Lock aktywny.</string>
     <string name="keyboard_bar_hidden_apps_title">Nigdy nie pokazuj paska</string>
+    <string name="inline_autofill_title">Podpowiedzi menedżera haseł</string>
+    <string name="inline_autofill_description">Pokazuj na pasku elementy autouzupełniania z menedżera haseł</string>
+    <string name="inline_autofill_unsupported">Wymaga Androida 11 lub nowszego</string>
+    <string name="inline_autofill_candidates_view_note">Elementy wymagają standardowego paska; nie są wyświetlane w eksperymentalnym widoku kandydatów</string>
     <string name="keyboard_bar_hidden_apps_row_description">Aplikacje, w których pasek pozostaje ukryty, nawet przy ręcznym otwarciu</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Nie wybrano aplikacji</string>
     <plurals name="keyboard_bar_hidden_apps_summary">
