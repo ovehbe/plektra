@@ -12,6 +12,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import rocks.pkb.plektra.KeyboardThemeEditorTab
+import rocks.pkb.plektra.SettingLinkRegistry
+import rocks.pkb.plektra.SettingsDestination
 import rocks.pkb.plektra.SettingsManager
 import rocks.pkb.plektra.SettingsManager.KeyboardThemeTarget
 import rocks.pkb.plektra.keyboardThemePresets
@@ -21,7 +24,7 @@ import rocks.pkb.plektra.toSettingsTheme
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
-class SymPageSizeBackupTest {
+class SymPageSizeSettingsTest {
     private lateinit var context: Context
 
     @Before
@@ -59,5 +62,19 @@ class SymPageSizeBackupTest {
         assertEquals(1.5f, preset.toSettingsTheme().toKeyboardThemeColors().symPageScale)
         assertEquals(1.5f, preset.toSettingsTheme().toKeyboardThemePreset("Copy").symPageScale)
         assertEquals(1f, keyboardThemePresets().map { it.symPageScale }.distinct().single())
+    }
+
+    @Test
+    @Config(qualifiers = "en")
+    fun searchFindsTheSymPageSizeOnTheHardwareThemeKeysTab() {
+        for (query in listOf("SYM page size", "sym page", "SYM size")) {
+            val entry = SettingLinkRegistry.search(context, query).first { it.id == "keyboard_theme.hardware.sym_page_size" }
+            assertEquals(SettingsDestination.Customization, entry.route.destination)
+            assertEquals("keyboard_theme", entry.route.customizationDestination)
+            assertEquals(KeyboardThemeTarget.HARDWARE, entry.route.keyboardThemeTarget)
+            assertEquals(KeyboardThemeEditorTab.Keys, entry.route.keyboardThemeTab)
+        }
+        assertEquals(SettingLinkRegistry.byId("keyboard_theme.hardware.sym_page_size"),
+            SettingLinkRegistry.byId("keyboard_theme.hardware.sym_page_size")?.let { SettingLinkRegistry.visibleTarget(context, it) })
     }
 }

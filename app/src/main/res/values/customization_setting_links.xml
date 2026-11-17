@@ -27,6 +27,7 @@
     <string name="setting_link_theme_software_variations_height">Software keyboard: variations height</string>
     <string name="setting_link_theme_hardware_autofill_row_height">Hardware keyboard: autofill row height</string>
     <string name="setting_link_theme_software_autofill_row_height">Software keyboard: autofill row height</string>
+    <string name="setting_link_theme_hardware_sym_page_size">Hardware keyboard: SYM page size</string>
     <string name="setting_link_theme_software_key_height">Software keyboard: key height</string>
     <string name="setting_link_theme_software_number_row_height">Software keyboard: number row height</string>
     <string name="setting_link_theme_software_key_width">Software keyboard: key width</string>
