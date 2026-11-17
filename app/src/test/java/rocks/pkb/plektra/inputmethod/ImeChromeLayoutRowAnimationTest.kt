@@ -225,6 +225,22 @@ class ImeChromeLayoutRowAnimationTest {
     }
 
     @Test
+    fun aCappedPassDuringTheModeTransitionDoesNotTurnItIntoARowReveal() {
+        chrome.rowChangeAnimationMs = 120
+        chrome.softwareKeyboardModeActive = true
+        suggestionsRow.visibility = View.GONE
+        assertEquals(Bar(ROW, ROW), pass())
+        suggestionsRow.visibility = View.VISIBLE
+        chrome.softwareKeyboardModeActive = false
+        pass()
+        val transition = animator
+        val frames = (1..12).map { transition!!.currentPlayTime = it * 16L; pass() }
+        assertTrue("$frames", transition === animator)
+        assertNull(chrome.clipBounds)
+        assertEquals(Bar(2 * ROW, 2 * ROW), frames.last())
+    }
+
+    @Test
     fun theSoftwareKeyboardKeepsOnlyItsModeTransition() {
         chrome.rowChangeAnimationMs = 120
         chrome.softwareKeyboardModeActive = true

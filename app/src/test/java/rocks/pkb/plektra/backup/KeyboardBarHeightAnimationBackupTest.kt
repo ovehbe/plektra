@@ -27,6 +27,11 @@ class KeyboardBarHeightAnimationBackupTest {
         assertEquals(SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, SettingsManager.getKeyboardBarHeightAnimationMs(context))
         SettingsManager.setKeyboardBarHeightAnimationMs(context, 5000)
         assertEquals(SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, SettingsManager.getKeyboardBarHeightAnimationMs(context))
+        assertEquals("stored clamped", SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS,
+            SettingsManager.getPreferences(context).getInt("keyboard_bar_height_animation_ms", -1))
+        // A restored or hand-edited value outside the range is clamped when read.
+        SettingsManager.getPreferences(context).edit().putInt("keyboard_bar_height_animation_ms", 1).commit()
+        assertEquals(SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, SettingsManager.getKeyboardBarHeightAnimationMs(context))
         SettingsManager.setKeyboardBarHeightAnimation(context, false)
         assertEquals(0L, SettingsManager.keyboardBarHeightAnimationDurationMs(context))
     }
