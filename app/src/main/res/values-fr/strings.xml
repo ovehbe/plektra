@@ -908,6 +908,10 @@ Chaque touche peut être configurée comme Keycode, Action, Native Ctrl ou Aucun
     <string name="alt_latch_stays_on_space_title">Conserver Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Espace et Entrée désactivent Alt ponctuel mais gardent Alt-Lock actif.</string>
     <string name="keyboard_bar_hidden_apps_title">Ne jamais afficher la barre</string>
+    <string name="inline_autofill_title">Suggestions du gestionnaire de mots de passe</string>
+    <string name="inline_autofill_description">Afficher dans la barre les puces de saisie automatique de votre gestionnaire de mots de passe</string>
+    <string name="inline_autofill_unsupported">Nécessite Android 11 ou version ultérieure</string>
+    <string name="inline_autofill_candidates_view_note">Les puces nécessitent la barre standard ; elles ne s\'affichent pas avec la vue des candidats expérimentale</string>
     <string name="keyboard_bar_hidden_apps_row_description">Apps dans lesquelles la barre reste masquée, même ouverte manuellement</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Aucune app sélectionnée</string>
     <plurals name="keyboard_bar_hidden_apps_summary">
