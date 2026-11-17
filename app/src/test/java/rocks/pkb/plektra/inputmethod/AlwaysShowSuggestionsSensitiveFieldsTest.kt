@@ -24,6 +24,7 @@ import org.robolectric.util.ReflectionHelpers.ClassParameter
 import rocks.pkb.plektra.KeyboardBarArrangement
 import rocks.pkb.plektra.KeyboardBarConfiguration
 import rocks.pkb.plektra.SettingsManager
+import rocks.pkb.plektra.core.suggestions.DictionaryRepository
 import rocks.pkb.plektra.core.suggestions.SuggestionController
 import rocks.pkb.plektra.core.suggestions.SuggestionResult
 import rocks.pkb.plektra.core.suggestions.SuggestionSource
@@ -203,6 +204,7 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
             val editor = EditText(context)
             focus(ime, number)
             ReflectionHelpers.setField(ime, "mStartedInputConnection", editor.onCreateInputConnection(EditorInfo()))
+            awaitDictionaries(ime)
             deliverPredictions(ime)
 
             swipeUp(ime, third = 1)
@@ -267,6 +269,19 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
 
     private fun suggestionController(ime: PhysicalKeyboardInputMethodService) =
         ReflectionHelpers.getField<SuggestionController>(ime, "suggestionController")
+
+    /** Picking or adding a word writes to the dictionaries, which must not race their background load. */
+    private fun awaitDictionaries(ime: PhysicalKeyboardInputMethodService) {
+        val repositories = ReflectionHelpers.getField<Map<String, DictionaryRepository>>(
+            suggestionController(ime), "dictionaryRepositoryCache"
+        ).values.toList()
+        val deadline = System.currentTimeMillis() + 30_000
+        while (repositories.any { !it.isReady } && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20)
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+        assertTrue("dictionaries loaded", repositories.isNotEmpty() && repositories.all { it.isReady })
+    }
 
     private fun swipeUp(ime: PhysicalKeyboardInputMethodService, third: Int) {
         ReflectionHelpers.callInstanceMethod<Unit>(ime, "acceptSuggestionAtIndex", ClassParameter.from(Int::class.javaPrimitiveType, third))
