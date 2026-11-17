@@ -11,6 +11,16 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
     SettingEntry("keyboard_bar.always_show_suggestions_hide_sensitive", R.string.always_show_suggestions_bar_hide_sensitive_title,
         summaryRes = R.string.always_show_suggestions_bar_hide_sensitive_summary, route = SettingRoute(
             destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.height_animation", R.string.keyboard_bar_height_animation_title,
+        summaryRes = R.string.keyboard_bar_height_animation_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.height_animation_duration", R.string.keyboard_bar_height_animation_duration_title,
+        route = SettingRoute(destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons"),
+        unavailableFallbackId = "keyboard_bar.height_animation",
+        availabilityCheck = { SettingsManager.getKeyboardBarHeightAnimation(it) }),
+    SettingEntry("keyboard_bar.row_heights", R.string.keyboard_bar_row_heights_title,
+        summaryRes = R.string.keyboard_bar_row_heights_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
     SettingEntry("keyboard_bar.inline_autofill", R.string.inline_autofill_title,
         summaryRes = R.string.inline_autofill_description, route = SettingRoute(
             destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),

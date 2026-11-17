@@ -942,6 +942,12 @@ Nav Mode-ը օգտագործում է ստեղնի ֆիզիկական դիրքը
     <string name="always_show_suggestions_bar_summary">Թույլ չի տալիս առաջարկների պանելին ինքնաբերաբար թաքնվել (Alt նշաններից, կետադրությունից և այլն հետո), որպեսզի հավելվածի պատուհանի չափը մնա անփոփոխ։</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Թաքցնել, որտեղ այն դատարկ է մնում</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Առանց դատարկ տողի URL-ի, էլ. փոստի, գաղտնաբառի, թվի, հեռախոսի և ամսաթվի դաշտերում կամ ինքնալրացման կոճակների վերևում։ Առանց բառերի կանխատեսումների գաղտնաբառի, թվի, հեռախոսի և ամսաթվի դաշտերում։</string>
+    <string name="keyboard_bar_height_animation_title">Անիմացնել բարձրության փոփոխությունները</string>
+    <string name="keyboard_bar_height_animation_summary">Վահանակը սահուն անցնում է նոր բարձրության, երբ տող է հայտնվում կամ անհետանում</string>
+    <string name="keyboard_bar_height_animation_duration_title">Անիմացիայի տևողություն</string>
+    <string name="keyboard_bar_height_animation_duration_value">%1$d ms</string>
+    <string name="keyboard_bar_row_heights_title">Տողերի բարձրություն</string>
+    <string name="keyboard_bar_row_heights_summary">Առաջարկների և տարբերակների տողերի բարձրությունը սահմանեք ստեղնաշարի թեմայում</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Ուղղակիորեն բացում է Plektra Quick Launcher-ը և ստեղնի իրադարձությունը չի փոխանցում հավելվածին։</string>
     <string name="clicks_recommended_settings_description">Վերականգնում է Tab-ի և Alt-ի բնիկ ելքերը, խոսափողի կոճակը նշանակում է Plektra-ի թելադրությանը, կարմիր Clicks կոճակը և Launcher կոճակը ուղղակիորեն նշանակում է Quick Launcher-ին և անջատում է Caps Lock-ը և Cursor Mode-ը։</string>

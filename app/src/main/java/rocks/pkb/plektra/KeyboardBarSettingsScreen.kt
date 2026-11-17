@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import rocks.pkb.plektra.R
+import kotlin.math.roundToInt
 
 private enum class KeyboardBarEditorMode { Normal, Slim }
 
@@ -70,6 +71,8 @@ internal fun KeyboardBarSettingsScreen(
     var alwaysShowHideSensitive by remember {
         mutableStateOf(SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context))
     }
+    var heightAnimation by remember { mutableStateOf(SettingsManager.getKeyboardBarHeightAnimation(context)) }
+    var heightAnimationMs by remember { mutableStateOf(SettingsManager.getKeyboardBarHeightAnimationMs(context)) }
     var showOnLauncher by remember { mutableStateOf(SettingsManager.getShowKeyboardBarOnLauncher(context)) }
     var inlineAutofill by remember { mutableStateOf(SettingsManager.getInlineAutofillEnabled(context)) }
     var candidatesView by remember { mutableStateOf(SettingsManager.getExperimentalCandidatesViewEnabled(context)) }
@@ -115,6 +118,8 @@ internal fun KeyboardBarSettingsScreen(
             showOnLauncher = SettingsManager.getShowKeyboardBarOnLauncher(context)
             alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context)
             alwaysShowHideSensitive = SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context)
+            heightAnimation = SettingsManager.getKeyboardBarHeightAnimation(context)
+            heightAnimationMs = SettingsManager.getKeyboardBarHeightAnimationMs(context)
             inlineAutofill = SettingsManager.getInlineAutofillEnabled(context)
             candidatesView = SettingsManager.getExperimentalCandidatesViewEnabled(context)
             hiddenAppCount = SettingsManager.getKeyboardBarHiddenPackages(context).size
@@ -258,6 +263,36 @@ internal fun KeyboardBarSettingsScreen(
             KeyboardBarArrangementField(arrangement, displayedSuggestions && displayedActions) {
                 arrangement = it
                 KeyboardBarConfiguration.setArrangement(context, it)
+            }
+            KeyboardBarCheckRow(stringResource(R.string.keyboard_bar_height_animation_title), heightAnimation,
+                "keyboard_bar.height_animation", stringResource(R.string.keyboard_bar_height_animation_summary)) {
+                heightAnimation = it
+                SettingsManager.setKeyboardBarHeightAnimation(context, it)
+            }
+            if (heightAnimation) {
+                Column(Modifier.fillMaxWidth().settingRow("keyboard_bar.height_animation_duration")
+                    .padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.keyboard_bar_height_animation_duration_title),
+                            style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.keyboard_bar_height_animation_duration_value, heightAnimationMs),
+                            style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Slider(
+                        value = heightAnimationMs.toFloat(),
+                        onValueChange = { heightAnimationMs = (it / 10f).roundToInt() * 10 },
+                        onValueChangeFinished = { SettingsManager.setKeyboardBarHeightAnimationMs(context, heightAnimationMs) },
+                        valueRange = SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS.toFloat()..
+                            SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS.toFloat(),
+                        steps = (SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS -
+                            SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS) / 10 - 1
+                    )
+                }
+            }
+            KeyboardBarNavigationRow(Icons.Filled.Tune, stringResource(R.string.keyboard_bar_row_heights_title),
+                stringResource(R.string.keyboard_bar_row_heights_summary), "keyboard_bar.row_heights") {
+                context.startActivity(android.content.Intent(context, SettingsActivity::class.java)
+                    .setData(android.net.Uri.parse("plektra://setting/keyboard_theme.hardware.suggestions_height")))
             }
             KeyboardBarNavigationRow(Icons.Filled.SmartButton, stringResource(R.string.status_bar_buttons_section),
                 stringResource(R.string.keyboard_bar_buttons_summary,

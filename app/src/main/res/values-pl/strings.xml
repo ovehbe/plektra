@@ -944,6 +944,12 @@ Każdy klawisz można skonfigurować jako Keycode, Akcja, Native Ctrl lub Brak. 
     <string name="always_show_suggestions_bar_summary">Zapobiega automatycznemu ukrywaniu paska sugestii (po symbolach Alt, interpunkcji itp.), aby rozmiar okna aplikacji pozostał stały.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Ukrywaj, gdy pozostaje pusty</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Bez pustego wiersza w polach adresu URL, e-maila, hasła, liczby, telefonu i daty ani nad elementami autouzupełniania. Bez podpowiedzi słów w polach hasła, liczby, telefonu i daty.</string>
+    <string name="keyboard_bar_height_animation_title">Animuj zmiany wysokości</string>
+    <string name="keyboard_bar_height_animation_summary">Pasek płynnie zmienia wysokość, gdy wiersz pojawia się lub znika</string>
+    <string name="keyboard_bar_height_animation_duration_title">Czas animacji</string>
+    <string name="keyboard_bar_height_animation_duration_value">%1$d ms</string>
+    <string name="keyboard_bar_row_heights_title">Wysokość wierszy</string>
+    <string name="keyboard_bar_row_heights_summary">Ustaw wysokość wierszy sugestii i wariantów w motywie klawiatury</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Otwiera bezpośrednio Plektra Quick Launcher i nie przekazuje zdarzenia klawisza do aplikacji.</string>
     <string name="clicks_recommended_settings_description">Przywraca natywne działanie Tab i Alt; przypisuje przycisk mikrofonu do dyktowania Plektra; przypisuje czerwony przycisk Clicks i przycisk Launcher bezpośrednio do Quick Launcher; oraz wyłącza Caps Lock i Cursor Mode.</string>

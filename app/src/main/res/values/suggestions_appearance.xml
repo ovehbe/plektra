@@ -6,4 +6,10 @@
     <string name="always_show_suggestions_bar_summary">Prevent the suggestions strip from auto-hiding (after Alt symbols, punctuation, etc.) to keep the app window size constant.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Hide where it stays empty</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">No empty row in URL, email, password, number, phone and date fields or above autofill chips. No word predictions in password, number, phone and date fields.</string>
+    <string name="keyboard_bar_height_animation_title">Animate height changes</string>
+    <string name="keyboard_bar_height_animation_summary">The bar eases to its new height when a row appears or disappears</string>
+    <string name="keyboard_bar_height_animation_duration_title">Animation length</string>
+    <string name="keyboard_bar_height_animation_duration_value">%1$d ms</string>
+    <string name="keyboard_bar_row_heights_title">Row heights</string>
+    <string name="keyboard_bar_row_heights_summary">Set the suggestions and variations row heights in the keyboard theme</string>
 </resources>
