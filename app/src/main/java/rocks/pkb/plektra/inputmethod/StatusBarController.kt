@@ -1053,6 +1053,13 @@ class StatusBarController(
     private fun alwaysShowRowStaysEmpty(snapshot: StatusSnapshot, inlineChipsShowing: Boolean): Boolean =
         snapshot.suggestionsRowSensitiveField || snapshot.shouldDisableSuggestions || inlineChipsShowing
 
+    /** "Also hide the variations row": where Always show's row is dropped, the variations row goes with it. */
+    private fun alwaysShowHidesVariationsRow(snapshot: StatusSnapshot): Boolean =
+        SettingsManager.getAlwaysShowSuggestionsBar(context) &&
+            SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context) &&
+            SettingsManager.getAlwaysShowSuggestionsBarHideVariations(context) &&
+            alwaysShowRowStaysEmpty(snapshot, inlineChipsShowing = false)
+
     fun cancelSoftwareKeyboardTouchState() {
         // The software keyboard can also sit below the emoji picker while its search is
         // active, so prefer the cached instance over the container's first child.
@@ -3444,8 +3451,8 @@ class StatusBarController(
         variationBarView?.onVariationSelectedListener = onVariationSelectedListener
         variationBarView?.onCursorMovedListener = onCursorMovedListener
         variationBarView?.updateInputConnection(inputConnection)
-        val barPresentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
-        val sharedRow = barPresentation.arrangement == rocks.pkb.plektra.KeyboardBarArrangement.SHARED &&
+        val configuredBarPresentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
+        val sharedRow = configuredBarPresentation.arrangement == rocks.pkb.plektra.KeyboardBarArrangement.SHARED &&
             !isFullSoftwareKeyboardMode && snapshot.symPage == 0 && !snapshot.clipboardOverlay
         val showSlimMenuButtons = hasConfiguredMenuButtons && !isFullSoftwareKeyboardMode &&
             snapshot.symPage == 0 && !snapshot.clipboardOverlay
@@ -3454,11 +3461,15 @@ class StatusBarController(
         // Word suggestions pause while chips show.
         val inlineAutofillTarget = if (inlineAutofillActive) {
             inlineAutofillTarget(
-                barPresentation, isFullSoftwareKeyboardMode, snapshot.symPage, snapshot.navModeActive, snapshot.clipboardOverlay
+                configuredBarPresentation, isFullSoftwareKeyboardMode, snapshot.symPage, snapshot.navModeActive, snapshot.clipboardOverlay
             )
         } else {
             null
         }
+        val hideEmptyActionsRow = configuredBarPresentation.actions && inlineAutofillTarget == null &&
+            !isFullSoftwareKeyboardMode && alwaysShowHidesVariationsRow(snapshot)
+        val barPresentation =
+            if (hideEmptyActionsRow) configuredBarPresentation.copy(actions = false) else configuredBarPresentation
         val suggestionsAvailable = inlineAutofillTarget == null &&
             barPresentation.suggestions && !snapshot.shouldDisableSuggestions &&
             (SettingsManager.isExperimentalSuggestionsEnabled(context) || isFullSoftwareKeyboardMode || snapshot.speechPreviewActive) &&
@@ -3481,9 +3492,13 @@ class StatusBarController(
         }
         
         val layout = ensureLayoutCreated(emojiMapText) ?: return
+        // A bar on screen that only the hidden variations row kept open eases down to nothing
+        // like any other row change, instead of disappearing at once.
+        val keepEmptyBarForAnimation = hideEmptyActionsRow && layout.visibility == View.VISIBLE &&
+            layout.layoutParams?.height != 0 && SettingsManager.keyboardBarHeightAnimationDurationMs(context) > 0
         if ((!hasSuggestionRow && !showSlimMenuButtons && !barPresentation.actions && !barPresentation.bottomIndicators && !isFullSoftwareKeyboardMode &&
                 snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty() &&
-                inlineAutofillTarget == null) || snapshot.navModeActive) {
+                inlineAutofillTarget == null && !keepEmptyBarForAnimation) || snapshot.navModeActive) {
             collapseLayout()
             return
         }
@@ -3816,7 +3831,7 @@ class StatusBarController(
             lastSymPageRendered = 0 // Reset when closing SYM page
         }
         if (fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE &&
-            variationsWrapper?.visibility != View.VISIBLE && !showLedStrip) collapseLayout()
+            variationsWrapper?.visibility != View.VISIBLE && !showLedStrip && !keepEmptyBarForAnimation) collapseLayout()
     }
 
     private fun updateAccessibilityStateDescription(view: View) {
