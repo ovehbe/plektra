@@ -145,6 +145,7 @@ class SymPageSizeMatrixTest {
                     val hints = grid.map { it.hint.textSize }.distinct()
                     expect(scenario, "distinct hint sizes", 1, hints.size)
                     hintPx = hints.firstOrNull()
+                    if (symSize == 1f) expect(scenario, "hint size at the default SYM size", sp(12f), hintPx)
                     grid.forEach { key ->
                         val text = key.content.text
                         if (text.isNotEmpty()) {
@@ -323,6 +324,9 @@ class SymPageSizeMatrixTest {
         }
         return if (root.visibility == View.VISIBLE) root.measuredHeight else 0
     }
+
+    private fun sp(value: Float) =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, context.resources.displayMetrics)
 
     private fun dp(value: Float) =
         TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, context.resources.displayMetrics).toInt()
