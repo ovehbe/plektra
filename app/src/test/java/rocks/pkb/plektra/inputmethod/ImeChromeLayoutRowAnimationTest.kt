@@ -143,27 +143,33 @@ class ImeChromeLayoutRowAnimationTest {
     }
 
     @Test
-    fun aParentRemeasuringAtTheAnimatedHeightDoesNotStopTheBarShort() {
+    fun aParentCappingTheBarAtItsAnimatedHeightDoesNotStopTheAnimation() {
         chrome.rowChangeAnimationMs = 120
-        /** A wrap-content pass, then the parent fixing the chrome at the height it reported. */
-        fun parentPasses(): Int {
-            val height = measuredHeight()
-            chrome.measure(
-                View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
-            )
-            return chrome.measuredHeight
+        // The IME window measures wrap-content, then again capped at the height just reported.
+        for (capMode in listOf(View.MeasureSpec.AT_MOST, View.MeasureSpec.EXACTLY)) {
+            fun parentPasses(): Int {
+                val height = measuredHeight()
+                chrome.measure(
+                    View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, capMode)
+                )
+                return chrome.measuredHeight
+            }
+            suggestionsRow.visibility = View.GONE
+            parentPasses()
+            animator?.end()
+            assertEquals(ROW, parentPasses())
+            suggestionsRow.visibility = View.VISIBLE
+            parentPasses()
+            val growing = (1..8).map { animator!!.currentPlayTime = it * 16L; parentPasses() }
+            assertEquals("$capMode $growing", 2 * ROW, growing.last())
+            assertTrue("$capMode $growing", growing.first() in (ROW + 1) until 2 * ROW)
+            suggestionsRow.visibility = View.GONE
+            parentPasses()
+            val shrinking = (1..8).map { animator!!.currentPlayTime = it * 16L; parentPasses() }
+            assertEquals("$capMode $shrinking", ROW, shrinking.last())
+            assertTrue("$capMode $shrinking", shrinking.first() in (ROW + 1) until 2 * ROW)
         }
-        suggestionsRow.visibility = View.GONE
-        assertEquals(ROW, parentPasses())
-        suggestionsRow.visibility = View.VISIBLE
-        parentPasses()
-        val frames = (1..8).map { animator!!.currentPlayTime = it * 16L; parentPasses() }
-        assertEquals("$frames", 2 * ROW, frames.last())
-        suggestionsRow.visibility = View.GONE
-        parentPasses()
-        val shrinking = (1..8).map { animator!!.currentPlayTime = it * 16L; parentPasses() }
-        assertEquals("$shrinking", ROW, shrinking.last())
     }
 
     @Test
