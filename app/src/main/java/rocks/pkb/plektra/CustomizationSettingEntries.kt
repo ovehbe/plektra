@@ -8,6 +8,9 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
     SettingEntry("keyboard_bar.suggestions_bold", R.string.suggestions_bold_title,
         summaryRes = R.string.suggestions_bold_summary, route = SettingRoute(
             destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.always_show_suggestions_hide_sensitive", R.string.always_show_suggestions_bar_hide_sensitive_title,
+        summaryRes = R.string.always_show_suggestions_bar_hide_sensitive_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
     SettingEntry("keyboard_bar.inline_autofill", R.string.inline_autofill_title,
         summaryRes = R.string.inline_autofill_description, route = SettingRoute(
             destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),

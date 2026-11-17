@@ -4,4 +4,6 @@
     <string name="suggestions_bold_summary">Use bold text for word suggestions in both Normal and Slim mode.</string>
     <string name="always_show_suggestions_bar_title">Always show suggestions bar</string>
     <string name="always_show_suggestions_bar_summary">Prevent the suggestions strip from auto-hiding (after Alt symbols, punctuation, etc.) to keep the app window size constant.</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_title">Hide in number and password fields</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Don\'t force the suggestions row in password, number, phone and date fields</string>
 </resources>

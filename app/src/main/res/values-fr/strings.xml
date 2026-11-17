@@ -941,6 +941,8 @@ Chaque touche peut être configurée comme Keycode, Action, Native Ctrl ou Aucun
     <string name="kw_auto_correction_number_suggestions">nombres, chiffres, alt, w00, 100, convertir, par app, exclure</string>
     <string name="always_show_suggestions_bar_title">Toujours afficher la barre de suggestions</string>
     <string name="always_show_suggestions_bar_summary">Empêche la barre de suggestions de se masquer automatiquement (après les symboles Alt, la ponctuation, etc.) pour garder constante la taille de la fenêtre de l\'app.</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_title">Masquer dans les champs numériques et de mot de passe</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Ne pas forcer la barre de suggestions dans les champs de mot de passe, de nombre, de téléphone et de date</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Ouvre directement Plektra Quick Launcher sans transmettre l\'événement de touche à l\'app.</string>
     <string name="clicks_recommended_settings_description">Rétablit les sorties natives de Tab et Alt ; attribue le bouton micro à la dictée Plektra ; attribue le bouton rouge Clicks et le bouton Launcher directement à Quick Launcher ; et désactive Caps Lock et Cursor Mode.</string>
