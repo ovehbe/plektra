@@ -1494,6 +1494,10 @@ Jede Taste kann als Keycode, Aktion, Native Ctrl oder Keine konfiguriert werden.
     <string name="keyboard_bar_show_on_launcher">Leiste auf dem Launcher-Startbildschirm anzeigen</string>
     <string name="keyboard_bar_show_on_launcher_description">Leiste auch anzeigen, wenn Niagara auf dem Startbildschirm ein unsichtbares Eingabefeld verwendet.</string>
     <string name="keyboard_bar_hidden_apps_title">Leiste niemals anzeigen</string>
+    <string name="inline_autofill_title">Passwort-Manager-Vorschläge</string>
+    <string name="inline_autofill_description">Autofill-Chips deines Passwort-Managers in der Leiste anzeigen</string>
+    <string name="inline_autofill_unsupported">Benötigt Android 11 oder neuer</string>
+    <string name="inline_autofill_candidates_view_note">Chips brauchen die normale Leiste; mit der experimentellen Kandidatenansicht werden sie nicht angezeigt</string>
     <string name="keyboard_bar_hidden_apps_row_description">Apps, in denen die Leiste verborgen bleibt – auch beim manuellen Öffnen</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Keine Apps ausgewählt</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

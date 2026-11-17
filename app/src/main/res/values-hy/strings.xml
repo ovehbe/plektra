@@ -902,6 +902,10 @@ Nav Mode-ը օգտագործում է ստեղնի ֆիզիկական դիրքը
     <string name="alt_latch_stays_on_space_title">Պահպանել Alt-Lock-ը</string>
     <string name="alt_latch_stays_on_space_description">Բացատը և Enter-ը անջատում են մեկանգամյա Alt-ը, բայց պահպանում են Alt-Lock-ը։</string>
     <string name="keyboard_bar_hidden_apps_title">Երբեք չցուցադրել պանելը</string>
+    <string name="inline_autofill_title">Գաղտնաբառերի կառավարչի առաջարկներ</string>
+    <string name="inline_autofill_description">Ցուցադրել ձեր գաղտնաբառերի կառավարչի ինքնալրացման կոճակները պանելում</string>
+    <string name="inline_autofill_unsupported">Պահանջում է Android 11 կամ ավելի նոր</string>
+    <string name="inline_autofill_candidates_view_note">Կոճակներին անհրաժեշտ է ստանդարտ պանելը. փորձնական թեկնածուների դիտման ռեժիմում դրանք չեն ցուցադրվում</string>
     <string name="keyboard_bar_hidden_apps_row_description">Հավելվածներ, որոնցում պանելը մնում է թաքնված, նույնիսկ ձեռքով բացելիս</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Հավելվածներ ընտրված չեն</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

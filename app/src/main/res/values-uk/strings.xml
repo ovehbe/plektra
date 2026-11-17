@@ -902,6 +902,10 @@ Ctrl-ярлики застосунків із урахуванням розкл�
     <string name="alt_latch_stays_on_space_title">Зберігати Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Пробіл і Enter скидають одноразовий Alt, але залишають Alt-Lock активним.</string>
     <string name="keyboard_bar_hidden_apps_title">Ніколи не показувати панель</string>
+    <string name="inline_autofill_title">Підказки менеджера паролів</string>
+    <string name="inline_autofill_description">Показувати на панелі чипи автозаповнення з вашого менеджера паролів</string>
+    <string name="inline_autofill_unsupported">Потрібен Android 11 або новіший</string>
+    <string name="inline_autofill_candidates_view_note">Чипам потрібна стандартна панель; в експериментальному режимі кандидатів вони не відображаються</string>
     <string name="keyboard_bar_hidden_apps_row_description">Застосунки, у яких панель лишається прихованою, навіть під час ручного відкриття</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Застосунки не вибрано</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

@@ -68,6 +68,8 @@ internal fun KeyboardBarSettingsScreen(
     var suggestionsBold by remember { mutableStateOf(SettingsManager.getSuggestionsBold(context)) }
     var alwaysShowSuggestionsBar by remember { mutableStateOf(SettingsManager.getAlwaysShowSuggestionsBar(context)) }
     var showOnLauncher by remember { mutableStateOf(SettingsManager.getShowKeyboardBarOnLauncher(context)) }
+    var inlineAutofill by remember { mutableStateOf(SettingsManager.getInlineAutofillEnabled(context)) }
+    var candidatesView by remember { mutableStateOf(SettingsManager.getExperimentalCandidatesViewEnabled(context)) }
     var hiddenAppCount by remember { mutableStateOf(SettingsManager.getKeyboardBarHiddenPackages(context).size) }
     var indicators by remember { mutableStateOf(SettingsManager.getModifierIndicators(context)) }
     var variationsVisible by remember {
@@ -108,6 +110,8 @@ internal fun KeyboardBarSettingsScreen(
             leftSlots = SettingsManager.getStatusBarSlotsLeft(context)
             rightSlots = SettingsManager.getStatusBarSlotsRight(context)
             showOnLauncher = SettingsManager.getShowKeyboardBarOnLauncher(context)
+            inlineAutofill = SettingsManager.getInlineAutofillEnabled(context)
+            candidatesView = SettingsManager.getExperimentalCandidatesViewEnabled(context)
             hiddenAppCount = SettingsManager.getKeyboardBarHiddenPackages(context).size
             dynamicVariationSlotCount = SettingsManager.getDynamicVariationBarSlotCount(context)
             dynamicVariationsResizeToContent = SettingsManager.getDynamicVariationBarResizeToContent(context)
@@ -231,6 +235,10 @@ internal fun KeyboardBarSettingsScreen(
                 if (editingSlim) slimProfile.bottomIndicators else SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP in indicators,
                 SettingLinkIds.MODIFIERS_INDICATOR_BOTTOM_STRIP) { enabled ->
                 setIndicator(SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP, enabled)
+            }
+            InlineAutofillRow(inlineAutofill, candidatesView) {
+                inlineAutofill = it
+                SettingsManager.setInlineAutofillEnabled(context, it)
             }
             KeyboardTextScaleSettingsCard()
             SettingsSectionDivider(stringResource(R.string.keyboard_bar_layout_section))
@@ -426,6 +434,21 @@ internal fun KeyboardBarSettingsScreen(
     }
 
 }
+
+/** IME inline autofill exists from Android 11; the candidates view never starts the input view chips need. */
+@Composable
+private fun InlineAutofillRow(enabled: Boolean, candidatesView: Boolean, onChange: (Boolean) -> Unit) {
+    val supported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R
+    val description = when {
+        !supported -> stringResource(R.string.inline_autofill_unsupported)
+        candidatesView -> stringResource(R.string.inline_autofill_description) + "\n" +
+            stringResource(R.string.inline_autofill_candidates_view_note)
+        else -> stringResource(R.string.inline_autofill_description)
+    }
+    KeyboardBarCheckRow(stringResource(R.string.inline_autofill_title), enabled && supported,
+        "keyboard_bar.inline_autofill", description, enabled = supported, onChange = onChange)
+}
+
 @Composable
 private fun KeyboardBarArrangementField(value: KeyboardBarArrangement, enabled: Boolean, onChange: (KeyboardBarArrangement) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

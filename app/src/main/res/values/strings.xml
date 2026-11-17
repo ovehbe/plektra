@@ -1660,6 +1660,10 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="keyboard_bar_show_on_launcher">Show bar on the launcher home screen</string>
     <string name="keyboard_bar_show_on_launcher_description">Also show the bar when Niagara uses an invisible input field on its home screen.</string>
     <string name="keyboard_bar_hidden_apps_title">Never show the bar</string>
+    <string name="inline_autofill_title">Password manager suggestions</string>
+    <string name="inline_autofill_description">Show autofill chips from your password manager in the bar</string>
+    <string name="inline_autofill_unsupported">Needs Android 11 or newer</string>
+    <string name="inline_autofill_candidates_view_note">Chips need the standard bar; they are not shown with the experimental candidates view</string>
     <string name="keyboard_bar_hidden_apps_row_description">Apps in which the bar stays hidden, even when opened manually</string>
     <string name="keyboard_bar_hidden_apps_summary_none">No apps selected</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

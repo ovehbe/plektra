@@ -902,6 +902,10 @@ Mỗi phím có thể cấu hình là Keycode, Action, Native Ctrl hoặc None. 
     <string name="alt_latch_stays_on_space_title">Giữ Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Space và Enter tắt Alt một lần nhưng vẫn giữ Alt-Lock hoạt động.</string>
     <string name="keyboard_bar_hidden_apps_title">Không bao giờ hiện thanh</string>
+    <string name="inline_autofill_title">Gợi ý từ trình quản lý mật khẩu</string>
+    <string name="inline_autofill_description">Hiện các gợi ý tự động điền từ trình quản lý mật khẩu trên thanh</string>
+    <string name="inline_autofill_unsupported">Cần Android 11 trở lên</string>
+    <string name="inline_autofill_candidates_view_note">Gợi ý cần thanh tiêu chuẩn; không hiển thị khi bật chế độ xem ứng viên thử nghiệm</string>
     <string name="keyboard_bar_hidden_apps_row_description">Ứng dụng mà thanh luôn ẩn, kể cả khi mở thủ công</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Chưa chọn ứng dụng nào</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

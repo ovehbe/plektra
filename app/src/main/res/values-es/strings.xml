@@ -902,6 +902,10 @@ Cada tecla puede configurarse como Keycode, Acción, Native Ctrl o Ninguno. Usa 
     <string name="alt_latch_stays_on_space_title">Mantener Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Espacio y Enter desactivan Alt de un solo uso, pero mantienen Alt-Lock activo.</string>
     <string name="keyboard_bar_hidden_apps_title">No mostrar nunca la barra</string>
+    <string name="inline_autofill_title">Sugerencias del gestor de contraseñas</string>
+    <string name="inline_autofill_description">Mostrar en la barra los chips de autocompletado de tu gestor de contraseñas</string>
+    <string name="inline_autofill_unsupported">Requiere Android 11 o posterior</string>
+    <string name="inline_autofill_candidates_view_note">Los chips necesitan la barra estándar; no se muestran con la vista de candidatos experimental</string>
     <string name="keyboard_bar_hidden_apps_row_description">Apps en las que la barra permanece oculta, incluso al abrirla manualmente</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Ninguna app seleccionada</string>
     <plurals name="keyboard_bar_hidden_apps_summary">
