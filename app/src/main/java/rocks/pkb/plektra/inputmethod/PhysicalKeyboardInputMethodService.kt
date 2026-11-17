@@ -3258,7 +3258,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? =
-        InlineAutofill.createRequest(this, uiExtras, inlineAutofillChipHeightPx()) {
+        InlineAutofill.createRequest(this, uiExtras, inlineAutofillChipHeightPx(restingBar = true)) {
             candidatesBarController.inlineAutofillTheme()
         }
 
@@ -3271,8 +3271,13 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
      * Chip height for the bar row that would show chips right now, or null when no row would be
      * on screen. Android asks before onStartInput has re-read the editor, so the app block is
      * re-read here before the surface checks consult it.
+     *
+     * A refused request costs the whole autofill session its chips, and Android asks while the
+     * previous context's nav mode or SYM page may still be up (web fields restart input without
+     * leaving them until the input view starts). [restingBar] sizes for the row shown once those
+     * close; chips that arrive meanwhile wait in the bar.
      */
-    private fun inlineAutofillChipHeightPx(): Int? {
+    private fun inlineAutofillChipHeightPx(restingBar: Boolean = false): Int? {
         if (!::candidatesBarController.isInitialized || !::keyboardVisibilityController.isInitialized) return null
         keyboardBarHiddenInEditor = SettingsManager.isKeyboardBarHiddenInApp(this, currentInputEditorInfo?.packageName)
         if (keyboardBarHiddenInEditor || !keyboardVisibilityController.allowsSurface()) return null
@@ -3285,6 +3290,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 )
             )
         if (!inputViewShows) return null
+        if (restingBar) return candidatesBarController.inlineAutofillChipHeightPx(symPage = 0, navModeActive = false)
         return candidatesBarController.inlineAutofillChipHeightPx(symPage, ctrlLatchActive && ctrlLatchFromNavMode)
     }
 
