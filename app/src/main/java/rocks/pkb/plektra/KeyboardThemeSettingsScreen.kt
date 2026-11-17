@@ -81,6 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import rocks.pkb.plektra.inputmethod.PhysicalKeyboardInputMethodService
 import rocks.pkb.plektra.inputmethod.SubtypeCycler
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils.localeString
 import java.util.Locale
@@ -1838,6 +1839,7 @@ private fun keyboardThemesEquivalent(
         left.showLeds == right.showLeds &&
         close(left.suggestionsHeightScale, right.suggestionsHeightScale) &&
         close(left.variationsHeightScale, right.variationsHeightScale) &&
+        close(left.autofillRowHeightScale, right.autofillRowHeightScale) &&
         left.keyPopupStyle == right.keyPopupStyle &&
         left.keyPopupAttached == right.keyPopupAttached &&
         left.keyPopupTailEnabled == right.keyPopupTailEnabled &&
@@ -2389,6 +2391,14 @@ private fun KeyboardThemeKeysEditor(
             presetValue = preset.variationsHeightScale,
             valueRange = 0.65f..1.6f,
             onValueChanged = { onThemeChanged(theme.copy(variationsHeightScale = it)) }
+        )
+        KeyboardThemeSliderRow(
+            label = stringResource(R.string.keyboard_theme_autofill_row_height),
+            linkId = if (isSoftware) "keyboard_theme.software.autofill_row_height" else "keyboard_theme.hardware.autofill_row_height",
+            value = theme.autofillRowHeightScale,
+            presetValue = preset.autofillRowHeightScale,
+            valueRange = InlineAutofillRowHeight.SCALE_RANGE,
+            onValueChanged = { onThemeChanged(theme.copy(autofillRowHeightScale = it)) }
         )
         if (isSoftware) {
 

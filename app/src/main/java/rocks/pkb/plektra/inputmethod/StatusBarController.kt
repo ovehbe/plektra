@@ -60,6 +60,7 @@ import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHost
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 import android.content.res.AssetManager
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -980,10 +981,11 @@ class StatusBarController(
             barPresentation, isFullSoftwareKeyboardMode, symPage, navModeActive, lastClipboardOverlay
         ) ?: return null
         val theme = activeThemeColors(isFullSoftwareKeyboardMode)
-        val rowHeightDp = when (target) {
+        val hostRowHeightDp = when (target) {
             InlineAutofillTarget.ACTIONS -> VariationBarView.rowHeightDp(theme.variationsHeightScale)
             InlineAutofillTarget.SUGGESTIONS -> FullSuggestionsBar.rowHeightDp(theme.suggestionsHeightScale)
         }
+        val rowHeightDp = InlineAutofillRowHeight.rowHeightDp(hostRowHeightDp, theme.autofillRowHeightScale)
         return TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             rowHeightDp - 2 * INLINE_AUTOFILL_CHIP_INSET_DP,
@@ -1008,6 +1010,7 @@ class StatusBarController(
         val host = inlineAutofillHost ?: return
         fullSuggestionsBar?.inlineContent = if (target == InlineAutofillTarget.SUGGESTIONS) host else null
         val wrapper = variationsWrapper as? ViewGroup
+        variationBarView?.hostsInlineContent = target == InlineAutofillTarget.ACTIONS && wrapper != null
         if (target == InlineAutofillTarget.ACTIONS && wrapper != null) {
             if (host.parent !== wrapper) {
                 (host.parent as? ViewGroup)?.removeView(host)

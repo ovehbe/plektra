@@ -829,6 +829,7 @@
     <string name="keyboard_theme_row_spacing">Απόσταση γραμμών</string>
     <string name="keyboard_theme_suggestions_height">Ύψος προτάσεων</string>
     <string name="keyboard_theme_variations_height">Ύψος παραλλαγών</string>
+    <string name="keyboard_theme_autofill_row_height">Ύψος γραμμής αυτόματης συμπλήρωσης</string>
     <string name="keyboard_theme_show_leds">Εμφάνιση LED</string>
     <string name="keyboard_theme_distribute_spacing">Κατανομή αποστάσεων</string>
     <string name="keyboard_theme_ortholinear">Ορθογώνια διάταξη</string>

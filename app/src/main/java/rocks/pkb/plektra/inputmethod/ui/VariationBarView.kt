@@ -49,6 +49,7 @@ import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonHost
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarAnimator
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonId
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonPosition
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarCallbacks
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonStyles
 import rocks.pkb.plektra.inputmethod.statusbar.KeyboardBarRowGeometry
@@ -295,8 +296,27 @@ class VariationBarView(
             context.resources.displayMetrics
         ).toInt()
 
+    /** Autofill chips cover the row; it then takes the theme's autofill row height. */
+    var hostsInlineContent: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            applyHeight()
+        }
+
+    private fun inlineContentHeightPx(): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            InlineAutofillRowHeight.rowHeightDp(
+                rowHeightDp(themeOverride?.variationsHeightScale ?: 1f),
+                themeOverride?.autofillRowHeightScale ?: InlineAutofillRowHeight.DEFAULT_SCALE
+            ),
+            context.resources.displayMetrics
+        ).toInt()
+
     private fun applyHeight() {
         val height = targetHeightPx()
+        val rowHeight = if (hostsInlineContent) inlineContentHeightPx() else height
         val verticalPadding = verticalPaddingPx()
         var geometryChanged = false
         container?.let { view ->
@@ -315,10 +335,10 @@ class VariationBarView(
         }
         wrapper?.let { view ->
             val params = (view.layoutParams as? LinearLayout.LayoutParams)
-                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
-            if (params.height != height || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
+                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, rowHeight)
+            if (params.height != rowHeight || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
                 params.width = ViewGroup.LayoutParams.MATCH_PARENT
-                params.height = height
+                params.height = rowHeight
                 view.layoutParams = params
                 geometryChanged = true
             }

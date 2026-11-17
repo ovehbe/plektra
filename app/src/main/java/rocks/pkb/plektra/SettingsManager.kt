@@ -524,7 +524,8 @@ object SettingsManager {
         val keyPopupTailEnabled: Boolean = true,
         val keyPreviewAfterLongPress: Boolean = false,
         val keyAlternatesPopupEnabled: Boolean = true,
-        val textures: Map<String, KeyboardThemeTexture> = emptyMap()
+        val textures: Map<String, KeyboardThemeTexture> = emptyMap(),
+        val autofillRowHeightScale: Float = 1f
     ) {
         fun toKeyboardThemeColors(): KeyboardThemeColors =
             textures.renderable().let { shown ->
@@ -547,6 +548,7 @@ object SettingsManager {
                     chromeCornerRadiusRatio = chromeCornerRadiusRatio,
                     suggestionsHeightScale = suggestionsHeightScale,
                     variationsHeightScale = variationsHeightScale,
+                    autofillRowHeightScale = autofillRowHeightScale,
                     textures = shown
                 )
             }
@@ -1002,6 +1004,7 @@ object SettingsManager {
                 showLeds = json.optBoolean("show_leds", defaults.showLeds),
                 suggestionsHeightScale = json.optDouble("suggestions_height_scale", defaults.suggestionsHeightScale.toDouble()).toFloat(),
                 variationsHeightScale = json.optDouble("variations_height_scale", defaults.variationsHeightScale.toDouble()).toFloat(),
+                autofillRowHeightScale = json.optDouble("autofill_row_height_scale", defaults.autofillRowHeightScale.toDouble()).toFloat(),
                 keyPopupStyle = normalizeKeyboardThemePopupStyle(json.optString("key_popup_style", defaults.keyPopupStyle)),
                 keyPopupAttached = json.optBoolean("key_popup_attached", defaults.keyPopupAttached),
                 keyPopupTailEnabled = json.optBoolean("key_popup_tail_enabled", defaults.keyPopupTailEnabled),
@@ -1281,7 +1284,8 @@ object SettingsManager {
         val optionalFloatKeys = listOf(
             "number_row_height_scale",
             "suggestions_height_scale",
-            "variations_height_scale"
+            "variations_height_scale",
+            "autofill_row_height_scale"
         )
         val requiredBooleanKeys = listOf(
             "distribute_horizontal_spacing",
@@ -1471,6 +1475,7 @@ object SettingsManager {
             showLeds = json.optBoolean("show_leds", defaults.showLeds),
             suggestionsHeightScale = json.optDouble("suggestions_height_scale", defaults.suggestionsHeightScale.toDouble()).toFloat(),
             variationsHeightScale = json.optDouble("variations_height_scale", defaults.variationsHeightScale.toDouble()).toFloat(),
+            autofillRowHeightScale = json.optDouble("autofill_row_height_scale", defaults.autofillRowHeightScale.toDouble()).toFloat(),
             keyPopupStyle = normalizeKeyboardThemePopupStyle(json.optString("key_popup_style", defaults.keyPopupStyle)),
             keyPopupAttached = json.optBoolean("key_popup_attached", defaults.keyPopupAttached),
             keyPopupTailEnabled = json.optBoolean("key_popup_tail_enabled", defaults.keyPopupTailEnabled),
@@ -1506,6 +1511,7 @@ object SettingsManager {
             put("show_leds", theme.showLeds)
             put("suggestions_height_scale", theme.suggestionsHeightScale.toDouble())
             put("variations_height_scale", theme.variationsHeightScale.toDouble())
+            put("autofill_row_height_scale", theme.autofillRowHeightScale.toDouble())
             put("key_popup_style", normalizeKeyboardThemePopupStyle(theme.keyPopupStyle))
             put("key_popup_attached", theme.keyPopupAttached)
             put("key_popup_tail_enabled", theme.keyPopupTailEnabled)

@@ -40,6 +40,7 @@ import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonRegistry
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarCallbacks
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonPosition
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonStyles
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 
 /**
  * Renders up to three suggestions with configurable menu buttons on the left/right edges.
@@ -117,6 +118,7 @@ class FullSuggestionsBar(
             if (field === value) return
             field?.let { old -> if (old.parent === frameContainer) frameContainer?.removeView(old) }
             field = value
+            applyHeight()
         }
     var onCursorMovedListener: (() -> Unit)? = null
     var themeOverride: KeyboardThemeColors? = null
@@ -149,6 +151,13 @@ class FullSuggestionsBar(
 
     private val targetHeightPx: Int
         get() = dpToPx(rowHeightDp(themeOverride?.suggestionsHeightScale ?: 1f))
+
+    /** The row's height while [inlineContent] replaces the slots: the theme's autofill row height. */
+    private val inlineContentHeightPx: Int
+        get() = dpToPx(InlineAutofillRowHeight.rowHeightDp(
+            rowHeightDp(themeOverride?.suggestionsHeightScale ?: 1f),
+            themeOverride?.autofillRowHeightScale ?: InlineAutofillRowHeight.DEFAULT_SCALE
+        ))
 
     /**
      * Sets the assets and IME service class needed for subtype cycling.
@@ -245,15 +254,16 @@ class FullSuggestionsBar(
 
     private fun applyHeight() {
         val height = targetHeightPx
+        val frameHeight = if (inlineContent != null) inlineContentHeightPx else height
         frameContainer?.let { frame ->
             val params = (frame.layoutParams as? LinearLayout.LayoutParams)
-                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
-            if (params.height != height || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
+                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, frameHeight)
+            if (params.height != frameHeight || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
                 params.width = ViewGroup.LayoutParams.MATCH_PARENT
-                params.height = height
+                params.height = frameHeight
                 frame.layoutParams = params
             }
-            frame.minimumHeight = height
+            frame.minimumHeight = frameHeight
         }
         container?.let { bar ->
             val params = (bar.layoutParams as? FrameLayout.LayoutParams)
@@ -511,7 +521,8 @@ class FullSuggestionsBar(
         frame.alpha = 1f
         renderMinimalUiButtons()
         val slotsParams = bar.layoutParams as FrameLayout.LayoutParams
-        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, targetHeightPx).apply {
+        applyHeight()
+        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, inlineContentHeightPx).apply {
             marginStart = slotsParams.marginStart
             marginEnd = slotsParams.marginEnd
         }
