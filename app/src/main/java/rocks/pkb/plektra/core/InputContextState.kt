@@ -92,6 +92,11 @@ data class InputContextState(
     val isPasswordField: Boolean
         get() = restrictedReason == RestrictedReason.PASSWORD
 
+    /** Secrets and digit or date entry, where a forced-visible suggestions row only takes space. */
+    val isSuggestionsRowSensitive: Boolean
+        get() = isPasswordField || inputClass == InputType.TYPE_CLASS_NUMBER ||
+            inputClass == InputType.TYPE_CLASS_PHONE || inputClass == InputType.TYPE_CLASS_DATETIME
+
     val isUriField: Boolean
         get() = restrictedReason == RestrictedReason.URI
 

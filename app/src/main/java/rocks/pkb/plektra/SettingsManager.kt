@@ -78,6 +78,7 @@ object SettingsManager {
     private const val KEY_SUGGESTIONS_ENABLED = "suggestions_enabled"
     private const val KEY_SUGGESTIONS_BOLD = "suggestions_bold"
     private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR = "always_show_suggestions_bar"
+    private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = "always_show_suggestions_bar_hide_sensitive"
     private const val KEY_SNIPPETS_ENABLED = "snippets_enabled"
     private const val KEY_SNIPPETS_PREFIX = "snippets_prefix"
     private const val KEY_SNIPPETS = "snippets_v1"
@@ -356,6 +357,7 @@ object SettingsManager {
     private const val DEFAULT_AUTO_CORRECT_ENABLED = true
     private const val DEFAULT_SUGGESTIONS_ENABLED = true
     private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR = false
+    private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = true
     private const val DEFAULT_SNIPPETS_ENABLED = false
     private const val DEFAULT_SNIPPETS_PREFIX = "!"
     private const val DEFAULT_ACCENT_MATCHING_ENABLED = true
@@ -3212,6 +3214,15 @@ object SettingsManager {
 
     fun setAlwaysShowSuggestionsBar(context: Context, enabled: Boolean) {
         getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR, enabled).apply()
+    }
+
+    fun getAlwaysShowSuggestionsBarHideSensitive(context: Context): Boolean =
+        getPreferences(context).getBoolean(
+            KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE, DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE
+        )
+
+    fun setAlwaysShowSuggestionsBarHideSensitive(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE, enabled).apply()
     }
 
     /**
