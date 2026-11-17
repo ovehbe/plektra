@@ -1784,7 +1784,7 @@ QWERTZ σε φυσικό QWERTY
     <string name="always_show_suggestions_bar_title">Να εμφανίζεται πάντα η γραμμή προτάσεων</string>
     <string name="always_show_suggestions_bar_summary">Αποτρέπει την αυτόματη απόκρυψη της γραμμής προτάσεων (μετά από σύμβολα Alt, σημεία στίξης κ.λπ.) ώστε το μέγεθος του παραθύρου της εφαρμογής να μένει σταθερό.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Απόκρυψη σε πεδία αριθμών και κωδικών πρόσβασης</string>
-    <string name="always_show_suggestions_bar_hide_sensitive_summary">Να μην επιβάλλεται η γραμμή προτάσεων σε πεδία κωδικών πρόσβασης, αριθμών, τηλεφώνου και ημερομηνίας</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Χωρίς γραμμή προτάσεων και προβλέψεις λέξεων σε πεδία κωδικών πρόσβασης, αριθμών, τηλεφώνου και ημερομηνίας</string>
     <string name="emoji_picker_invalid_unicode">Μη έγκυρος κωδικός Unicode</string>
     <string name="emoji_picker_use_code">Χρήση</string>
     <string name="setting_link_quick_launcher_customize_entries">Προσαρμογή καταχωρίσεων Quick Launcher</string>

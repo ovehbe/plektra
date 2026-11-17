@@ -5,6 +5,9 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.widget.EditText
+import android.widget.TextView
+import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -17,9 +20,13 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
+import org.robolectric.util.ReflectionHelpers.ClassParameter
 import rocks.pkb.plektra.KeyboardBarArrangement
 import rocks.pkb.plektra.KeyboardBarConfiguration
 import rocks.pkb.plektra.SettingsManager
+import rocks.pkb.plektra.core.suggestions.SuggestionController
+import rocks.pkb.plektra.core.suggestions.SuggestionResult
+import rocks.pkb.plektra.core.suggestions.SuggestionSource
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChips
 import rocks.pkb.plektra.inputmethod.autofill.PendingInlineChip
 import rocks.pkb.plektra.inputmethod.suggestions.ui.FullSuggestionsBar
@@ -52,52 +59,59 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         LED_ONLY(actions = false, suggestions = false, ledStrip = true, chipRow = Placement.SUGGESTIONS, alwaysShowKeepsEmptyRow = true)
     }
 
-    private data class Field(val name: String, val inputType: Int, val sensitive: Boolean)
+    /**
+     * [predicts]: Plektra runs word predictions there today. Only the plain email variation is restricted, and the
+     * time variation shares its bits, so web email predicts and time does not.
+     */
+    private data class Field(val name: String, val inputType: Int, val sensitive: Boolean, val predicts: Boolean)
 
     private val fields = listOf(
-        Field("text", InputType.TYPE_CLASS_TEXT, sensitive = false),
-        Field("multi-line text", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE, sensitive = false),
-        Field("no-suggestions text", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, sensitive = false),
-        Field("email", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS, sensitive = false),
-        Field("web email", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS, sensitive = false),
-        Field("URI", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI, sensitive = false),
-        Field("password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD, sensitive = true),
-        Field("visible password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD, sensitive = true),
-        Field("web password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD, sensitive = true),
-        Field("number", InputType.TYPE_CLASS_NUMBER, sensitive = true),
+        Field("text", InputType.TYPE_CLASS_TEXT, sensitive = false, predicts = true),
+        Field("multi-line text", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE, sensitive = false, predicts = true),
+        Field("no-suggestions text", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS, sensitive = false, predicts = true),
+        Field("email", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS, sensitive = false, predicts = false),
+        Field("web email", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS, sensitive = false, predicts = true),
+        Field("URI", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI, sensitive = false, predicts = false),
+        Field("password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD, sensitive = true, predicts = false),
+        Field("visible password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD, sensitive = true, predicts = false),
+        Field("web password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD, sensitive = true, predicts = false),
+        Field("number", InputType.TYPE_CLASS_NUMBER, sensitive = true, predicts = true),
         Field("signed decimal number",
-            InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED or InputType.TYPE_NUMBER_FLAG_DECIMAL, sensitive = true),
-        Field("number password", InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD, sensitive = true),
-        Field("phone", InputType.TYPE_CLASS_PHONE, sensitive = true),
-        Field("date and time", InputType.TYPE_CLASS_DATETIME, sensitive = true),
-        Field("date", InputType.TYPE_CLASS_DATETIME or InputType.TYPE_DATETIME_VARIATION_DATE, sensitive = true),
-        Field("time", InputType.TYPE_CLASS_DATETIME or InputType.TYPE_DATETIME_VARIATION_TIME, sensitive = true)
+            InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED or InputType.TYPE_NUMBER_FLAG_DECIMAL, sensitive = true, predicts = true),
+        Field("number password", InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD, sensitive = true, predicts = false),
+        Field("phone", InputType.TYPE_CLASS_PHONE, sensitive = true, predicts = true),
+        Field("date and time", InputType.TYPE_CLASS_DATETIME, sensitive = true, predicts = true),
+        Field("date", InputType.TYPE_CLASS_DATETIME or InputType.TYPE_DATETIME_VARIATION_DATE, sensitive = true, predicts = true),
+        Field("time", InputType.TYPE_CLASS_DATETIME or InputType.TYPE_DATETIME_VARIATION_TIME, sensitive = true, predicts = false)
     )
 
     private data class Scenario(
         val field: Field,
         val alwaysShow: Boolean,
         val hideSensitive: Boolean,
+        val predictions: Boolean,
         val chips: Boolean,
         val bar: Bar
     ) {
         override fun toString() =
-            "${field.name} alwaysShow=$alwaysShow hideSensitive=$hideSensitive chips=$chips bar=$bar"
+            "${field.name} alwaysShow=$alwaysShow hideSensitive=$hideSensitive predictions=$predictions chips=$chips bar=$bar"
     }
 
-    private data class BarState(val suggestionsRow: Boolean, val chips: Placement, val heightPx: Int)
+    /** [words]: a delivered prediction is visible in the suggestions row. */
+    private data class BarState(val suggestionsRow: Boolean, val words: Boolean, val chips: Placement, val heightPx: Int)
 
     @Test
-    fun sensitiveFieldsBehaveAsIfAlwaysShowWereOff_andNothingElseChanges() {
+    fun sensitiveFieldsShowNoSuggestionsRow_andNothingElseChanges() {
         val observed = linkedMapOf<Scenario, BarState>()
         for (bar in Bar.values()) for (alwaysShow in listOf(false, true)) for (hideSensitive in listOf(false, true)) {
             configure(bar, alwaysShow, hideSensitive)
             val (ime, view) = startService()
             // One service per configuration: every focus below is a move from the previous field.
-            for (field in fields) for (chips in listOf(false, true)) {
+            for (field in fields) for (predictions in listOf(false, true)) for (chips in listOf(false, true)) {
                 focus(ime, field)
+                if (predictions) deliverPredictions(ime)
                 if (chips) deliverChips(ime)
-                observed[Scenario(field, alwaysShow, hideSensitive, chips, bar)] = observe(ime, view)
+                observed[Scenario(field, alwaysShow, hideSensitive, predictions, chips, bar)] = observe(ime, view)
             }
             service?.destroy()
             service = null
@@ -108,14 +122,18 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
             if (expected != actual) failures += "$scenario: $what expected $expected but was $actual"
         }
         observed.forEach { (scenario, state) ->
+            val hidden = scenario.field.sensitive && scenario.alwaysShow && scenario.hideSensitive
             expect(scenario, "chip row", if (scenario.chips) scenario.bar.chipRow else Placement.NONE, state.chips)
+            // Chips pause word predictions.
+            val words = scenario.predictions && !scenario.chips && scenario.bar.suggestions && scenario.field.predicts && !hidden
+            expect(scenario, "predictions", words, state.words)
             if (!scenario.chips) {
-                val forced = scenario.bar.alwaysShowKeepsEmptyRow && scenario.alwaysShow &&
-                    !(scenario.field.sensitive && scenario.hideSensitive)
-                expect(scenario, "empty suggestions row", forced, state.suggestionsRow)
+                val forced = scenario.bar.alwaysShowKeepsEmptyRow && scenario.alwaysShow && !hidden
+                expect(scenario, "suggestions row", words || forced, state.suggestionsRow)
             }
-            if (scenario.field.sensitive && scenario.alwaysShow && scenario.hideSensitive) {
-                expect(scenario, "state as with Always show off", observed.getValue(scenario.copy(alwaysShow = false)), state)
+            if (hidden) {
+                expect(scenario, "state as with Always show off and no predictions",
+                    observed.getValue(scenario.copy(alwaysShow = false, predictions = false)), state)
             }
             if (!scenario.field.sensitive || !scenario.alwaysShow) {
                 expect(scenario, "state as with the switch off", observed.getValue(scenario.copy(hideSensitive = false)), state)
@@ -123,7 +141,7 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         }
         println("Always show sensitive-field matrix: ${observed.size} scenarios, ${failures.size} failures")
         assertTrue(failures.joinToString("\n", prefix = "${failures.size} failed expectations:\n"), failures.isEmpty())
-        assertEquals(fields.size * 2 * 2 * 2 * Bar.values().size, observed.size)
+        assertEquals(fields.size * 2 * 2 * 2 * 2 * Bar.values().size, observed.size)
     }
 
     @Test
@@ -133,20 +151,73 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         val text = fields.first { it.name == "text" }
         val password = fields.first { it.name == "password" }
         val number = fields.first { it.name == "number" }
+        val phone = fields.first { it.name == "phone" }
+        val date = fields.first { it.name == "date" }
 
-        listOf(text to true, password to false, text to true, number to false, password to false, text to true)
+        listOf(text to true, password to false, text to true, number to false, phone to false, text to true, date to false,
+            password to false, text to true)
             .forEachIndexed { step, (field, rowShown) ->
                 focus(ime, field)
                 assertEquals("step $step ${field.name}", rowShown, observe(ime, view).suggestionsRow)
+                deliverPredictions(ime)
+                assertEquals("step $step ${field.name} with predictions", rowShown, observe(ime, view).words)
             }
 
-        focus(ime, password)
-        deliverChips(ime)
-        assertEquals(Placement.ACTIONS, observe(ime, view).chips)
-        focus(ime, password, restarting = true)
-        assertEquals(BarState(false, Placement.NONE, observe(ime, view).heightPx), observe(ime, view))
+        for (field in listOf(password, number)) {
+            focus(ime, field)
+            deliverPredictions(ime)
+            deliverChips(ime)
+            assertEquals(field.name, Placement.ACTIONS, observe(ime, view).chips)
+            focus(ime, field, restarting = true)
+            assertEquals(field.name, BarState(false, false, Placement.NONE, observe(ime, view).heightPx), observe(ime, view))
+        }
         focus(ime, text)
         assertTrue(observe(ime, view).suggestionsRow)
+    }
+
+    @Test
+    fun addWordCandidateInANumberFieldIsHiddenOnlyWithAlwaysShowAndTheSwitch() {
+        val number = fields.first { it.name == "number" }
+        for (alwaysShow in listOf(false, true)) for (hideSensitive in listOf(false, true)) {
+            configure(Bar.ACTIONS_ROW, alwaysShow, hideSensitive)
+            val (ime, view) = startService()
+            focus(ime, number)
+            ReflectionHelpers.setField(suggestionController(ime), "pendingAddUserWord", "123")
+            deliverPredictions(ime, words = emptyList())
+            val label = "alwaysShow=$alwaysShow hideSensitive=$hideSensitive"
+            val rowShown = !(alwaysShow && hideSensitive)
+            assertEquals(label, rowShown, observe(ime, view).suggestionsRow)
+            assertEquals(label, rowShown, view.visibleTexts().any { it == "123" })
+            service?.destroy()
+            service = null
+        }
+    }
+
+    @Test
+    fun trackpadSwipeCannotPickOrAddHiddenPredictions() {
+        val number = fields.first { it.name == "number" }
+        for (hideSensitive in listOf(false, true)) {
+            configure(Bar.ACTIONS_ROW, alwaysShow = true, hideSensitive = hideSensitive)
+            SettingsManager.setTrackpadGestureAddWordEnabled(context, true)
+            val (ime, _) = startService()
+            val editor = EditText(context)
+            focus(ime, number)
+            ReflectionHelpers.setField(ime, "mStartedInputConnection", editor.onCreateInputConnection(EditorInfo()))
+            deliverPredictions(ime)
+
+            swipeUp(ime, third = 1)
+            // Auto-capitalization may capitalize the committed word at the start of the field.
+            assertEquals("hideSensitive=$hideSensitive", if (hideSensitive) "" else PREDICTIONS[0],
+                editor.text.toString().trim().lowercase())
+
+            editor.setText("")
+            ReflectionHelpers.setField(suggestionController(ime), "pendingAddUserWord", "123")
+            swipeUp(ime, third = 0)
+            assertEquals("hideSensitive=$hideSensitive", if (hideSensitive) "123" else null,
+                suggestionController(ime).pendingAddWord())
+            service?.destroy()
+            service = null
+        }
     }
 
     private fun configure(bar: Bar, alwaysShow: Boolean, hideSensitive: Boolean) {
@@ -185,6 +256,23 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         fieldId = field.name.hashCode()
     }
 
+    /** The suggestion engine's callback into the service, as after typing in the field. */
+    private fun deliverPredictions(ime: PhysicalKeyboardInputMethodService, words: List<String> = PREDICTIONS) {
+        val results = words.mapIndexed { index, word -> SuggestionResult(word, 0, 10.0 - index, SuggestionSource.MAIN) }
+        ReflectionHelpers.callInstanceMethod<Unit>(
+            ime, "handleSuggestionsUpdated", ClassParameter.from(List::class.java, results)
+        )
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(200))
+    }
+
+    private fun suggestionController(ime: PhysicalKeyboardInputMethodService) =
+        ReflectionHelpers.getField<SuggestionController>(ime, "suggestionController")
+
+    private fun swipeUp(ime: PhysicalKeyboardInputMethodService, third: Int) {
+        ReflectionHelpers.callInstanceMethod<Unit>(ime, "acceptSuggestionAtIndex", ClassParameter.from(Int::class.javaPrimitiveType, third))
+        shadowOf(Looper.getMainLooper()).idle()
+    }
+
     private fun deliverChips(ime: PhysicalKeyboardInputMethodService) {
         val chips = ReflectionHelpers.getField<InlineAutofillChips>(ime, "inlineAutofillChips")
         val pending = List(2) { index ->
@@ -205,15 +293,16 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         val statusBar = ReflectionHelpers.getField<StatusBarController>(
             ReflectionHelpers.getField<CandidatesBarController>(ime, "candidatesBarController"), "inputStatusBar"
         )
-        val suggestionsRow = ReflectionHelpers.getField<FullSuggestionsBar?>(statusBar, "fullSuggestionsBar")
-            ?.ensureView()?.let { it.isShownWithin(root) && it.height > 0 } == true
+        val rowView = ReflectionHelpers.getField<FullSuggestionsBar?>(statusBar, "fullSuggestionsBar")?.ensureView()
+        val suggestionsRow = rowView?.let { it.isShownWithin(root) && it.height > 0 } == true
+        val words = suggestionsRow && rowView!!.visibleTexts(root).any { it in PREDICTIONS }
         val chip = root.descendants().firstOrNull { it.tag == CHIP && it.isShownWithin(root) }
         val chips = when {
             chip == null -> Placement.NONE
             chip.hasAncestor<CursorSwipeLayout>() -> Placement.SUGGESTIONS
             else -> Placement.ACTIONS
         }
-        return BarState(suggestionsRow, chips, if (root.visibility == View.VISIBLE) root.measuredHeight else 0)
+        return BarState(suggestionsRow, words, chips, if (root.visibility == View.VISIBLE) root.measuredHeight else 0)
     }
 
     private fun View.isShownWithin(root: View): Boolean {
@@ -224,6 +313,9 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         }
         return root.visibility == View.VISIBLE
     }
+
+    private fun View.visibleTexts(root: View = this): List<String> =
+        (listOf(this) + descendants()).filter { it is TextView && it.isShownWithin(root) }.map { (it as TextView).text.toString() }
 
     private fun View.descendants(): List<View> =
         if (this is ViewGroup) (0 until childCount).flatMap { listOf(getChildAt(it)) + getChildAt(it).descendants() } else emptyList()
@@ -240,5 +332,6 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
     private companion object {
         const val APP = "com.example.login"
         const val CHIP = "test inline chip"
+        val PREDICTIONS = listOf("alpha", "bravo", "charlie")
     }
 }

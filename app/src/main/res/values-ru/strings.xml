@@ -943,7 +943,7 @@ Nav Mode использует физическое положение клави
     <string name="always_show_suggestions_bar_title">Всегда показывать панель предложений</string>
     <string name="always_show_suggestions_bar_summary">Не даёт панели предложений автоматически скрываться (после символов Alt, знаков препинания и т. п.), чтобы размер окна приложения оставался постоянным.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Скрывать в числовых полях и полях пароля</string>
-    <string name="always_show_suggestions_bar_hide_sensitive_summary">Не показывать панель предложений принудительно в полях пароля, чисел, телефона и даты</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Без панели предложений и подсказок слов в полях пароля, чисел, телефона и даты</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Сразу открывает Plektra Quick Launcher и не передаёт нажатие клавиши приложению.</string>
     <string name="clicks_recommended_settings_description">Восстанавливает исходный вывод Tab и Alt; назначает кнопку микрофона диктовке Plektra; назначает красную кнопку Clicks и кнопку Launcher напрямую Quick Launcher; и отключает Caps Lock и Cursor Mode.</string>

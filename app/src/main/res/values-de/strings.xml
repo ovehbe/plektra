@@ -1700,7 +1700,7 @@ Jede Taste kann als Keycode, Aktion, Native Ctrl oder Keine konfiguriert werden.
     <string name="always_show_suggestions_bar_title">Vorschlagsleiste immer anzeigen</string>
     <string name="always_show_suggestions_bar_summary">Verhindert, dass sich die Vorschlagsleiste automatisch ausblendet (nach Alt-Symbolen, Satzzeichen usw.), damit die Fenstergröße der App gleich bleibt.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">In Zahlen- und Passwortfeldern ausblenden</string>
-    <string name="always_show_suggestions_bar_hide_sensitive_summary">Die Vorschlagsleiste in Passwort-, Zahlen-, Telefon- und Datumsfeldern nicht erzwingen</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Keine Vorschlagsleiste und keine Wortvorschläge in Passwort-, Zahlen-, Telefon- und Datumsfeldern</string>
     <string name="emoji_picker_invalid_unicode">Ungültiger Unicode-Code</string>
     <string name="emoji_picker_use_code">Verwenden</string>
     <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>

@@ -1601,6 +1601,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         scheduleStatusBarTextUpdate()
     }
 
+    /** Always show's "Hide in number and password fields" also drops word predictions in those fields. */
+    private fun sensitiveFieldPredictionsHidden(): Boolean =
+        inputContextState.isSuggestionsRowSensitive &&
+            SettingsManager.getAlwaysShowSuggestionsBar(this) &&
+            SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(this)
+
     private fun visibleSuggestionStrings(): List<String> {
         if (latestSuggestionResults.isEmpty()) return emptyList()
 
@@ -3613,12 +3619,13 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         
         val modifierSnapshot = modifierStateController.snapshot()
         val state = inputContextState
-        val addWordCandidate = if (state.shouldDisableSuggestions || isSpeechRecognitionActive) null else suggestionController.pendingAddWord()
+        val predictionsHidden = state.shouldDisableSuggestions || sensitiveFieldPredictionsHidden()
+        val addWordCandidate = if (predictionsHidden || isSpeechRecognitionActive) null else suggestionController.pendingAddWord()
         val suggestionsEnabled = SettingsManager.isExperimentalSuggestionsEnabled(this) && rocks.pkb.plektra.KeyboardBarConfiguration.read(this)
             .presentation(SettingsManager.getSlimModeActive(this)).suggestions
         val suggestionsStart = ImePerfLogger.mark()
         val baseSuggestions = when {
-            state.shouldDisableSuggestions -> emptyList()
+            predictionsHidden -> emptyList()
             isSpeechRecognitionActive -> if (SpeechSettings.continuousPreview(this))
                 speechPreviewWords.takeIf { it.isNotEmpty() }?.let { listOf(it.joinToString(" ")) }.orEmpty()
                 else speechPreviewWords.takeLast(3)
@@ -6827,7 +6834,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     private fun acceptSuggestionAtIndex(third: Int) {
-        val visibleSuggestions = visibleSuggestionStrings()
+        val predictionsHidden = sensitiveFieldPredictionsHidden()
+        val visibleSuggestions = if (predictionsHidden) emptyList() else visibleSuggestionStrings()
 
         // Clear latched UI layers when selecting a suggestion via trackpad.
         if (shiftLayerLatched || altModifierLayerLatched) {
@@ -6839,7 +6847,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         variationInteractedDuringHold = true
 
         // Allow gesture only when suggestions bar should be visible/usable
-        val addWordCandidate = suggestionController.pendingAddWord()
+        val addWordCandidate = if (predictionsHidden) null else suggestionController.pendingAddWord()
         val addWordGestureEnabled = SettingsManager.getTrackpadGestureAddWordEnabled(this)
         val canAddWordByGesture = TrackpadAddWordGesturePolicy.canAddWordByGesture(
             third = third,

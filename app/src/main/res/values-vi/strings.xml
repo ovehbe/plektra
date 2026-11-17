@@ -940,7 +940,7 @@ Mỗi phím có thể cấu hình là Keycode, Action, Native Ctrl hoặc None. 
     <string name="always_show_suggestions_bar_title">Luôn hiện thanh gợi ý</string>
     <string name="always_show_suggestions_bar_summary">Ngăn thanh gợi ý tự ẩn (sau ký hiệu Alt, dấu câu, v.v.) để kích thước cửa sổ ứng dụng không đổi.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Ẩn trong ô số và mật khẩu</string>
-    <string name="always_show_suggestions_bar_hide_sensitive_summary">Không buộc hiện thanh gợi ý trong ô mật khẩu, số, điện thoại và ngày</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Không hiện thanh gợi ý và dự đoán từ trong ô mật khẩu, số, điện thoại và ngày</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Mở trực tiếp Plektra Quick Launcher và không chuyển sự kiện phím cho ứng dụng.</string>
     <string name="clicks_recommended_settings_description">Khôi phục đầu ra gốc của Tab và Alt; gán nút micro cho tính năng đọc chính tả của Plektra; gán nút Clicks màu đỏ và nút Launcher trực tiếp cho Quick Launcher; và tắt Caps Lock cùng Cursor Mode.</string>
