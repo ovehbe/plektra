@@ -79,6 +79,7 @@ object SettingsManager {
     private const val KEY_SUGGESTIONS_BOLD = "suggestions_bold"
     private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR = "always_show_suggestions_bar"
     private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = "always_show_suggestions_bar_hide_sensitive"
+    private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS = "always_show_suggestions_bar_hide_variations"
     private const val KEY_KEYBOARD_BAR_HEIGHT_ANIMATION = "keyboard_bar_height_animation"
     private const val KEY_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = "keyboard_bar_height_animation_ms"
     private const val KEY_SNIPPETS_ENABLED = "snippets_enabled"
@@ -360,6 +361,7 @@ object SettingsManager {
     private const val DEFAULT_SUGGESTIONS_ENABLED = true
     private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR = false
     private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = true
+    private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS = false
     private const val DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION = true
     const val DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 120
     const val MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 50
@@ -3241,6 +3243,15 @@ object SettingsManager {
 
     fun setAlwaysShowSuggestionsBarHideSensitive(context: Context, enabled: Boolean) {
         getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE, enabled).apply()
+    }
+
+    fun getAlwaysShowSuggestionsBarHideVariations(context: Context): Boolean =
+        getPreferences(context).getBoolean(
+            KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS, DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS
+        )
+
+    fun setAlwaysShowSuggestionsBarHideVariations(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS, enabled).apply()
     }
 
     fun getKeyboardBarHeightAnimation(context: Context): Boolean =

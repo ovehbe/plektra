@@ -944,6 +944,8 @@ Ctrl-ярлики застосунків із урахуванням розкл�
     <string name="always_show_suggestions_bar_summary">Не дає панелі пропозицій автоматично ховатися (після символів Alt, розділових знаків тощо), щоб розмір вікна застосунку залишався незмінним.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Ховати, де вона лишається порожньою</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Без порожнього рядка в полях URL, ел. пошти, пароля, чисел, телефону й дати та над підказками автозаповнення. Без підказок слів у полях пароля, чисел, телефону й дати.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Приховувати й рядок варіантів</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Приховує й рядок варіантів і меню там, де приховується порожній рядок підказок. Підказки автозаповнення й далі показуються.</string>
     <string name="keyboard_bar_height_animation_title">Анімувати зміну висоти</string>
     <string name="keyboard_bar_height_animation_summary">Панель плавно змінює висоту, коли рядок з’являється або зникає</string>
     <string name="keyboard_bar_height_animation_duration_title">Тривалість анімації</string>

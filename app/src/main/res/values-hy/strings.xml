@@ -942,6 +942,8 @@ Nav Mode-ը օգտագործում է ստեղնի ֆիզիկական դիրքը
     <string name="always_show_suggestions_bar_summary">Թույլ չի տալիս առաջարկների պանելին ինքնաբերաբար թաքնվել (Alt նշաններից, կետադրությունից և այլն հետո), որպեսզի հավելվածի պատուհանի չափը մնա անփոփոխ։</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Թաքցնել, որտեղ այն դատարկ է մնում</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Առանց դատարկ տողի URL-ի, էլ. փոստի, գաղտնաբառի, թվի, հեռախոսի և ամսաթվի դաշտերում կամ ինքնալրացման կոճակների վերևում։ Առանց բառերի կանխատեսումների գաղտնաբառի, թվի, հեռախոսի և ամսաթվի դաշտերում։</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Թաքցնել նաև տարբերակների տողը</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Թաքցնում է նաև տարբերակների և ցանկի տողը այնտեղ, որտեղ դատարկ առաջարկների տողը թաքցված է։ Ինքնալրացման առաջարկները շարունակում են ցուցադրվել։</string>
     <string name="keyboard_bar_height_animation_title">Անիմացնել բարձրության փոփոխությունները</string>
     <string name="keyboard_bar_height_animation_summary">Վահանակը սահուն անցնում է նոր բարձրության, երբ տող է հայտնվում կամ անհետանում</string>
     <string name="keyboard_bar_height_animation_duration_title">Անիմացիայի տևողություն</string>
