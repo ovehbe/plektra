@@ -1,5 +1,6 @@
 package rocks.pkb.plektra.inputmethod
 
+import android.animation.ValueAnimator
 import android.os.Looper
 import android.text.InputType
 import android.view.View
@@ -115,6 +116,9 @@ class HideVariationsRowMatrixTest {
                 }
                 observed[scenario] = observe(ime, root)
             }
+            if (animate && !keyboard.software && alwaysShow && hideEmpty && hideVariations && frames.animatedSteps < fields.size) {
+                failures += "$keyboard: only ${frames.animatedSteps} animated row changes"
+            }
             service?.destroy()
             service = null
         }
@@ -172,24 +176,28 @@ class HideVariationsRowMatrixTest {
         private val failures: MutableList<String>
     ) {
         private var settled: Int? = null
+        var animatedSteps = 0
 
         fun step(label: String, action: () -> Unit) {
             action()
             val chrome = chrome(ime)
             val firstFrame = visibleHeight(chrome)
             val start = settled
-            val animator = ReflectionHelpers.getField<Any?>(chrome, "heightAnimator")
+            val animator = ReflectionHelpers.getField<ValueAnimator?>(chrome, "heightAnimator")?.takeIf { it.isRunning }
             val frames = mutableListOf(firstFrame)
             val laidOut = mutableSetOf<Int>()
-            repeat(8) {
-                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(40))
-                measureRoot()
-                if (ReflectionHelpers.getField<Any?>(chrome, "heightAnimator") === animator && animator != null &&
-                    chrome.clipBounds != null) {
-                    laidOut += root.measuredHeight
-                    if (chrome.clipBounds!!.bottom != chrome.height) failures += "$label: clip not anchored to the bottom"
+            if (animator != null) {
+                // Robolectric's looper would run an attached window's animation at once.
+                for (playTime in 16L..animator.duration step 16L) {
+                    animator.currentPlayTime = playTime
+                    if (!animator.isRunning) break
+                    measureRoot()
+                    chrome.clipBounds?.let { clip ->
+                        laidOut += chrome.height
+                        if (clip.bottom != chrome.height) failures += "$label: clip not anchored to the bottom"
+                    }
+                    frames += visibleHeight(chrome)
                 }
-                frames += visibleHeight(chrome)
             }
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
             measureRoot()
@@ -208,6 +216,8 @@ class HideVariationsRowMatrixTest {
             val low = minOf(start, end)
             val high = maxOf(start, end)
             if (frames.any { it < low || it > high }) failures += "$label: frames $frames leave $start..$end px"
+            if (frames.none { it in (low + 1) until high }) failures += "$label: frames $frames do not ease from $start to $end px"
+            animatedSteps++
             if (frames.zipWithNext().any { (a, b) -> if (end > start) b < a else b > a }) {
                 failures += "$label: frames $frames are not monotonic"
             }
