@@ -147,8 +147,8 @@ class HideVariationsRowMatrixTest {
                     expect(scenario, "only the chips row: variations row", expectedRow == Placement.ACTIONS, state.actionsRowPx > 0)
                 }
             }
-            if (!scenario.field.staysEmpty && !scenario.chips) {
-                expect(scenario, "variations row in a field that gets predictions", true,
+            if (!hides && !scenario.chips) {
+                expect(scenario, "variations row", true,
                     state.actionsRowPx > 0 || (scenario.keyboard == Keyboard.HARDWARE_SHARED_ROW && state.suggestionsRow))
             }
             expect(scenario, "as with the animation off", observed.getValue(scenario.copy(animate = false)), state)
