@@ -3494,8 +3494,7 @@ class StatusBarController(
         val layout = ensureLayoutCreated(emojiMapText) ?: return
         // A bar only the hidden variations row kept open eases down to nothing like any other
         // row change, instead of disappearing at once, and eases back from there.
-        val keepEmptyBarForAnimation =
-            hideEmptyActionsRow && SettingsManager.keyboardBarHeightAnimationDurationMs(context) > 0
+        val keepEmptyBarForAnimation = hideEmptyActionsRow && SettingsManager.keyboardBarHeightAnimationDurationMs(context) > 0
         if ((!hasSuggestionRow && !showSlimMenuButtons && !barPresentation.actions && !barPresentation.bottomIndicators && !isFullSoftwareKeyboardMode &&
                 snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty() &&
                 inlineAutofillTarget == null && !keepEmptyBarForAnimation) || snapshot.navModeActive) {
