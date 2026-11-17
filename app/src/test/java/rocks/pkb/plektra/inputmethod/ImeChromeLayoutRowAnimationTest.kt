@@ -142,6 +142,16 @@ class ImeChromeLayoutRowAnimationTest {
         assertNull(animator)
     }
 
+    @Test
+    fun theSoftwareKeyboardKeepsOnlyItsModeTransition() {
+        chrome.rowChangeAnimationMs = 120
+        chrome.softwareKeyboardModeActive = true
+        assertEquals(2 * ROW, measuredHeight())
+        suggestionsRow.visibility = View.GONE
+        assertEquals(ROW, measuredHeight())
+        assertNull(animator)
+    }
+
     private companion object {
         const val ROW = 100
     }
