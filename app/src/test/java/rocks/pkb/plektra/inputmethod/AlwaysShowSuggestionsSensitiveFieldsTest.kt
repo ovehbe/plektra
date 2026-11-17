@@ -10,6 +10,7 @@ import android.widget.TextView
 import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -206,12 +207,13 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
             var settledHeight = -1
             fun step(label: String, action: () -> Unit) {
                 action()
-                val firstFrame = observe(ime, view).heightPx
+                val firstFrame = observe(ime, view).heightPx - (chrome.clipBounds?.top ?: 0)
                 val animator = ReflectionHelpers.getField<Any?>(chrome, "heightAnimator")
                 if (animator != null && animator !== lastAnimator) animated += label
                 lastAnimator = animator
                 shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
                 val settled = observe(ime, view).heightPx
+                assertNull("$label settles unclipped", chrome.clipBounds)
                 if (settledHeight >= 0) {
                     assertEquals("$label alwaysShow=$alwaysShow animate=$animate first frame",
                         if (animate) settledHeight else settled, firstFrame)

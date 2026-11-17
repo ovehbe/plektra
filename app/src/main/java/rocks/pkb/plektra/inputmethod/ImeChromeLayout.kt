@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Outline
 import android.graphics.Path
+import android.graphics.Rect
 import android.os.Build
 import android.view.MotionEvent
 import android.view.View
@@ -46,6 +47,8 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
     private var animatedHeight: Int? = null
     private var heightAnimator: ValueAnimator? = null
     private var lastTargetHeight: Int? = null
+    private var revealedHeight: Int? = null
+    private var heldHeight = 0
     /** Animates hardware-mode height changes, which come only from rows being added or removed; 0 snaps. */
     var rowChangeAnimationMs: Long = 0L
     private val calibrationPreviewListener: () -> Unit = {
@@ -245,6 +248,7 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
+        clipTo(revealedHeight)
         if (softwareKeyboardModeActive && animatedHeight != null) {
             val contentBottom = (0 until childCount).map { getChildAt(it) }
                 .filter { it.visibility != View.GONE }.maxOfOrNull { it.bottom } ?: height
@@ -377,6 +381,8 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
             heightAnimator?.cancel()
             heightAnimator = null
             animatedHeight = null
+            revealedHeight = null
+            clipBounds = null
             modeTransitionStartHeight = height.takeIf { isShown && it > 0 }
             field = value
             gravity = if (value) android.view.Gravity.TOP else android.view.Gravity.BOTTOM
@@ -453,6 +459,8 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         heightAnimator?.cancel()
         heightAnimator = null
         animatedHeight = null
+        revealedHeight = null
+        clipBounds = null
         modeTransitionStartHeight = null
         lastTargetHeight = null
         foldScope?.cancel()
@@ -524,17 +532,52 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
             } else animatedHeight = null
             return animatedHeight ?: target
         }
-        // Each animation frame measures the same target again, so only a new target restarts it.
         if (animateRowChanges && previousTarget != null && previousTarget != target &&
             rowChangeAnimationMs > 0 && ValueAnimator.areAnimatorsEnabled()
         ) {
-            animateHeight(animatedHeight ?: previousTarget, target, rowChangeAnimationMs)
+            revealRows(revealedHeight ?: animatedHeight ?: previousTarget, target, rowChangeAnimationMs)
         }
+        if (revealedHeight != null) return maxOf(heldHeight, target)
         return animatedHeight ?: target
+    }
+
+    /**
+     * Resizing the IME window every frame relayouts the app behind it and briefly shows
+     * undrawn window area, so a row change resizes the window once, keeping it at the larger
+     * of both heights meanwhile, and clips the bar's top edge from the old height to the new.
+     */
+    private fun revealRows(start: Int, target: Int, durationMs: Long) {
+        heightAnimator?.cancel()
+        animatedHeight = null
+        heldHeight = maxOf(start, target)
+        revealedHeight = start
+        clipTo(start)
+        heightAnimator = ValueAnimator.ofInt(start, target).apply {
+            duration = durationMs
+            addUpdateListener {
+                if (it.animatedFraction == 1f) {
+                    revealedHeight = null
+                    // Stays clipped until the window has shrunk; onLayout then drops the clip.
+                    clipTo(target)
+                    if (height != target) requestLayout()
+                } else {
+                    revealedHeight = it.animatedValue as Int
+                    clipTo(revealedHeight)
+                }
+            }
+            start()
+        }
+    }
+
+    /** Clips to the bottom [revealed] pixels; the window keeps its laid-out height until the next layout. */
+    private fun clipTo(revealed: Int?) {
+        clipBounds = revealed?.takeIf { it < height }?.let { Rect(0, height - it, width, height) }
     }
 
     private fun animateHeight(start: Int, target: Int, durationMs: Long) {
         heightAnimator?.cancel()
+        revealedHeight = null
+        clipBounds = null
         animatedHeight = start
         heightAnimator = ValueAnimator.ofInt(start, target).apply {
             duration = durationMs
@@ -562,6 +605,8 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         heightAnimator?.cancel()
         heightAnimator = null
         animatedHeight = null
+        revealedHeight = null
+        clipBounds = null
         lastTargetHeight = null
     }
 
