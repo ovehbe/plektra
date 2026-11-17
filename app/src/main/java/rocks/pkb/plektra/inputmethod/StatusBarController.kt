@@ -3744,6 +3744,8 @@ class StatusBarController(
                 variationsBar?.showVariations(snapshotForVariations, inputConnection)
                 setSurfaceCloseVisible(false)
                 resetSymSurfaceToLedOnly(symSurfaceView)
+                // The row only returns now, after the empty-bar check below collapsed the layout.
+                if (layout.visibility != View.VISIBLE) rerenderLastUpdate?.invoke()
             }
             symShown = false
             wasSymActive = false

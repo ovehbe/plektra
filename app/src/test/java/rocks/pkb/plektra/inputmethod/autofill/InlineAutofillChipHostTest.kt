@@ -95,8 +95,9 @@ class InlineAutofillChipHostTest {
                 } else if (row.blocked) {
                     assertTrue(label, chips.all { it.parent == null })
                 }
-                if (row.navMode) {
-                    controller.updateStatusBars(snapshot(row.copy(navMode = false)), "", null, null)
+                if (row.navMode || row.symPage != 0) {
+                    controller.updateStatusBars(snapshot(row.copy(navMode = false, symPage = 0)), "", null, null)
+                    org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                     layout(active)
                     assertEquals("$label, after it closes", Placement.ACTIONS, placementOf(chips.first(), active))
                 }
