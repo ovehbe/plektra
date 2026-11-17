@@ -13,7 +13,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -75,6 +77,14 @@ class InlineAutofillSettingTest {
         row()
         compose.onNodeWithText(context.getString(R.string.inline_autofill_candidates_view_note), substring = true)
             .assertDoesNotExist()
+    }
+
+    @Test fun settingsSearchFindsTheSwitchAndOpensTheKeyboardBarScreen() {
+        for (query in listOf(context.getString(R.string.inline_autofill_title), "autofill", "password")) {
+            val entry = SettingLinkRegistry.search(context, query).firstOrNull { it.id == "keyboard_bar.inline_autofill" }
+            assertNotNull(query, entry)
+            assertEquals("status_bar_buttons", entry!!.route.toSettingsPage().customizationDestination)
+        }
     }
 
     @Test @Config(sdk = [29])
