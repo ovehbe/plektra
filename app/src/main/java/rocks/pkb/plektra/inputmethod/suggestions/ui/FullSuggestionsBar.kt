@@ -57,6 +57,8 @@ class FullSuggestionsBar(
         private const val FLASH_DURATION_MS = 160L
         private const val BASE_HEIGHT_DP = 36f
 
+        internal fun rowHeightDp(heightScale: Float): Float = BASE_HEIGHT_DP * heightScale.coerceIn(0.65f, 1.6f)
+
         /** Left, center and right slots; an add-word candidate takes the left slot from the third suggestion. */
         internal fun buildSlots(suggestions: List<String>, addWordCandidate: String?): List<String?> {
             val s0 = suggestions.getOrNull(0)
@@ -146,7 +148,7 @@ class FullSuggestionsBar(
     }
 
     private val targetHeightPx: Int
-        get() = dpToPx(BASE_HEIGHT_DP * (themeOverride?.suggestionsHeightScale ?: 1f).coerceIn(0.65f, 1.6f))
+        get() = dpToPx(rowHeightDp(themeOverride?.suggestionsHeightScale ?: 1f))
 
     /**
      * Sets the assets and IME service class needed for subtype cycling.

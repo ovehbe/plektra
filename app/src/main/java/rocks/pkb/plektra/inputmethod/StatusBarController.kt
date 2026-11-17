@@ -980,10 +980,7 @@ class StatusBarController(
         val theme = activeThemeColors(isFullSoftwareKeyboardMode)
         val rowHeightDp = when (target) {
             InlineAutofillTarget.ACTIONS -> VariationBarView.rowHeightDp(theme.variationsHeightScale)
-            InlineAutofillTarget.SUGGESTIONS -> FullSuggestionsBar.rowHeightDp(
-                hasConfiguredMenuButtons && !isFullSoftwareKeyboardMode && symPage == 0 && !lastClipboardOverlay,
-                theme.suggestionsHeightScale
-            )
+            InlineAutofillTarget.SUGGESTIONS -> FullSuggestionsBar.rowHeightDp(theme.suggestionsHeightScale)
         }
         return TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
