@@ -10,6 +10,7 @@ import android.widget.TextView
 import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -73,6 +74,10 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         Field("email", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS, sensitive = false, predicts = false),
         Field("web email", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS, sensitive = false, predicts = true),
         Field("URI", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI, sensitive = false, predicts = false),
+        Field("Chrome URL bar", 0x80011, sensitive = false, predicts = false),
+        // What Chrome and WebView report for autofill.me's card name, card number and CVV inputs.
+        Field("web form text", 0xc0a1, sensitive = false, predicts = true),
+        Field("person name", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PERSON_NAME, sensitive = false, predicts = true),
         Field("password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD, sensitive = true, predicts = false),
         Field("visible password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD, sensitive = true, predicts = false),
         Field("web password", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD, sensitive = true, predicts = false),
@@ -102,7 +107,7 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
     private data class BarState(val suggestionsRow: Boolean, val words: Boolean, val chips: Placement, val heightPx: Int)
 
     @Test
-    fun sensitiveFieldsShowNoSuggestionsRow_andNothingElseChanges() {
+    fun alwaysShowRowHidesInSensitiveAndEmptyFields_andNothingElseChanges() {
         val observed = linkedMapOf<Scenario, BarState>()
         for (bar in Bar.values()) for (alwaysShow in listOf(false, true)) for (hideSensitive in listOf(false, true)) {
             configure(bar, alwaysShow, hideSensitive)
@@ -124,23 +129,27 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         }
         observed.forEach { (scenario, state) ->
             val hidden = scenario.field.sensitive && scenario.alwaysShow && scenario.hideSensitive
+            // Fields where Always show's reserved row could never fill: chips pause predictions.
+            val staysEmpty = scenario.field.sensitive || !scenario.field.predicts || scenario.chips
+            val emptyRowHidden = scenario.alwaysShow && scenario.hideSensitive && staysEmpty
             expect(scenario, "chip row", if (scenario.chips) scenario.bar.chipRow else Placement.NONE, state.chips)
-            // Chips pause word predictions.
             val words = scenario.predictions && !scenario.chips && scenario.bar.suggestions && scenario.field.predicts && !hidden
             expect(scenario, "predictions", words, state.words)
-            if (!scenario.chips) {
-                val forced = scenario.bar.alwaysShowKeepsEmptyRow && scenario.alwaysShow && !hidden
-                expect(scenario, "suggestions row", words || forced, state.suggestionsRow)
-            }
+            val forced = scenario.bar.alwaysShowKeepsEmptyRow && scenario.alwaysShow && !emptyRowHidden
+            val chipsInRow = scenario.chips && scenario.bar.chipRow == Placement.SUGGESTIONS
+            expect(scenario, "suggestions row", words || forced || chipsInRow, state.suggestionsRow)
             if (hidden) {
                 expect(scenario, "state as with Always show off and no predictions",
                     observed.getValue(scenario.copy(alwaysShow = false, predictions = false)), state)
             }
-            if (!scenario.field.sensitive || !scenario.alwaysShow) {
+            if (emptyRowHidden && !hidden) {
+                expect(scenario, "state as with Always show off", observed.getValue(scenario.copy(alwaysShow = false)), state)
+            }
+            if (!scenario.alwaysShow || !staysEmpty) {
                 expect(scenario, "state as with the switch off", observed.getValue(scenario.copy(hideSensitive = false)), state)
             }
         }
-        println("Always show sensitive-field matrix: ${observed.size} scenarios, ${failures.size} failures")
+        println("Always show hide-empty-row matrix: ${observed.size} scenarios, ${failures.size} failures")
         assertTrue(failures.joinToString("\n", prefix = "${failures.size} failed expectations:\n"), failures.isEmpty())
         assertEquals(fields.size * 2 * 2 * 2 * 2 * Bar.values().size, observed.size)
     }
@@ -154,9 +163,11 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         val number = fields.first { it.name == "number" }
         val phone = fields.first { it.name == "phone" }
         val date = fields.first { it.name == "date" }
+        val urlBar = fields.first { it.name == "Chrome URL bar" }
+        val webText = fields.first { it.name == "web form text" }
 
         listOf(text to true, password to false, text to true, number to false, phone to false, text to true, date to false,
-            password to false, text to true)
+            password to false, text to true, urlBar to false, webText to true, urlBar to false, text to true)
             .forEachIndexed { step, (field, rowShown) ->
                 focus(ime, field)
                 assertEquals("step $step ${field.name}", rowShown, observe(ime, view).suggestionsRow)
@@ -164,16 +175,70 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
                 assertEquals("step $step ${field.name} with predictions", rowShown, observe(ime, view).words)
             }
 
-        for (field in listOf(password, number)) {
+        for (field in listOf(password, number, webText, text)) {
             focus(ime, field)
             deliverPredictions(ime)
             deliverChips(ime)
-            assertEquals(field.name, Placement.ACTIONS, observe(ime, view).chips)
+            assertEquals(field.name, BarState(false, false, Placement.ACTIONS, observe(ime, view).heightPx), observe(ime, view))
             focus(ime, field, restarting = true)
-            assertEquals(field.name, BarState(false, false, Placement.NONE, observe(ime, view).heightPx), observe(ime, view))
+            assertEquals(field.name, BarState(!field.sensitive, false, Placement.NONE, observe(ime, view).heightPx), observe(ime, view))
         }
         focus(ime, text)
         assertTrue(observe(ime, view).suggestionsRow)
+    }
+
+    @Test
+    fun barHeightAnimatesOnlyWhenARowComesOrGoes() {
+        val text = fields.first { it.name == "text" }
+        val webText = fields.first { it.name == "web form text" }
+        val password = fields.first { it.name == "password" }
+        val number = fields.first { it.name == "number" }
+        for (alwaysShow in listOf(true, false)) for (animate in listOf(true, false)) {
+            configure(Bar.ACTIONS_ROW, alwaysShow, hideSensitive = true)
+            SettingsManager.setKeyboardBarHeightAnimation(context, animate)
+            val (ime, view) = startService()
+            val chrome = ReflectionHelpers.getField<ImeChromeLayout>(
+                ReflectionHelpers.getField<StatusBarController>(
+                    ReflectionHelpers.getField<CandidatesBarController>(ime, "candidatesBarController"), "inputStatusBar"
+                ), "statusBarLayout"
+            )
+            val animated = mutableListOf<String>()
+            var lastAnimator: Any? = null
+            var settledHeight = -1
+            fun step(label: String, action: () -> Unit) {
+                action()
+                val firstFrame = observe(ime, view).heightPx - (chrome.clipBounds?.top ?: 0)
+                val animator = ReflectionHelpers.getField<Any?>(chrome, "heightAnimator")
+                if (animator != null && animator !== lastAnimator) animated += label
+                lastAnimator = animator
+                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+                val settled = observe(ime, view).heightPx
+                assertNull("$label settles unclipped", chrome.clipBounds)
+                if (settledHeight >= 0) {
+                    assertEquals("$label alwaysShow=$alwaysShow animate=$animate first frame",
+                        if (animate) settledHeight else settled, firstFrame)
+                }
+                settledHeight = settled
+            }
+            step("focus text") { focus(ime, text) }
+            step("predictions") { deliverPredictions(ime) }
+            step("other predictions") { deliverPredictions(ime, listOf("delta", "echo", "foxtrot")) }
+            step("no predictions") { deliverPredictions(ime, emptyList()) }
+            step("focus web text") { focus(ime, webText) }
+            step("focus password") { focus(ime, password) }
+            step("focus number") { focus(ime, number) }
+            step("focus text again") { focus(ime, text) }
+            step("chips") { deliverChips(ime) }
+            step("chips gone") { focus(ime, text, restarting = true) }
+            val expected = when {
+                !animate -> emptyList()
+                alwaysShow -> listOf("focus password", "focus text again", "chips", "chips gone")
+                else -> listOf("predictions", "no predictions")
+            }
+            assertEquals("alwaysShow=$alwaysShow animate=$animate", expected, animated)
+            service?.destroy()
+            service = null
+        }
     }
 
     @Test
@@ -232,6 +297,8 @@ class AlwaysShowSuggestionsSensitiveFieldsTest {
         KeyboardBarConfiguration.setArrangement(context, KeyboardBarArrangement.SUGGESTIONS_FIRST)
         SettingsManager.setAlwaysShowSuggestionsBar(context, alwaysShow)
         SettingsManager.setAlwaysShowSuggestionsBarHideSensitive(context, hideSensitive)
+        // Heights are compared across scenarios; barHeightAnimatesOnlyWhenARowComesOrGoes covers the animation.
+        SettingsManager.setKeyboardBarHeightAnimation(context, false)
     }
 
     private fun startService(): Pair<PhysicalKeyboardInputMethodService, ViewGroup> {

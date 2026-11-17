@@ -23,6 +23,7 @@
     <string name="setting_link_theme_hardware_chrome_rounding">Hardwaretastatur: Rundung von Vorschlägen und Varianten</string>
     <string name="setting_link_theme_hardware_suggestions_height">Hardwaretastatur: Höhe der Vorschläge</string>
     <string name="setting_link_theme_hardware_variations_height">Hardwaretastatur: Höhe der Varianten</string>
+    <string name="setting_link_theme_hardware_autofill_row_height">Hardwaretastatur: Höhe der Autofill-Zeile</string>
     <string name="setting_link_theme_hardware_led_colors">Hardwaretastatur: LED-Farben</string>
     <string name="setting_link_theme_hardware_assignment">Hardwaretastatur: Designzuordnung</string>
     <string name="setting_link_theme_hardware_light_theme">Hardwaretastatur: Design im hellen Modus</string>
@@ -32,6 +33,7 @@
     <string name="setting_link_theme_software_chrome_rounding">Bildschirmtastatur: Rundung von Vorschlägen und Varianten</string>
     <string name="setting_link_theme_software_suggestions_height">Bildschirmtastatur: Höhe der Vorschläge</string>
     <string name="setting_link_theme_software_variations_height">Bildschirmtastatur: Höhe der Varianten</string>
+    <string name="setting_link_theme_software_autofill_row_height">Bildschirmtastatur: Höhe der Autofill-Zeile</string>
     <string name="setting_link_theme_software_key_height">Bildschirmtastatur: Tastenhöhe</string>
     <string name="setting_link_theme_software_number_row_height">Bildschirmtastatur: Höhe der Zahlenreihe</string>
     <string name="setting_link_theme_software_key_width">Bildschirmtastatur: Tastenbreite</string>

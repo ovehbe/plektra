@@ -111,6 +111,24 @@ class KeyboardThemeImportTest {
     }
 
     @Test
+    fun autofillRowHeight_roundTripsAndOlderExportsKeepTheDefault() {
+        for (scale in listOf(1f, 1.75f, 2.5f)) {
+            val theme = distinctTheme(0xFF203040.toInt()).copy(autofillRowHeightScale = scale)
+            val exported = JSONObject(SettingsManager.keyboardThemeToJsonString(theme))
+            assertEquals(scale.toDouble(), exported.getDouble("autofill_row_height_scale"), 0.0001)
+            assertEquals(theme, SettingsManager.keyboardThemeFromJsonString(exported.toString()))
+        }
+
+        val older = JSONObject(
+            SettingsManager.keyboardThemeToJsonString(SettingsManager.defaultKeyboardTheme().copy(autofillRowHeightScale = 2.5f))
+        ).apply { remove("autofill_row_height_scale") }
+        assertEquals(1f, SettingsManager.keyboardThemeFromJsonString(older.toString())!!.autofillRowHeightScale)
+
+        val wrongType = JSONObject(older.toString()).apply { put("autofill_row_height_scale", "2") }
+        assertNull(SettingsManager.keyboardThemeFromJsonString(wrongType.toString()))
+    }
+
+    @Test
     fun wrongTypesAndUnsupportedPopupStyle_areRejected() {
         val exported = SettingsManager.keyboardThemeToJsonString(SettingsManager.defaultKeyboardTheme())
         val stringColor = JSONObject(exported).apply { put("background", "-1") }

@@ -1601,7 +1601,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         scheduleStatusBarTextUpdate()
     }
 
-    /** Always show's "Hide in number and password fields" also drops word predictions in those fields. */
+    /** Always show's "Hide where it stays empty" also drops word predictions in sensitive fields. */
     private fun sensitiveFieldPredictionsHidden(): Boolean =
         inputContextState.isSuggestionsRowSensitive &&
             SettingsManager.getAlwaysShowSuggestionsBar(this) &&

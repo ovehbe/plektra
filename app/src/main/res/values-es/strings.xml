@@ -941,8 +941,14 @@ Cada tecla puede configurarse como Keycode, Acción, Native Ctrl o Ninguno. Usa 
     <string name="kw_auto_correction_number_suggestions">números, dígitos, alt, w00, 100, convertir, por app, excluir</string>
     <string name="always_show_suggestions_bar_title">Mostrar siempre la barra de sugerencias</string>
     <string name="always_show_suggestions_bar_summary">Evita que la barra de sugerencias se oculte automáticamente (tras símbolos Alt, puntuación, etc.) para mantener constante el tamaño de la ventana de la app.</string>
-    <string name="always_show_suggestions_bar_hide_sensitive_title">Ocultar en campos numéricos y de contraseña</string>
-    <string name="always_show_suggestions_bar_hide_sensitive_summary">Sin barra de sugerencias ni predicciones de palabras en campos de contraseña, número, teléfono y fecha</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_title">Ocultar donde queda vacía</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Sin fila vacía en campos de URL, correo, contraseña, número, teléfono y fecha ni sobre los chips de autocompletado. Sin predicciones de palabras en campos de contraseña, número, teléfono y fecha.</string>
+    <string name="keyboard_bar_height_animation_title">Animar cambios de altura</string>
+    <string name="keyboard_bar_height_animation_summary">La barra se ajusta suavemente a su nueva altura cuando aparece o desaparece una fila</string>
+    <string name="keyboard_bar_height_animation_duration_title">Duración de la animación</string>
+    <string name="keyboard_bar_height_animation_duration_value">%1$d ms</string>
+    <string name="keyboard_bar_row_heights_title">Altura de las filas</string>
+    <string name="keyboard_bar_row_heights_summary">Ajusta la altura de las filas de sugerencias y variantes en el tema del teclado</string>
     <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
     <string name="clicks_button_mode_quick_launcher_description">Abre directamente Plektra Quick Launcher y no pasa el evento de tecla a la app.</string>
     <string name="clicks_recommended_settings_description">Restaura las salidas nativas de Tab y Alt; asigna el botón del micrófono al dictado de Plektra; asigna el botón rojo de Clicks y el botón Launcher directamente a Quick Launcher; y desactiva Caps Lock y Cursor Mode.</string>

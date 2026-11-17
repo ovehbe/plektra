@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="setting_link_theme_hardware_autofill_row_height">Φυσικό πληκτρολόγιο: ύψος γραμμής αυτόματης συμπλήρωσης</string>
+    <string name="setting_link_theme_software_autofill_row_height">Πληκτρολόγιο οθόνης: ύψος γραμμής αυτόματης συμπλήρωσης</string>
+</resources>

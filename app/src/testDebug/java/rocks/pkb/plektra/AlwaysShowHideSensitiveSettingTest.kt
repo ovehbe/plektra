@@ -89,7 +89,7 @@ class AlwaysShowHideSensitiveSettingTest {
     }
 
     @Test fun settingsSearchFindsTheSwitchAndOpensTheKeyboardBarScreen() {
-        for (query in listOf(title, "password fields", "number", "phone")) {
+        for (query in listOf(title, "password", "number", "phone", "URL", "autofill chips")) {
             val entry = SettingLinkRegistry.search(context, query)
                 .firstOrNull { it.id == "keyboard_bar.always_show_suggestions_hide_sensitive" }
             assertNotNull(query, entry)

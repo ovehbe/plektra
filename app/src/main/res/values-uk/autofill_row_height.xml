@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_theme_autofill_row_height">Висота рядка автозаповнення</string>
+    <string name="setting_link_theme_hardware_autofill_row_height">Апаратна клавіатура: висота рядка автозаповнення</string>
+    <string name="setting_link_theme_software_autofill_row_height">Екранна клавіатура: висота рядка автозаповнення</string>
+</resources>

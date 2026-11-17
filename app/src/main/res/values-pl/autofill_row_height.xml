@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_theme_autofill_row_height">Wysokość wiersza autouzupełniania</string>
+    <string name="setting_link_theme_hardware_autofill_row_height">Klawiatura fizyczna: wysokość wiersza autouzupełniania</string>
+    <string name="setting_link_theme_software_autofill_row_height">Klawiatura ekranowa: wysokość wiersza autouzupełniania</string>
+</resources>

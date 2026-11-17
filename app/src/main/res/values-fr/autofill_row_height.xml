@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_theme_autofill_row_height">Hauteur de la ligne de saisie automatique</string>
+    <string name="setting_link_theme_hardware_autofill_row_height">Clavier physique : hauteur de la ligne de saisie automatique</string>
+    <string name="setting_link_theme_software_autofill_row_height">Clavier à l\'écran : hauteur de la ligne de saisie automatique</string>
+</resources>
