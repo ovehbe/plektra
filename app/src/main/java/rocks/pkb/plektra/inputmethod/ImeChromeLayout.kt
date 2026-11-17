@@ -468,6 +468,9 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         val surface = surfaceView
         if (!softwareKeyboardModeActive || surface == null || surface.visibility == View.GONE) {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            // A parent fixing the height (often at the animated height just reported) says
+            // nothing about the rows' size; tracking it would end the animation there.
+            if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) return
             val target = measuredHeight
             setMeasuredDimension(measuredWidth, animatedModeHeight(target, animateRowChanges = !softwareKeyboardModeActive))
             return

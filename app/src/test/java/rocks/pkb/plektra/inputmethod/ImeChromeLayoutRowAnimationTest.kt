@@ -143,6 +143,30 @@ class ImeChromeLayoutRowAnimationTest {
     }
 
     @Test
+    fun aParentRemeasuringAtTheAnimatedHeightDoesNotStopTheBarShort() {
+        chrome.rowChangeAnimationMs = 120
+        /** A wrap-content pass, then the parent fixing the chrome at the height it reported. */
+        fun parentPasses(): Int {
+            val height = measuredHeight()
+            chrome.measure(
+                View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY)
+            )
+            return chrome.measuredHeight
+        }
+        suggestionsRow.visibility = View.GONE
+        assertEquals(ROW, parentPasses())
+        suggestionsRow.visibility = View.VISIBLE
+        parentPasses()
+        val frames = (1..8).map { animator!!.currentPlayTime = it * 16L; parentPasses() }
+        assertEquals("$frames", 2 * ROW, frames.last())
+        suggestionsRow.visibility = View.GONE
+        parentPasses()
+        val shrinking = (1..8).map { animator!!.currentPlayTime = it * 16L; parentPasses() }
+        assertEquals("$shrinking", ROW, shrinking.last())
+    }
+
+    @Test
     fun theSoftwareKeyboardKeepsOnlyItsModeTransition() {
         chrome.rowChangeAnimationMs = 120
         chrome.softwareKeyboardModeActive = true
