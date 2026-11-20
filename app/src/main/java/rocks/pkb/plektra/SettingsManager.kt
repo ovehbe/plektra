@@ -3842,6 +3842,7 @@ object SettingsManager {
     private const val KEY_QUICK_LAUNCHER_RESPECT_KEYBOARD_LAYOUT = "quick_launcher_respect_keyboard_layout"
     private const val KEY_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING = "quick_launcher_typo_tolerant_ranking"
     private const val KEY_QUICK_LAUNCHER_WIDTH_PERCENT = "quick_launcher_width_percent"
+    private const val KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP = "quick_launcher_corner_radius_dp"
     private const val KEY_QUICK_LAUNCHER_PILL_MODE = "quick_launcher_pill_mode"
     private const val KEY_QUICK_LAUNCHER_BEHAVIOR = "quick_launcher_behavior"
     private const val KEY_QUICK_LAUNCHER_ANIMATION_DURATION_MS = "quick_launcher_animation_duration_ms"
@@ -3862,6 +3863,11 @@ object SettingsManager {
     private const val DEFAULT_QUICK_LAUNCHER_RESPECT_KEYBOARD_LAYOUT = true
     private const val DEFAULT_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING = true
     private const val DEFAULT_QUICK_LAUNCHER_WIDTH_PERCENT = 100
+    /** Matches Material3 `shapes.large` (16dp), the radius the launcher panel used before this setting. */
+    const val DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP = 16
+    const val MIN_QUICK_LAUNCHER_CORNER_RADIUS_DP = 0
+    const val MAX_QUICK_LAUNCHER_CORNER_RADIUS_DP = 40
+    const val QUICK_LAUNCHER_CORNER_RADIUS_STEP_DP = 2
     private const val DEFAULT_QUICK_LAUNCHER_PILL_MODE = false
     private const val DEFAULT_QUICK_LAUNCHER_ANIMATION_DURATION_MS = 120
     const val QUICK_LAUNCHER_DYNAMIC_FAVORITE_COLOR = Int.MIN_VALUE
@@ -4487,6 +4493,29 @@ object SettingsManager {
         getPreferences(context).edit()
             .putInt(KEY_QUICK_LAUNCHER_WIDTH_PERCENT, percent.coerceIn(50, 100))
             .apply()
+    }
+
+    fun getQuickLauncherCornerRadiusDp(context: Context): Int {
+        return getPreferences(context)
+            .getInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+            .coerceIn(MIN_QUICK_LAUNCHER_CORNER_RADIUS_DP, MAX_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+    }
+
+    fun setQuickLauncherCornerRadiusDp(context: Context, radiusDp: Int) {
+        getPreferences(context).edit()
+            .putInt(
+                KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP,
+                radiusDp.coerceIn(MIN_QUICK_LAUNCHER_CORNER_RADIUS_DP, MAX_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+            )
+            .apply()
+    }
+
+    /**
+     * Corner radius for result rows, derived from the panel radius so rows stay nested inside it.
+     * At the default panel radius (16dp) this is 12dp, i.e. Material3 `shapes.medium`, unchanged.
+     */
+    fun quickLauncherItemCornerRadiusDp(panelRadiusDp: Int): Int {
+        return panelRadiusDp.coerceIn(MIN_QUICK_LAUNCHER_CORNER_RADIUS_DP, MAX_QUICK_LAUNCHER_CORNER_RADIUS_DP) * 3 / 4
     }
 
     fun getQuickLauncherPillMode(context: Context): Boolean {
