@@ -66,7 +66,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -117,7 +116,6 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var autoStartSingle by mutableStateOf(false)
     private var limitResults by mutableStateOf(false)
     private var widthPercent by mutableStateOf(100)
-    private var cornerRadiusDp by mutableIntStateOf(SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
     private var pillMode by mutableStateOf(false)
     private var respectKeyboardLayout by mutableStateOf(true)
     private var typoTolerantRanking by mutableStateOf(false)
@@ -160,7 +158,6 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         autoStartSingle = SettingsManager.getQuickLauncherAutoStartSingle(this)
         limitResults = SettingsManager.getQuickLauncherLimitResults(this)
         widthPercent = SettingsManager.getQuickLauncherWidthPercent(this)
-        cornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(this)
         pillMode = SettingsManager.getQuickLauncherPillMode(this)
         respectKeyboardLayout = SettingsManager.getQuickLauncherRespectKeyboardLayout(this)
         typoTolerantRanking = SettingsManager.getQuickLauncherTypoTolerantRanking(this)
@@ -194,7 +191,6 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         loadingApps = loadingApps,
                         limitResults = limitResults,
                         widthPercent = widthPercent,
-                        cornerRadiusDp = cornerRadiusDp,
                         pillMode = pillMode,
                         customizations = commandCustomizations,
                         customizationRevision = commandCustomizationRevision,
@@ -907,7 +903,6 @@ private fun QuickLauncherSheet(
     loadingApps: Boolean,
     limitResults: Boolean,
     widthPercent: Int,
-    cornerRadiusDp: Int,
     pillMode: Boolean,
     customizations: Map<String, SettingsManager.QuickLauncherCommandCustomization>,
     customizationRevision: Int,
@@ -941,8 +936,6 @@ private fun QuickLauncherSheet(
         }
     }
     val isCollapsedPill = pillMode && query.isBlank()
-    // Preserve the original 28 dp shape in collapsed pill mode at the default setting.
-    val pillRadius = (28f * cornerRadiusDp / SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP).dp
     val widthFraction = if (isCollapsedPill) 0.72f else widthPercent.coerceIn(50, 100) / 100f
     val entries = remember(commands, query, customizations, customizationRevision) {
         if (query.isNotBlank()) {
@@ -988,7 +981,7 @@ private fun QuickLauncherSheet(
             modifier = Modifier
                 .fillMaxWidth(widthFraction)
                 .heightIn(max = maxSheetHeight),
-            shape = RoundedCornerShape(if (isCollapsedPill) pillRadius else cornerRadiusDp.dp),
+            shape = if (isCollapsedPill) RoundedCornerShape(28.dp) else MaterialTheme.shapes.large,
             color = if (isCollapsedPill) Color.Transparent else MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp
@@ -1021,7 +1014,7 @@ private fun QuickLauncherSheet(
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    shape = RoundedCornerShape(if (isCollapsedPill) pillRadius else 28.dp),
+                    shape = RoundedCornerShape(28.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .onPreviewKeyEvent { composeEvent ->

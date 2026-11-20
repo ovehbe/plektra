@@ -320,8 +320,6 @@
     <string name="quick_launcher_cosmetic_title">Darstellung</string>
     <string name="quick_launcher_cosmetic_description">Breite, Pillenmodus, angezeigte Commands, Favoriten, Aliase und Eintragsfarben.</string>
     <string name="quick_launcher_width_title">Launcher-Breite</string>
-    <string name="quick_launcher_corner_radius_title">Eckenradius des Launchers</string>
-    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_width_value">%1$d%% Bildschirmbreite</string>
     <string name="quick_launcher_pill_mode_title">Pillenmodus</string>
     <string name="quick_launcher_pill_mode_description">Als kompakte Suchpille öffnen und erst nach dem Tippen vergrößern.</string>

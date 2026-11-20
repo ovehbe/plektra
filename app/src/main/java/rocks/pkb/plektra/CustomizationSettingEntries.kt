@@ -229,14 +229,6 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
         )
     ),
     SettingEntry(
-        id = "quick_launcher.corner_radius",
-        titleRes = R.string.quick_launcher_corner_radius_title,
-        route = SettingRoute(
-            destination = SettingsDestination.Customization,
-            customizationDestination = "launcher_shortcut_cosmetic"
-        )
-    ),
-    SettingEntry(
         id = "quick_launcher.pill_mode",
         titleRes = R.string.quick_launcher_pill_mode_title,
         summaryRes = R.string.quick_launcher_pill_mode_description,

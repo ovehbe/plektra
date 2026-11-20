@@ -695,8 +695,6 @@
     <string name="quick_launcher_cosmetic_title">Внешний вид</string>
     <string name="quick_launcher_cosmetic_description">Ширина, режим пилюли, источники команд, избранное, псевдонимы и цвета элементов.</string>
     <string name="quick_launcher_width_title">Ширина лаунчера</string>
-    <string name="quick_launcher_corner_radius_title">Радиус скругления углов лаунчера</string>
-    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_width_value">%1$d%% ширины экрана</string>
     <string name="quick_launcher_pill_mode_title">Режим пилюли</string>
     <string name="quick_launcher_pill_mode_description">Открывается как компактная поисковая пилюля и расширяется только после начала ввода.</string>
