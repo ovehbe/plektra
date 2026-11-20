@@ -66,6 +66,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -116,7 +117,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var autoStartSingle by mutableStateOf(false)
     private var limitResults by mutableStateOf(false)
     private var widthPercent by mutableStateOf(100)
-    private var cornerRadiusDp by mutableStateOf(SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+    private var cornerRadiusDp by mutableIntStateOf(SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
     private var pillMode by mutableStateOf(false)
     private var respectKeyboardLayout by mutableStateOf(true)
     private var typoTolerantRanking by mutableStateOf(false)

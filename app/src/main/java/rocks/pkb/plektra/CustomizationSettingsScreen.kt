@@ -118,7 +118,7 @@ fun CustomizationSettingsScreen(
         mutableStateOf(SettingsManager.getQuickLauncherWidthPercent(context))
     }
     var quickLauncherCornerRadiusDp by remember {
-        mutableStateOf(SettingsManager.getQuickLauncherCornerRadiusDp(context))
+        mutableIntStateOf(SettingsManager.getQuickLauncherCornerRadiusDp(context))
     }
     var quickLauncherPillMode by remember {
         mutableStateOf(SettingsManager.getQuickLauncherPillMode(context))

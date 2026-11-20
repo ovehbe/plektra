@@ -8,6 +8,7 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
+import androidx.core.content.edit
 import rocks.pkb.plektra.commands.CommandJson
 import rocks.pkb.plektra.commands.CommandLaunchSpec
 import rocks.pkb.plektra.commands.CommandSourceId
@@ -4504,12 +4505,12 @@ object SettingsManager {
     }
 
     fun setQuickLauncherCornerRadiusDp(context: Context, radiusDp: Int) {
-        getPreferences(context).edit()
-            .putInt(
+        getPreferences(context).edit {
+            putInt(
                 KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP,
                 radiusDp.coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP, QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP)
             )
-            .apply()
+        }
     }
 
     fun getQuickLauncherPillMode(context: Context): Boolean {
