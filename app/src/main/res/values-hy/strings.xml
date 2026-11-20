@@ -696,6 +696,8 @@
     <string name="quick_launcher_cosmetic_description">Լայնություն, հաբաձև ռեժիմ, command sources, favorites, aliases և entry colors։</string>
     <string name="quick_launcher_width_title">Launcher-ի լայնություն</string>
     <string name="quick_launcher_width_value">Էկրանի լայնության %1$d%%</string>
+    <string name="quick_launcher_corner_radius_title">Անկյունների շառավիղ</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_pill_mode_title">Հաբաձև ռեժիմ</string>
     <string name="quick_launcher_pill_mode_description">Բացվում է որպես կոմպակտ որոնման հաբ և լայնանում է միայն մուտքագրելուց հետո։</string>
     <string name="quick_launcher_type_to_search">Սկսեք մուտքագրել՝ հավելվածներ որոնելու համար</string>
