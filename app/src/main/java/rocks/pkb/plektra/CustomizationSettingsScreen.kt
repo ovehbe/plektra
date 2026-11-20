@@ -116,6 +116,9 @@ fun CustomizationSettingsScreen(
     var quickLauncherWidthPercent by remember {
         mutableStateOf(SettingsManager.getQuickLauncherWidthPercent(context))
     }
+    var quickLauncherCornerRadiusDp by remember {
+        mutableStateOf(SettingsManager.getQuickLauncherCornerRadiusDp(context))
+    }
     var quickLauncherPillMode by remember {
         mutableStateOf(SettingsManager.getQuickLauncherPillMode(context))
     }
@@ -193,6 +196,9 @@ fun CustomizationSettingsScreen(
                 }
                 "quick_launcher_width_percent" -> {
                     quickLauncherWidthPercent = SettingsManager.getQuickLauncherWidthPercent(context)
+                }
+                "quick_launcher_corner_radius_dp" -> {
+                    quickLauncherCornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(context)
                 }
                 "quick_launcher_pill_mode" -> {
                     quickLauncherPillMode = SettingsManager.getQuickLauncherPillMode(context)
@@ -530,6 +536,11 @@ fun CustomizationSettingsScreen(
                     onQuickLauncherWidthPercentChanged = { percent ->
                         quickLauncherWidthPercent = percent
                         SettingsManager.setQuickLauncherWidthPercent(context, percent)
+                    },
+                    quickLauncherCornerRadiusDp = quickLauncherCornerRadiusDp,
+                    onQuickLauncherCornerRadiusDpChanged = { radiusDp ->
+                        quickLauncherCornerRadiusDp = radiusDp
+                        SettingsManager.setQuickLauncherCornerRadiusDp(context, radiusDp)
                     },
                     quickLauncherPillMode = quickLauncherPillMode,
                     onQuickLauncherPillModeChanged = { enabled ->
@@ -1591,6 +1602,8 @@ private fun StarterLauncherCosmeticScreen(
     onBack: () -> Unit,
     quickLauncherWidthPercent: Int,
     onQuickLauncherWidthPercentChanged: (Int) -> Unit,
+    quickLauncherCornerRadiusDp: Int,
+    onQuickLauncherCornerRadiusDpChanged: (Int) -> Unit,
     quickLauncherPillMode: Boolean,
     onQuickLauncherPillModeChanged: (Boolean) -> Unit,
     quickLauncherHighlightFavorites: Boolean,
@@ -1638,6 +1651,34 @@ private fun StarterLauncherCosmeticScreen(
                     onValueChange = { onQuickLauncherWidthPercentChanged(it.toInt()) },
                     valueRange = 50f..100f,
                     steps = 9
+                )
+            }
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth().settingRow("quick_launcher.corner_radius"),
+            tonalElevation = 1.dp,
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.quick_launcher_corner_radius_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = stringResource(R.string.quick_launcher_corner_radius_value, quickLauncherCornerRadiusDp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Slider(
+                    value = quickLauncherCornerRadiusDp.toFloat(),
+                    onValueChange = { onQuickLauncherCornerRadiusDpChanged(it.toInt()) },
+                    valueRange = SettingsManager.QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP.toFloat()..
+                        SettingsManager.QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP.toFloat(),
+                    steps = 47
                 )
             }
         }
