@@ -695,6 +695,8 @@
     <string name="quick_launcher_cosmetic_title">Apariencia</string>
     <string name="quick_launcher_cosmetic_description">Anchura, modo píldora, fuentes de comandos, favoritos, alias y colores de entradas.</string>
     <string name="quick_launcher_width_title">Anchura del launcher</string>
+    <string name="quick_launcher_corner_radius_title">Radio de las esquinas del launcher</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_width_value">%1$d%% del ancho de pantalla</string>
     <string name="quick_launcher_pill_mode_title">Modo píldora</string>
     <string name="quick_launcher_pill_mode_description">Se abre como una píldora de búsqueda compacta y solo se expande después de escribir.</string>

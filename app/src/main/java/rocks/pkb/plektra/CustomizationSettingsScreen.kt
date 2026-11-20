@@ -113,6 +113,9 @@ fun CustomizationSettingsScreen(
     var quickLauncherTypoTolerantRanking by remember {
         mutableStateOf(SettingsManager.getQuickLauncherTypoTolerantRanking(context))
     }
+    var quickLauncherCornerRadiusDp by remember {
+        mutableIntStateOf(SettingsManager.getQuickLauncherCornerRadiusDp(context))
+    }
     var quickLauncherWidthPercent by remember {
         mutableStateOf(SettingsManager.getQuickLauncherWidthPercent(context))
     }
@@ -190,6 +193,9 @@ fun CustomizationSettingsScreen(
                 }
                 "quick_launcher_typo_tolerant_ranking" -> {
                     quickLauncherTypoTolerantRanking = SettingsManager.getQuickLauncherTypoTolerantRanking(context)
+                }
+                SettingsManager.KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP -> {
+                    quickLauncherCornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(context)
                 }
                 "quick_launcher_width_percent" -> {
                     quickLauncherWidthPercent = SettingsManager.getQuickLauncherWidthPercent(context)
@@ -526,6 +532,11 @@ fun CustomizationSettingsScreen(
                 StarterLauncherCosmeticScreen(
                     modifier = modifier,
                     onBack = { navigateBack() },
+                    quickLauncherCornerRadiusDp = quickLauncherCornerRadiusDp,
+                    onQuickLauncherCornerRadiusDpChanged = { radiusDp ->
+                        quickLauncherCornerRadiusDp = radiusDp
+                        SettingsManager.setQuickLauncherCornerRadiusDp(context, radiusDp)
+                    },
                     quickLauncherWidthPercent = quickLauncherWidthPercent,
                     onQuickLauncherWidthPercentChanged = { percent ->
                         quickLauncherWidthPercent = percent
@@ -1589,6 +1600,8 @@ private fun CommandCustomizationRow(
 private fun StarterLauncherCosmeticScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit,
+    quickLauncherCornerRadiusDp: Int,
+    onQuickLauncherCornerRadiusDpChanged: (Int) -> Unit,
     quickLauncherWidthPercent: Int,
     onQuickLauncherWidthPercentChanged: (Int) -> Unit,
     quickLauncherPillMode: Boolean,
@@ -1638,6 +1651,34 @@ private fun StarterLauncherCosmeticScreen(
                     onValueChange = { onQuickLauncherWidthPercentChanged(it.toInt()) },
                     valueRange = 50f..100f,
                     steps = 9
+                )
+            }
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth().settingRow("quick_launcher.corner_radius"),
+            tonalElevation = 1.dp,
+            shape = MaterialTheme.shapes.medium
+        ) {
+            val range = SettingsManager.QUICK_LAUNCHER_CORNER_RADIUS_RANGE
+            Column(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.quick_launcher_corner_radius_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = stringResource(R.string.quick_launcher_corner_radius_value, quickLauncherCornerRadiusDp),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Slider(
+                    value = quickLauncherCornerRadiusDp.toFloat(),
+                    onValueChange = { onQuickLauncherCornerRadiusDpChanged(kotlin.math.round(it).toInt()) },
+                    valueRange = range.first.toFloat()..range.last.toFloat(),
+                    steps = range.last - range.first - 1
                 )
             }
         }
