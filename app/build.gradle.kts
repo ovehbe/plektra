@@ -109,8 +109,8 @@ android {
     namespace = "rocks.pkb.plektra"
     compileSdk = 36
 
-    val defaultVersionCode = 26102001
-    val defaultVersionName = "26.10.20"
+    val defaultVersionCode = 26102101
+    val defaultVersionName = "26.10.21"
     val ciVersionCode = providers.gradleProperty("PLEKTRA_VERSION_CODE").orNull?.toIntOrNull()
     val ciVersionName = providers.gradleProperty("PLEKTRA_VERSION_NAME").orNull
     val nightlyVersionCode = providers.gradleProperty("PLEKTRA_NIGHTLY_VERSION_CODE").orNull?.toIntOrNull()
