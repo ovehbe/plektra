@@ -189,6 +189,10 @@ class RestoreManagerAndBackupContractTest {
             PreferenceValueType.STRING,
             PreferenceSchemas.expectedType("plektra_prefs", "quick_launcher_behavior")
         )
+        assertEquals(
+            PreferenceValueType.INT,
+            PreferenceSchemas.expectedType("plektra_prefs", "quick_launcher_corner_radius_dp")
+        )
     }
 
     @Test

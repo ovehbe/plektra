@@ -696,6 +696,8 @@
     <string name="quick_launcher_cosmetic_description">Largeur, mode pilule, sources de commandes, favoris, alias et couleurs des entrées.</string>
     <string name="quick_launcher_width_title">Largeur du lanceur</string>
     <string name="quick_launcher_width_value">%1$d%% de la largeur de l’écran</string>
+    <string name="quick_launcher_corner_radius_title">Rayon des coins</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_pill_mode_title">Mode pilule</string>
     <string name="quick_launcher_pill_mode_description">S’ouvre comme une pilule de recherche compacte et ne s’agrandit qu’après la saisie.</string>
     <string name="quick_launcher_type_to_search">Commencez à taper pour rechercher des apps</string>
