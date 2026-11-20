@@ -3842,6 +3842,7 @@ object SettingsManager {
     private const val KEY_QUICK_LAUNCHER_RESPECT_KEYBOARD_LAYOUT = "quick_launcher_respect_keyboard_layout"
     private const val KEY_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING = "quick_launcher_typo_tolerant_ranking"
     private const val KEY_QUICK_LAUNCHER_WIDTH_PERCENT = "quick_launcher_width_percent"
+    private const val KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP = "quick_launcher_corner_radius_dp"
     private const val KEY_QUICK_LAUNCHER_PILL_MODE = "quick_launcher_pill_mode"
     private const val KEY_QUICK_LAUNCHER_BEHAVIOR = "quick_launcher_behavior"
     private const val KEY_QUICK_LAUNCHER_ANIMATION_DURATION_MS = "quick_launcher_animation_duration_ms"
@@ -3862,6 +3863,7 @@ object SettingsManager {
     private const val DEFAULT_QUICK_LAUNCHER_RESPECT_KEYBOARD_LAYOUT = true
     private const val DEFAULT_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING = true
     private const val DEFAULT_QUICK_LAUNCHER_WIDTH_PERCENT = 100
+    private const val DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP = 16
     private const val DEFAULT_QUICK_LAUNCHER_PILL_MODE = false
     private const val DEFAULT_QUICK_LAUNCHER_ANIMATION_DURATION_MS = 120
     const val QUICK_LAUNCHER_DYNAMIC_FAVORITE_COLOR = Int.MIN_VALUE
@@ -3871,6 +3873,8 @@ object SettingsManager {
     const val QUICK_LAUNCHER_BEHAVIOR_NIAGARA = "niagara"
     const val QUICK_LAUNCHER_ANIMATION_DURATION_MIN_MS = 0
     const val QUICK_LAUNCHER_ANIMATION_DURATION_MAX_MS = 320
+    const val QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP = 0
+    const val QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP = 40
     
     // Nav mode settings
     private const val KEY_NAV_MODE_ENABLED = "nav_mode_enabled"
@@ -4486,6 +4490,24 @@ object SettingsManager {
     fun setQuickLauncherWidthPercent(context: Context, percent: Int) {
         getPreferences(context).edit()
             .putInt(KEY_QUICK_LAUNCHER_WIDTH_PERCENT, percent.coerceIn(50, 100))
+            .apply()
+    }
+
+    fun getQuickLauncherCornerRadiusDp(context: Context): Int {
+        return getPreferences(context)
+            .getInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+            .coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP, QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP)
+    }
+
+    fun setQuickLauncherCornerRadiusDp(context: Context, radiusDp: Int) {
+        getPreferences(context).edit()
+            .putInt(
+                KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP,
+                radiusDp.coerceIn(
+                    QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP,
+                    QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP
+                )
+            )
             .apply()
     }
 
