@@ -289,6 +289,7 @@ internal object BackupPreferenceContract {
             "suggestions_bold" to PreferenceValueType.BOOLEAN,
             "always_show_suggestions_bar" to PreferenceValueType.BOOLEAN,
             "always_show_suggestions_bar_hide_sensitive" to PreferenceValueType.BOOLEAN,
+            "always_show_suggestions_bar_hide_variations" to PreferenceValueType.BOOLEAN,
             "keyboard_bar_height_animation" to PreferenceValueType.BOOLEAN,
             "keyboard_bar_height_animation_ms" to PreferenceValueType.INT,
             "auto_correct_enabled" to PreferenceValueType.BOOLEAN,

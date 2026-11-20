@@ -1121,6 +1121,8 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="always_show_suggestions_bar_summary">Impedisce alla barra dei suggerimenti di nascondersi automaticamente (dopo simboli Alt, punteggiatura, ecc.) per mantenere costante la dimensione della finestra dell\'app.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Nascondi dove resta vuota</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Nessuna riga vuota nei campi URL, email, password, numero, telefono e data o sopra i chip di compilazione automatica. Nessuna previsione di parole nei campi password, numero, telefono e data.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Nascondi anche la riga delle varianti</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Nasconde anche la riga di varianti e menu dove viene nascosta la riga dei suggerimenti vuota. I suggerimenti di compilazione automatica restano visibili.</string>
     <string name="keyboard_bar_height_animation_title">Anima i cambi di altezza</string>
     <string name="keyboard_bar_height_animation_summary">La barra scorre alla nuova altezza quando una riga appare o scompare</string>
     <string name="keyboard_bar_height_animation_duration_title">Durata animazione</string>

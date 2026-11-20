@@ -1701,6 +1701,8 @@ Jede Taste kann als Keycode, Aktion, Native Ctrl oder Keine konfiguriert werden.
     <string name="always_show_suggestions_bar_summary">Verhindert, dass sich die Vorschlagsleiste automatisch ausblendet (nach Alt-Symbolen, Satzzeichen usw.), damit die Fenstergröße der App gleich bleibt.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Ausblenden, wo sie leer bleibt</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Keine leere Zeile in URL-, E-Mail-, Passwort-, Zahlen-, Telefon- und Datumsfeldern oder über Autofill-Chips. Keine Wortvorschläge in Passwort-, Zahlen-, Telefon- und Datumsfeldern.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Auch die Variantenzeile ausblenden</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Blendet auch die Zeile mit Varianten und Menü aus, wo die leere Vorschlagszeile ausgeblendet wird. Autofill-Chips werden weiterhin angezeigt.</string>
     <string name="keyboard_bar_height_animation_title">Höhenänderungen animieren</string>
     <string name="keyboard_bar_height_animation_summary">Die Leiste gleitet zur neuen Höhe, wenn eine Zeile erscheint oder verschwindet</string>
     <string name="keyboard_bar_height_animation_duration_title">Animationsdauer</string>

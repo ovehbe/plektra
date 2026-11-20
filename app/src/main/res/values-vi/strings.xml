@@ -941,6 +941,8 @@ Mỗi phím có thể cấu hình là Keycode, Action, Native Ctrl hoặc None. 
     <string name="always_show_suggestions_bar_summary">Ngăn thanh gợi ý tự ẩn (sau ký hiệu Alt, dấu câu, v.v.) để kích thước cửa sổ ứng dụng không đổi.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Ẩn khi luôn trống</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Không hiện hàng trống trong ô URL, email, mật khẩu, số, điện thoại và ngày hoặc phía trên chip tự động điền. Không dự đoán từ trong ô mật khẩu, số, điện thoại và ngày.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Ẩn cả hàng biến thể</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Ẩn cả hàng biến thể và menu ở những nơi hàng gợi ý trống bị ẩn. Gợi ý tự động điền vẫn hiển thị.</string>
     <string name="keyboard_bar_height_animation_title">Hiệu ứng khi đổi chiều cao</string>
     <string name="keyboard_bar_height_animation_summary">Thanh chuyển mượt sang chiều cao mới khi một hàng xuất hiện hoặc biến mất</string>
     <string name="keyboard_bar_height_animation_duration_title">Thời lượng hiệu ứng</string>

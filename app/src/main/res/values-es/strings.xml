@@ -943,6 +943,8 @@ Cada tecla puede configurarse como Keycode, Acción, Native Ctrl o Ninguno. Usa 
     <string name="always_show_suggestions_bar_summary">Evita que la barra de sugerencias se oculte automáticamente (tras símbolos Alt, puntuación, etc.) para mantener constante el tamaño de la ventana de la app.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Ocultar donde queda vacía</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Sin fila vacía en campos de URL, correo, contraseña, número, teléfono y fecha ni sobre los chips de autocompletado. Sin predicciones de palabras en campos de contraseña, número, teléfono y fecha.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Ocultar también la fila de variantes</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Oculta también la fila de variantes y menú donde se oculta la fila de sugerencias vacía. Las sugerencias de autocompletado se siguen mostrando.</string>
     <string name="keyboard_bar_height_animation_title">Animar cambios de altura</string>
     <string name="keyboard_bar_height_animation_summary">La barra se ajusta suavemente a su nueva altura cuando aparece o desaparece una fila</string>
     <string name="keyboard_bar_height_animation_duration_title">Duración de la animación</string>

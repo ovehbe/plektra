@@ -944,6 +944,8 @@ Nav Mode использует физическое положение клави
     <string name="always_show_suggestions_bar_summary">Не даёт панели предложений автоматически скрываться (после символов Alt, знаков препинания и т. п.), чтобы размер окна приложения оставался постоянным.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Скрывать, где она остаётся пустой</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Без пустой строки в полях URL, эл. почты, пароля, чисел, телефона и даты и над подсказками автозаполнения. Без подсказок слов в полях пароля, чисел, телефона и даты.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Скрывать и строку вариантов</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Скрывает и строку вариантов и меню там, где скрывается пустая строка подсказок. Подсказки автозаполнения по-прежнему показываются.</string>
     <string name="keyboard_bar_height_animation_title">Анимировать изменение высоты</string>
     <string name="keyboard_bar_height_animation_summary">Панель плавно меняет высоту, когда строка появляется или исчезает</string>
     <string name="keyboard_bar_height_animation_duration_title">Длительность анимации</string>

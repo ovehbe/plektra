@@ -1786,6 +1786,8 @@ QWERTZ σε φυσικό QWERTY
     <string name="always_show_suggestions_bar_summary">Αποτρέπει την αυτόματη απόκρυψη της γραμμής προτάσεων (μετά από σύμβολα Alt, σημεία στίξης κ.λπ.) ώστε το μέγεθος του παραθύρου της εφαρμογής να μένει σταθερό.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Απόκρυψη όπου μένει κενή</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Χωρίς κενή γραμμή σε πεδία URL, email, κωδικών πρόσβασης, αριθμών, τηλεφώνου και ημερομηνίας ή πάνω από τα στοιχεία αυτόματης συμπλήρωσης. Χωρίς προβλέψεις λέξεων σε πεδία κωδικών πρόσβασης, αριθμών, τηλεφώνου και ημερομηνίας.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Απόκρυψη και της γραμμής παραλλαγών</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Κρύβει και τη γραμμή παραλλαγών και μενού όπου κρύβεται η κενή γραμμή προτάσεων. Οι προτάσεις αυτόματης συμπλήρωσης εμφανίζονται κανονικά.</string>
     <string name="keyboard_bar_height_animation_title">Κίνηση αλλαγών ύψους</string>
     <string name="keyboard_bar_height_animation_summary">Η γραμμή μεταβαίνει ομαλά στο νέο ύψος όταν εμφανίζεται ή εξαφανίζεται μια σειρά</string>
     <string name="keyboard_bar_height_animation_duration_title">Διάρκεια κίνησης</string>

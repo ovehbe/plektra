@@ -11,6 +11,9 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
     SettingEntry("keyboard_bar.always_show_suggestions_hide_sensitive", R.string.always_show_suggestions_bar_hide_sensitive_title,
         summaryRes = R.string.always_show_suggestions_bar_hide_sensitive_summary, route = SettingRoute(
             destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.always_show_suggestions_hide_variations", R.string.always_show_suggestions_bar_hide_variations_title,
+        summaryRes = R.string.always_show_suggestions_bar_hide_variations_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
     SettingEntry("keyboard_bar.height_animation", R.string.keyboard_bar_height_animation_title,
         summaryRes = R.string.keyboard_bar_height_animation_summary, route = SettingRoute(
             destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),

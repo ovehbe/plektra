@@ -943,6 +943,8 @@ Chaque touche peut être configurée comme Keycode, Action, Native Ctrl ou Aucun
     <string name="always_show_suggestions_bar_summary">Empêche la barre de suggestions de se masquer automatiquement (après les symboles Alt, la ponctuation, etc.) pour garder constante la taille de la fenêtre de l\'app.</string>
     <string name="always_show_suggestions_bar_hide_sensitive_title">Masquer là où elle reste vide</string>
     <string name="always_show_suggestions_bar_hide_sensitive_summary">Pas de rangée vide dans les champs d’URL, d’e-mail, de mot de passe, de nombre, de téléphone et de date ni au-dessus des puces de saisie automatique. Pas de prédictions de mots dans les champs de mot de passe, de nombre, de téléphone et de date.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Masquer aussi la ligne des variantes</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Masque aussi la ligne des variantes et du menu là où la ligne de suggestions vide est masquée. Les suggestions de saisie automatique restent affichées.</string>
     <string name="keyboard_bar_height_animation_title">Animer les changements de hauteur</string>
     <string name="keyboard_bar_height_animation_summary">La barre glisse vers sa nouvelle hauteur quand une rangée apparaît ou disparaît</string>
     <string name="keyboard_bar_height_animation_duration_title">Durée de l’animation</string>
