@@ -848,6 +848,8 @@
     <string name="keyboard_theme_led_locked">LED κλειδωμένο</string>
     <string name="quick_launcher_width_title">Πλάτος launcher</string>
     <string name="quick_launcher_width_value">%1$d%% πλάτος οθόνης</string>
+    <string name="quick_launcher_corner_radius_title">Ακτίνα γωνιών</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_pill_mode_title">Λειτουργία pill</string>
     <string name="quick_launcher_pill_mode_description">Ανοίγει ως συμπαγές pill αναζήτησης και επεκτείνεται μόνο μετά την πληκτρολόγηση.</string>
     <string name="quick_launcher_type_to_search">Αρχίστε να πληκτρολογείτε για αναζήτηση εφαρμογών</string>

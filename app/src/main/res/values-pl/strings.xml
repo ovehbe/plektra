@@ -696,6 +696,8 @@
     <string name="quick_launcher_cosmetic_description">Szerokość, tryb pigułki, źródła komend, ulubione, aliasy i kolory wpisów.</string>
     <string name="quick_launcher_width_title">Szerokość launchera</string>
     <string name="quick_launcher_width_value">%1$d%% szerokości ekranu</string>
+    <string name="quick_launcher_corner_radius_title">Promień zaokrąglenia rogów</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_pill_mode_title">Tryb pigułki</string>
     <string name="quick_launcher_pill_mode_description">Otwiera się jako kompaktowa pigułka wyszukiwania i rozszerza dopiero po rozpoczęciu pisania.</string>
     <string name="quick_launcher_type_to_search">Zacznij pisać, aby szukać aplikacji</string>

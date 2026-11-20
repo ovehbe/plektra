@@ -117,6 +117,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var limitResults by mutableStateOf(false)
     private var widthPercent by mutableStateOf(100)
     private var pillMode by mutableStateOf(false)
+    private var cornerRadiusDp by mutableStateOf(SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
     private var respectKeyboardLayout by mutableStateOf(true)
     private var typoTolerantRanking by mutableStateOf(false)
     private var filteredCommands by mutableStateOf(emptyList<CommandTarget>())
@@ -159,6 +160,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         limitResults = SettingsManager.getQuickLauncherLimitResults(this)
         widthPercent = SettingsManager.getQuickLauncherWidthPercent(this)
         pillMode = SettingsManager.getQuickLauncherPillMode(this)
+        cornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(this)
         respectKeyboardLayout = SettingsManager.getQuickLauncherRespectKeyboardLayout(this)
         typoTolerantRanking = SettingsManager.getQuickLauncherTypoTolerantRanking(this)
         commandCustomizations = SettingsManager.getQuickLauncherCommandCustomizations(this)
@@ -192,6 +194,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         limitResults = limitResults,
                         widthPercent = widthPercent,
                         pillMode = pillMode,
+                        cornerRadiusDp = cornerRadiusDp,
                         customizations = commandCustomizations,
                         customizationRevision = commandCustomizationRevision,
                         highlightFavorites = highlightFavorites,
@@ -894,6 +897,15 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 }
 
+/** Panel shape for the expanded Quick Launcher; [radiusDp] is clamped to the supported range. */
+internal fun quickLauncherPanelShape(radiusDp: Int): RoundedCornerShape =
+    RoundedCornerShape(
+        radiusDp.coerceIn(
+            SettingsManager.QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP,
+            SettingsManager.QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP
+        ).dp
+    )
+
 @Composable
 private fun QuickLauncherSheet(
     query: String,
@@ -904,6 +916,7 @@ private fun QuickLauncherSheet(
     limitResults: Boolean,
     widthPercent: Int,
     pillMode: Boolean,
+    cornerRadiusDp: Int = SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP,
     customizations: Map<String, SettingsManager.QuickLauncherCommandCustomization>,
     customizationRevision: Int,
     highlightFavorites: Boolean,
@@ -981,7 +994,11 @@ private fun QuickLauncherSheet(
             modifier = Modifier
                 .fillMaxWidth(widthFraction)
                 .heightIn(max = maxSheetHeight),
-            shape = if (isCollapsedPill) RoundedCornerShape(28.dp) else MaterialTheme.shapes.large,
+            shape = if (isCollapsedPill) {
+                RoundedCornerShape(28.dp)
+            } else {
+                quickLauncherPanelShape(cornerRadiusDp)
+            },
             color = if (isCollapsedPill) Color.Transparent else MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp
