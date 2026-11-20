@@ -8,6 +8,7 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
+import androidx.core.content.edit
 import rocks.pkb.plektra.commands.CommandJson
 import rocks.pkb.plektra.commands.CommandLaunchSpec
 import rocks.pkb.plektra.commands.CommandSourceId
@@ -3862,6 +3863,10 @@ object SettingsManager {
     private const val DEFAULT_QUICK_LAUNCHER_RESPECT_KEYBOARD_LAYOUT = true
     private const val DEFAULT_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING = true
     private const val DEFAULT_QUICK_LAUNCHER_WIDTH_PERCENT = 100
+    internal const val KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP = "quick_launcher_corner_radius_dp"
+    // The panel previously used the default Material 3 large shape (16 dp).
+    internal const val DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP = 16
+    internal val QUICK_LAUNCHER_CORNER_RADIUS_RANGE = 0..40
     private const val DEFAULT_QUICK_LAUNCHER_PILL_MODE = false
     private const val DEFAULT_QUICK_LAUNCHER_ANIMATION_DURATION_MS = 120
     const val QUICK_LAUNCHER_DYNAMIC_FAVORITE_COLOR = Int.MIN_VALUE
@@ -4475,6 +4480,16 @@ object SettingsManager {
         getPreferences(context).edit()
             .putBoolean(KEY_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING, enabled)
             .apply()
+    }
+
+    fun getQuickLauncherCornerRadiusDp(context: Context): Int = getPreferences(context)
+        .getInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+        .coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_RANGE)
+
+    fun setQuickLauncherCornerRadiusDp(context: Context, radiusDp: Int) {
+        getPreferences(context).edit {
+            putInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, radiusDp.coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_RANGE))
+        }
     }
 
     fun getQuickLauncherWidthPercent(context: Context): Int {
