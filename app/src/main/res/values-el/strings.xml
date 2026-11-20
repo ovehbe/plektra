@@ -64,13 +64,13 @@
     <string name="auto_space_punctuation_title">Διαστήματα στίξης</string>
     <string name="auto_space_punctuation_selected">Επιλεγμένα:</string>
     <string name="auto_space_punctuation_none_selected">κανένα</string>
-    <string name="auto_space_punctuation_dialog_instruction">Επιλέξτε αν το Plektra αφαιρεί το δικό του αυτόματο διάστημα πριν από κάθε χαρακτήρα και εισάγει αναβλημένο διάστημα πριν από το επόμενο κείμενο.</string>
+    <string name="auto_space_punctuation_dialog_instruction">Επιλέξτε αν το Plektra αφαιρεί το διάστημα πριν από κάθε χαρακτήρα καθώς τον πληκτρολογείτε και εισάγει αναβλημένο διάστημα πριν από το επόμενο κείμενο.</string>
     <string name="auto_space_punctuation_character_column">Χαρακτήρας</string>
     <string name="auto_space_punctuation_before_column">Αφαίρεση πριν</string>
     <string name="auto_space_punctuation_after_column">Πριν το επόμενο κείμενο</string>
     <string name="auto_space_punctuation_help_action">Εξήγηση διαστημάτων στίξης</string>
     <string name="auto_space_punctuation_help_title">Πώς λειτουργούν τα διαστήματα στίξης</string>
-    <string name="auto_space_punctuation_help_text">Το “Αφαίρεση πριν” αφαιρεί μόνο διάστημα που εισήγαγε αυτόματα το Plektra, όχι κάποιο που πληκτρολογήσατε χειροκίνητα.\n\nΤο “Πριν το επόμενο κείμενο” αναβάλλει το διάστημα μέχρι να πληκτρολογηθεί περισσότερο κείμενο. Έτσι το Enter ή η Αποστολή δεν αφήνει τελικό διάστημα.</string>
+    <string name="auto_space_punctuation_help_text">Το “Αφαίρεση πριν” αφαιρεί τα διαστήματα πριν από τον χαρακτήρα καθώς τον πληκτρολογείτε, είτε τα πληκτρολογήσατε εσείς είτε τα πρόσθεσε το Plektra: το “Τι κάνεις ;” γίνεται “Τι κάνεις;”. Το Backspace αμέσως μετά τα επαναφέρει. Ένα διάστημα στην αρχή της γραμμής παραμένει.\n\nΤο “Πριν το επόμενο κείμενο” αναβάλλει το διάστημα μέχρι να πληκτρολογηθεί περισσότερο κείμενο. Έτσι το Enter ή η Αποστολή δεν αφήνει τελικό διάστημα.\n\nΤα πεδία URL, email, κωδικού και αριθμών δεν αλλάζουν ποτέ.</string>
     <string name="auto_space_punctuation_choose">Επιλεγμένα:</string>
     <string name="auto_space_punctuation_choose_off">Ανενεργό</string>
     <string name="auto_space_punctuation_reset">Επαναφορά</string>
