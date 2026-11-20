@@ -26,6 +26,23 @@ import org.robolectric.shadows.ShadowToast
 @Config(sdk = [33])
 class SettingsManagerLayoutSwitchTest {
 
+    @Test
+    fun quickLauncherCornerRadius_defaultsToMaterialLargeAndPersistsWithinRange() {
+        val context = RuntimeEnvironment.getApplication()
+        val prefs = SettingsManager.getPreferences(context)
+        val key = "quick_launcher_corner_radius_dp"
+        assertEquals(16, SettingsManager.getQuickLauncherCornerRadiusDp(context))
+        for ((input, expected) in listOf(-1 to 0, 0 to 0, 21 to 21, 32 to 32, 33 to 32)) {
+            SettingsManager.setQuickLauncherCornerRadiusDp(context, input)
+            assertEquals(expected, prefs.getInt(key, -1))
+            assertEquals(expected, SettingsManager.getQuickLauncherCornerRadiusDp(context))
+        }
+        prefs.edit().putInt(key, -10).apply()
+        assertEquals(0, SettingsManager.getQuickLauncherCornerRadiusDp(context))
+        prefs.edit().putInt(key, 100).apply()
+        assertEquals(32, SettingsManager.getQuickLauncherCornerRadiusDp(context))
+    }
+
     @After
     fun tearDown() {
         DeviceSpecific.clearTestOverrides()

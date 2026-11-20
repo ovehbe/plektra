@@ -115,6 +115,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var querySelectionEnd by mutableStateOf(0)
     private var autoStartSingle by mutableStateOf(false)
     private var limitResults by mutableStateOf(false)
+    private var cornerRadiusDp = SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP
     private var widthPercent by mutableStateOf(100)
     private var pillMode by mutableStateOf(false)
     private var respectKeyboardLayout by mutableStateOf(true)
@@ -157,6 +158,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
 
         autoStartSingle = SettingsManager.getQuickLauncherAutoStartSingle(this)
         limitResults = SettingsManager.getQuickLauncherLimitResults(this)
+        cornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(this)
         widthPercent = SettingsManager.getQuickLauncherWidthPercent(this)
         pillMode = SettingsManager.getQuickLauncherPillMode(this)
         respectKeyboardLayout = SettingsManager.getQuickLauncherRespectKeyboardLayout(this)
@@ -190,6 +192,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         commands = filteredCommands,
                         loadingApps = loadingApps,
                         limitResults = limitResults,
+                        cornerRadiusDp = cornerRadiusDp,
                         widthPercent = widthPercent,
                         pillMode = pillMode,
                         customizations = commandCustomizations,
@@ -902,6 +905,7 @@ private fun QuickLauncherSheet(
     commands: List<CommandTarget>,
     loadingApps: Boolean,
     limitResults: Boolean,
+    cornerRadiusDp: Int,
     widthPercent: Int,
     pillMode: Boolean,
     customizations: Map<String, SettingsManager.QuickLauncherCommandCustomization>,
@@ -981,7 +985,7 @@ private fun QuickLauncherSheet(
             modifier = Modifier
                 .fillMaxWidth(widthFraction)
                 .heightIn(max = maxSheetHeight),
-            shape = if (isCollapsedPill) RoundedCornerShape(28.dp) else MaterialTheme.shapes.large,
+            shape = if (isCollapsedPill) RoundedCornerShape(28.dp) else RoundedCornerShape(cornerRadiusDp.dp),
             color = if (isCollapsedPill) Color.Transparent else MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp

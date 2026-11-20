@@ -23,6 +23,7 @@ class CustomizationSettingLinkTest {
     fun nestedEditorsHaveDirectRoutes() {
         val expected = mapOf(
             "quick_launcher.auto_start_single" to "launcher_shortcut_behavior",
+            "quick_launcher.corner_radius" to "launcher_shortcut_cosmetic",
             "quick_launcher.width" to "launcher_shortcut_cosmetic",
             "quick_launcher.assignments" to "launcher_shortcut_assignments",
             "sounds.typing_mode" to "sounds",

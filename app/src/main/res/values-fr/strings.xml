@@ -694,6 +694,7 @@
     <string name="quick_launcher_behaviour_description">Moteur de lancement, règles de recherche/classement et SYM+Espace depuis les champs de texte.</string>
     <string name="quick_launcher_cosmetic_title">Apparence</string>
     <string name="quick_launcher_cosmetic_description">Largeur, mode pilule, sources de commandes, favoris, alias et couleurs des entrées.</string>
+    <string name="quick_launcher_corner_radius_title">Rayon des coins du lanceur</string>
     <string name="quick_launcher_width_title">Largeur du lanceur</string>
     <string name="quick_launcher_width_value">%1$d%% de la largeur de l’écran</string>
     <string name="quick_launcher_pill_mode_title">Mode pilule</string>

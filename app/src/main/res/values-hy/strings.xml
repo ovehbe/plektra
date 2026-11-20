@@ -694,6 +694,7 @@
     <string name="quick_launcher_behaviour_description">Գործարկման provider, որոնման/դասակարգման կանոններ և SYM+Space տեքստային դաշտերից։</string>
     <string name="quick_launcher_cosmetic_title">Տեսք</string>
     <string name="quick_launcher_cosmetic_description">Լայնություն, հաբաձև ռեժիմ, command sources, favorites, aliases և entry colors։</string>
+    <string name="quick_launcher_corner_radius_title">Launcher-ի անկյունների կլորացման շառավիղ</string>
     <string name="quick_launcher_width_title">Launcher-ի լայնություն</string>
     <string name="quick_launcher_width_value">Էկրանի լայնության %1$d%%</string>
     <string name="quick_launcher_pill_mode_title">Հաբաձև ռեժիմ</string>

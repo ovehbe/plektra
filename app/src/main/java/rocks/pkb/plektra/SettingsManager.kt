@@ -4477,6 +4477,20 @@ object SettingsManager {
             .apply()
     }
 
+    private const val KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP = "quick_launcher_corner_radius_dp"
+    const val DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP = 16 // Material 3 large shape
+    const val MAX_QUICK_LAUNCHER_CORNER_RADIUS_DP = 32
+
+    fun getQuickLauncherCornerRadiusDp(context: Context): Int = getPreferences(context)
+        .getInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+        .coerceIn(0, MAX_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+
+    fun setQuickLauncherCornerRadiusDp(context: Context, radius: Int) {
+        getPreferences(context).edit()
+            .putInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, radius.coerceIn(0, MAX_QUICK_LAUNCHER_CORNER_RADIUS_DP))
+            .apply()
+    }
+
     fun getQuickLauncherWidthPercent(context: Context): Int {
         return getPreferences(context)
             .getInt(KEY_QUICK_LAUNCHER_WIDTH_PERCENT, DEFAULT_QUICK_LAUNCHER_WIDTH_PERCENT)

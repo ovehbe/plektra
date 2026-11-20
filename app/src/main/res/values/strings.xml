@@ -880,6 +880,8 @@
     <string name="keyboard_theme_led_inactive">LED inactive</string>
     <string name="keyboard_theme_led_active">LED active</string>
     <string name="keyboard_theme_led_locked">LED locked</string>
+    <string name="quick_launcher_corner_radius_title">Launcher corner radius</string>
+    <string name="quick_launcher_corner_radius_value" translatable="false">%1$d dp</string>
     <string name="quick_launcher_width_title">Launcher width</string>
     <string name="quick_launcher_width_value">%1$d%% screen width</string>
     <string name="quick_launcher_pill_mode_title">Pill mode</string>

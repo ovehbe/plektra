@@ -694,6 +694,7 @@
     <string name="quick_launcher_behaviour_description">Proveedor de inicio, reglas de búsqueda/ranking y SYM+Espacio desde campos de texto.</string>
     <string name="quick_launcher_cosmetic_title">Apariencia</string>
     <string name="quick_launcher_cosmetic_description">Anchura, modo píldora, fuentes de comandos, favoritos, alias y colores de entradas.</string>
+    <string name="quick_launcher_corner_radius_title">Radio de las esquinas del launcher</string>
     <string name="quick_launcher_width_title">Anchura del launcher</string>
     <string name="quick_launcher_width_value">%1$d%% del ancho de pantalla</string>
     <string name="quick_launcher_pill_mode_title">Modo píldora</string>

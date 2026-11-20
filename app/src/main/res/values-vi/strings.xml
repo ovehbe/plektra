@@ -694,6 +694,7 @@
     <string name="quick_launcher_behaviour_description">Nhà cung cấp mở, quy tắc tìm kiếm/xếp hạng và SYM+Phím cách từ ô văn bản.</string>
     <string name="quick_launcher_cosmetic_title">Giao diện</string>
     <string name="quick_launcher_cosmetic_description">Chiều rộng, chế độ viên thuốc, nguồn lệnh, mục yêu thích, bí danh và màu mục.</string>
+    <string name="quick_launcher_corner_radius_title">Bán kính bo góc của launcher</string>
     <string name="quick_launcher_width_title">Chiều rộng launcher</string>
     <string name="quick_launcher_width_value">%1$d%% chiều rộng màn hình</string>
     <string name="quick_launcher_pill_mode_title">Chế độ viên thuốc</string>
