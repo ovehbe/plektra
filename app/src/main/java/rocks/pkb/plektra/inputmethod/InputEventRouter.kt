@@ -994,6 +994,15 @@ class InputEventRouter(
             AutoSpaceTracker.clear()
         }
 
+        if (
+            keyCode == KeyEvent.KEYCODE_DEL && inputConnection != null &&
+            rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)
+        ) {
+            suggestionController?.onContextReset()
+            updateStatusBar()
+            return true
+        }
+
         // Try new dictionary-based auto-replace undo first (if experimental suggestions enabled)
         if (keyCode == KeyEvent.KEYCODE_DEL && 
             SettingsManager.isExperimentalSuggestionsEnabled(context) &&
@@ -1181,6 +1190,14 @@ class InputEventRouter(
         }
 
         if (
+            isPunctuation && inputConnection != null &&
+            rocks.pkb.plektra.core.PunctuationSpacing.beforeMark(context, inputConnection, typedChar!!)
+        ) {
+            suggestionController?.onContextReset()
+            updateStatusBar()
+            return true
+        }
+        if (
             (isBoundaryKey || isPunctuation) &&
             (shouldDisableSuggestions || suggestionController == null) &&
             autoCorrectionManager.handleBoundaryKey(
@@ -1240,6 +1257,11 @@ class InputEventRouter(
         val boundaryChar = rocks.pkb.plektra.core.Punctuation.normalizeApostrophe(text[0])
         if (boundaryChar == '\'' || boundaryChar !in rocks.pkb.plektra.core.Punctuation.BOUNDARY) {
             return false
+        }
+        if (rocks.pkb.plektra.core.PunctuationSpacing.beforeMark(context, input, boundaryChar)) {
+            suggestionController?.onContextReset()
+            updateStatusBar()
+            return true
         }
 
         if (

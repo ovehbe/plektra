@@ -1943,7 +1943,7 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         SettingsManager.setAutoCorrectEnabled(service, false)
         SettingsManager.setSpaceAfterPunctuation(service, ".")
         rocks.pkb.plektra.core.DeferredPunctuationSpaceTracker.clear()
-        editorInfo.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+        editorInfo.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         setField(service, "inputContextState", InputContextState.fromEditorInfo(editorInfo))
         recorder.textBeforeCursor = "ب"
         val manager = getField<AlternateCharacterManager>(service, "alternateCharacterManager")
