@@ -116,6 +116,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var autoStartSingle by mutableStateOf(false)
     private var limitResults by mutableStateOf(false)
     private var widthPercent by mutableStateOf(100)
+    private var cornerRadiusDp by mutableStateOf(SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
     private var pillMode by mutableStateOf(false)
     private var respectKeyboardLayout by mutableStateOf(true)
     private var typoTolerantRanking by mutableStateOf(false)
@@ -158,6 +159,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         autoStartSingle = SettingsManager.getQuickLauncherAutoStartSingle(this)
         limitResults = SettingsManager.getQuickLauncherLimitResults(this)
         widthPercent = SettingsManager.getQuickLauncherWidthPercent(this)
+        cornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(this)
         pillMode = SettingsManager.getQuickLauncherPillMode(this)
         respectKeyboardLayout = SettingsManager.getQuickLauncherRespectKeyboardLayout(this)
         typoTolerantRanking = SettingsManager.getQuickLauncherTypoTolerantRanking(this)
@@ -191,6 +193,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         loadingApps = loadingApps,
                         limitResults = limitResults,
                         widthPercent = widthPercent,
+                        cornerRadiusDp = cornerRadiusDp,
                         pillMode = pillMode,
                         customizations = commandCustomizations,
                         customizationRevision = commandCustomizationRevision,
@@ -771,6 +774,9 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
 
     private fun registerQuickLauncherPreferencesListener() {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == PREF_QUICK_LAUNCHER_CORNER_RADIUS_DP) {
+                cornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(this)
+            }
             if (key == PREF_COMMAND_SURFACE_SOURCES) {
                 launchedAutomatically = false
                 commands = quickLauncherCommandsFromCachedApps()
@@ -870,6 +876,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         const val EXTRA_TOGGLE_REQUEST = "rocks.pkb.plektra.inputmethod.extra.TOGGLE_QUICK_LAUNCHER"
         private const val TAG = "QuickLauncher"
         private const val PREF_COMMAND_SURFACE_SOURCES = "command_surface_sources"
+        private const val PREF_QUICK_LAUNCHER_CORNER_RADIUS_DP = "quick_launcher_corner_radius_dp"
 
         fun createToggleIntent(context: Context): Intent {
             return Intent(context, QuickLauncherActivity::class.java).apply {
@@ -903,6 +910,7 @@ private fun QuickLauncherSheet(
     loadingApps: Boolean,
     limitResults: Boolean,
     widthPercent: Int,
+    cornerRadiusDp: Int,
     pillMode: Boolean,
     customizations: Map<String, SettingsManager.QuickLauncherCommandCustomization>,
     customizationRevision: Int,
@@ -981,7 +989,7 @@ private fun QuickLauncherSheet(
             modifier = Modifier
                 .fillMaxWidth(widthFraction)
                 .heightIn(max = maxSheetHeight),
-            shape = if (isCollapsedPill) RoundedCornerShape(28.dp) else MaterialTheme.shapes.large,
+            shape = if (isCollapsedPill) RoundedCornerShape(28.dp) else RoundedCornerShape(cornerRadiusDp.dp),
             color = if (isCollapsedPill) Color.Transparent else MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp
