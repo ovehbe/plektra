@@ -360,6 +360,7 @@ internal object BackupPreferenceContract {
             "quick_launcher_pill_mode" to PreferenceValueType.BOOLEAN,
             "quick_launcher_behavior" to PreferenceValueType.STRING,
             "quick_launcher_animation_duration_ms" to PreferenceValueType.INT,
+            "quick_launcher_corner_radius_dp" to PreferenceValueType.INT,
             "command_surface_sources" to PreferenceValueType.STRING,
             "quick_launcher_command_customizations" to PreferenceValueType.STRING,
             "quick_launcher_highlight_favorites" to PreferenceValueType.BOOLEAN,

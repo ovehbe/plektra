@@ -8,6 +8,7 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
+import androidx.core.content.edit
 import rocks.pkb.plektra.commands.CommandJson
 import rocks.pkb.plektra.commands.CommandLaunchSpec
 import rocks.pkb.plektra.commands.CommandSourceId
@@ -3845,6 +3846,7 @@ object SettingsManager {
     private const val KEY_QUICK_LAUNCHER_PILL_MODE = "quick_launcher_pill_mode"
     private const val KEY_QUICK_LAUNCHER_BEHAVIOR = "quick_launcher_behavior"
     private const val KEY_QUICK_LAUNCHER_ANIMATION_DURATION_MS = "quick_launcher_animation_duration_ms"
+    private const val KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP = "quick_launcher_corner_radius_dp"
     private const val KEY_COMMAND_SURFACE_SOURCES = "command_surface_sources"
     private const val KEY_QUICK_LAUNCHER_COMMAND_CUSTOMIZATIONS = "quick_launcher_command_customizations"
     private const val KEY_QUICK_LAUNCHER_HIGHLIGHT_FAVORITES = "quick_launcher_highlight_favorites"
@@ -3871,6 +3873,11 @@ object SettingsManager {
     const val QUICK_LAUNCHER_BEHAVIOR_NIAGARA = "niagara"
     const val QUICK_LAUNCHER_ANIMATION_DURATION_MIN_MS = 0
     const val QUICK_LAUNCHER_ANIMATION_DURATION_MAX_MS = 320
+    /** Matches Material 3 `shapes.large` (16dp), which the panel used before this was configurable. */
+    const val DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP = 16
+    const val QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP = 0
+    const val QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP = 40
+    const val QUICK_LAUNCHER_CORNER_RADIUS_STEP_DP = 2
     
     // Nav mode settings
     private const val KEY_NAV_MODE_ENABLED = "nav_mode_enabled"
@@ -4518,6 +4525,28 @@ object SettingsManager {
                 )
             )
             .apply()
+    }
+
+    fun getQuickLauncherCornerRadiusDp(context: Context): Int {
+        return getPreferences(context)
+            .getInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+            .coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP, QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP)
+    }
+
+    fun setQuickLauncherCornerRadiusDp(context: Context, radiusDp: Int) {
+        getPreferences(context).edit {
+            putInt(
+                KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP,
+                radiusDp.coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP, QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP)
+            )
+        }
+    }
+
+    /** Snaps a raw slider position to the nearest corner-radius step within range. */
+    fun snapQuickLauncherCornerRadiusDp(value: Float): Int {
+        val step = QUICK_LAUNCHER_CORNER_RADIUS_STEP_DP
+        val snapped = Math.round(value / step) * step
+        return snapped.coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_MIN_DP, QUICK_LAUNCHER_CORNER_RADIUS_MAX_DP)
     }
 
     fun getQuickLauncherBehavior(context: Context): String {
