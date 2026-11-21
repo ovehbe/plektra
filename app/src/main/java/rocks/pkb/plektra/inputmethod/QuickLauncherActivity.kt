@@ -10,6 +10,8 @@ import android.graphics.Color as AndroidColor
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
 import android.view.ViewGroup
@@ -103,7 +105,6 @@ import rocks.pkb.plektra.data.layout.LayoutMappingRepository
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.ui.theme.PlektraTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -135,7 +136,9 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var enterHandledOnKeyDown = false
     private var pendingDismissKeyCode: Int? = null
     private var dismissRequestId by mutableStateOf(0)
-    private var dismissInProgress = false
+    private var dismissInProgress by mutableStateOf(false)
+    private val dismissHandler = Handler(Looper.getMainLooper())
+    private val finishAfterDismiss = Runnable { finish() }
     private var quickLauncherPrefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var selectedIndex by mutableStateOf(-1) // -1 means no selection, 0+ is the index
     private val fallbackModifierStateController = ModifierStateController(300L) { false }
@@ -146,6 +149,11 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         disableActivityAnimations()
+        if (intent?.getStringExtra(EXTRA_REQUEST) == REQUEST_CLOSE) {
+            super.finish()
+            return
+        }
+        QuickLauncherToggleState.onShown(this, application)
         window.requestFeature(android.view.Window.FEATURE_NO_TITLE)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
         window.setFlags(
@@ -202,13 +210,13 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         staticTopHighlightColor = staticTopHighlightColor,
                         animationDurationMs = animationDurationMs,
                         dismissRequestId = dismissRequestId,
+                        dismissing = dismissInProgress,
                         selectedIndex = selectedIndex,
                         onCommandSelected = { launchCommand(it) },
                         onCustomizationChanged = { updateCommandCustomization(it) },
                         onCustomizationsReloadRequested = { reloadCommandCustomizations() },
                         onMoveFavorite = { commandId, direction -> moveFavorite(commandId, direction) },
                         onDismiss = { requestAnimatedDismiss() },
-                        onDismissAnimationFinished = { finish() },
                         onSearchFieldKeyEvent = { nativeEvent ->
                             logQuickLauncherKeyPath(
                                 entryPoint = "searchField.onPreviewKeyEvent",
@@ -230,12 +238,37 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.getBooleanExtra(EXTRA_TOGGLE_REQUEST, false)) {
-            requestAnimatedDismiss()
+        when (intent.getStringExtra(EXTRA_REQUEST)) {
+            REQUEST_CLOSE -> requestAnimatedDismiss()
+            else -> if (isFinishing) relaunch() else cancelDismiss()
         }
     }
 
+    private fun relaunch() {
+        QuickLauncherToggleState.onRelaunching()
+        try {
+            startActivity(createOpenIntent(this))
+        } catch (e: Exception) {
+            Log.w(TAG, "Quick Launcher relaunch failed", e)
+            QuickLauncherToggleState.onStartFailed()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        QuickLauncherToggleState.onAppearing(this, focused = false)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) QuickLauncherToggleState.onAppearing(this, focused = true)
+    }
+
     override fun onDestroy() {
+        dismissHandler.removeCallbacks(finishAfterDismiss)
+        if (!isChangingConfigurations) {
+            QuickLauncherToggleState.onGone(this)
+        }
         quickLauncherPrefsListener?.let { listener ->
             SettingsManager.getPreferences(this).unregisterOnSharedPreferenceChangeListener(listener)
         }
@@ -687,6 +720,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     override fun finish() {
+        QuickLauncherToggleState.onGone(this)
         super.finish()
         disableActivityAnimations()
     }
@@ -739,13 +773,24 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     private fun requestAnimatedDismiss() {
-        if (dismissInProgress) return
+        if (dismissInProgress || isFinishing) return
         dismissInProgress = true
         if (animationDurationMs <= 0) {
             finish()
         } else {
+            QuickLauncherToggleState.onClosing(this)
             dismissRequestId += 1
+            dismissHandler.postDelayed(finishAfterDismiss, animationDurationMs.toLong())
         }
+    }
+
+    private fun cancelDismiss() {
+        if (isFinishing) return
+        QuickLauncherToggleState.onShown(this, application, focused = hasWindowFocus())
+        if (!dismissInProgress) return
+        dismissHandler.removeCallbacks(finishAfterDismiss)
+        dismissInProgress = false
+        dismissRequestId += 1
     }
 
     private fun isDismissKey(keyCode: Int): Boolean {
@@ -867,32 +912,29 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_TOGGLE_REQUEST = "rocks.pkb.plektra.inputmethod.extra.TOGGLE_QUICK_LAUNCHER"
+        const val EXTRA_REQUEST = "rocks.pkb.plektra.inputmethod.extra.QUICK_LAUNCHER_REQUEST"
+        const val REQUEST_OPEN = "open"
+        const val REQUEST_CLOSE = "close"
         private const val TAG = "QuickLauncher"
         private const val PREF_COMMAND_SURFACE_SOURCES = "command_surface_sources"
 
-        fun createToggleIntent(context: Context): Intent {
-            return Intent(context, QuickLauncherActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                putExtra(EXTRA_TOGGLE_REQUEST, true)
-            }
-        }
+        fun createOpenIntent(context: Context): Intent = createRequestIntent(context, REQUEST_OPEN)
 
-        fun createOpenIntent(context: Context): Intent {
+        fun createCloseIntent(context: Context): Intent = createRequestIntent(context, REQUEST_CLOSE)
+
+        private fun createRequestIntent(context: Context, request: String): Intent {
             return Intent(context, QuickLauncherActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
                 addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                putExtra(EXTRA_REQUEST, request)
             }
         }
     }
 }
+
 
 @Composable
 private fun QuickLauncherSheet(
@@ -914,26 +956,19 @@ private fun QuickLauncherSheet(
     staticTopHighlightColor: Int,
     animationDurationMs: Int,
     dismissRequestId: Int,
+    dismissing: Boolean,
     selectedIndex: Int,
     onCommandSelected: (CommandTarget) -> Unit,
     onCustomizationChanged: (SettingsManager.QuickLauncherCommandCustomization) -> Unit,
     onCustomizationsReloadRequested: () -> Unit,
     onMoveFavorite: (String, Int) -> Unit,
     onDismiss: () -> Unit,
-    onDismissAnimationFinished: () -> Unit,
     onSearchFieldKeyEvent: (KeyEvent) -> Boolean = { false }
 ) {
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
     val visible = remember { MutableTransitionState(false) }
-    LaunchedEffect(Unit) {
-        visible.targetState = true
-    }
     LaunchedEffect(dismissRequestId) {
-        if (dismissRequestId > 0) {
-            visible.targetState = false
-            delay(animationDurationMs.toLong().coerceAtLeast(0L))
-            onDismissAnimationFinished()
-        }
+        visible.targetState = !dismissing
     }
     val isCollapsedPill = pillMode && query.isBlank()
     val widthFraction = if (isCollapsedPill) 0.72f else widthPercent.coerceIn(50, 100) / 100f

@@ -3,6 +3,7 @@ package rocks.pkb.plektra.inputmethod
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import rocks.pkb.plektra.SettingsManager
 
@@ -14,18 +15,27 @@ object QuickLauncherOpener {
     fun open(context: Context): Boolean {
         return when (SettingsManager.getQuickLauncherBehavior(context)) {
             SettingsManager.QUICK_LAUNCHER_BEHAVIOR_NIAGARA ->
-                openNiagaraSearch(context) || openPlektraQuickLauncher(context)
-            else -> openPlektraQuickLauncher(context)
+                openNiagaraSearch(context) || togglePlektraQuickLauncher(context)
+            else -> togglePlektraQuickLauncher(context)
         }
     }
 
-    private fun openPlektraQuickLauncher(context: Context): Boolean {
+    internal fun resetForTest() {
+        QuickLauncherToggleState.reset()
+    }
+
+    private fun togglePlektraQuickLauncher(context: Context): Boolean {
+        val intent = when (QuickLauncherToggleState.onTrigger(context.applicationContext)) {
+            QuickLauncherToggleState.Decision.IGNORE -> return true
+            QuickLauncherToggleState.Decision.OPEN -> QuickLauncherActivity.createOpenIntent(context)
+            QuickLauncherToggleState.Decision.CLOSE -> QuickLauncherActivity.createCloseIntent(context)
+        }
         return try {
-            val intent = QuickLauncherActivity.createToggleIntent(context)
             context.startActivity(intent)
             true
         } catch (error: Exception) {
             Log.e(TAG, "Error opening Plektra QuickLauncher", error)
+            QuickLauncherToggleState.onStartFailed()
             false
         }
     }
@@ -44,5 +54,153 @@ object QuickLauncherOpener {
             Log.w(TAG, "Error opening Niagara search; falling back to Plektra QuickLauncher", error)
             false
         }
+    }
+}
+
+/**
+ * The launcher's real visibility, kept by the activity, so a trigger means "open" when it is
+ * closed or closing and "close" only when it is genuinely open. Triggers that arrive within
+ * [DUPLICATE_WINDOW_MS] of the last accepted one are echoes of the same press (Q25 synthetic
+ * events, key repeat, Clicks double fire) and are dropped.
+ */
+internal object QuickLauncherToggleState {
+    enum class Phase { CLOSED, OPENING, OPEN, CLOSING }
+    enum class Decision { IGNORE, OPEN, CLOSE }
+
+    const val DUPLICATE_WINDOW_MS = 250L
+    const val OPENING_STALE_MS = 2_000L
+
+    @Volatile
+    internal var clock: () -> Long = { SystemClock.uptimeMillis() }
+
+    private var phase = Phase.CLOSED
+    private var phaseSinceMs = 0L
+    private var lastAcceptedTriggerMs: Long? = null
+    private var awaitingFocus = false
+    private var owner: Any? = null
+    private var process: Any? = null
+    private var pressedAtMsForTrigger: Long? = null
+
+    @Synchronized
+    fun phase(): Phase = phase
+
+    /**
+     * Runs [block] while handling a key pressed at [pressedAtMs] (the event's uptime timestamp).
+     * The input dispatcher holds presses while no window has focus and the keyboard can handle
+     * them only after the launcher starts, so duplicates are judged by when they were pressed.
+     */
+    fun <T> duringKeyEvent(pressedAtMs: Long?, block: () -> T): T {
+        val previous = pressedAtMsForTrigger
+        pressedAtMsForTrigger = pressedAtMs
+        try {
+            return block()
+        } finally {
+            pressedAtMsForTrigger = previous
+        }
+    }
+
+    @Synchronized
+    fun onTrigger(app: Any): Decision {
+        if (process !== app) {
+            resetState()
+            process = app
+        }
+        val nowMs = clock()
+        val pressedAtMs = pressedAtMsForTrigger?.takeIf { it in 1..nowMs } ?: nowMs
+        val last = lastAcceptedTriggerMs
+        if (last != null && pressedAtMs - last < DUPLICATE_WINDOW_MS) return Decision.IGNORE
+        val decision = when (phase) {
+            Phase.CLOSED, Phase.CLOSING -> Decision.OPEN
+            Phase.OPENING -> if (nowMs - phaseSinceMs >= OPENING_STALE_MS) Decision.OPEN else Decision.IGNORE
+            Phase.OPEN -> Decision.CLOSE
+        }
+        when (decision) {
+            Decision.OPEN -> {
+                setPhase(Phase.OPENING, nowMs)
+                awaitingFocus = true
+            }
+            Decision.CLOSE -> setPhase(Phase.CLOSING, nowMs)
+            Decision.IGNORE -> return decision
+        }
+        lastAcceptedTriggerMs = pressedAtMs
+        return decision
+    }
+
+    @Synchronized
+    fun onStartFailed() {
+        phase = Phase.CLOSED
+        awaitingFocus = false
+        owner = null
+    }
+
+    @Synchronized
+    fun onRelaunching() {
+        setPhase(Phase.OPENING, clock())
+        awaitingFocus = true
+    }
+
+    @Synchronized
+    fun onShown(instance: Any, app: Any, focused: Boolean = false) {
+        if (process !== app) {
+            resetState()
+            process = app
+        }
+        owner = instance
+        setPhase(Phase.OPEN, clock())
+        stampWhileAppearing()
+        if (focused) awaitingFocus = false
+    }
+
+    /**
+     * The keyboard and the launcher share the main thread, so a duplicate trigger can be handled
+     * only after a slow launcher start. Until the launcher has focus, the duplicate window counts
+     * from its latest start step instead of from the press.
+     */
+    @Synchronized
+    fun onAppearing(instance: Any, focused: Boolean) {
+        if (owner !== instance) return
+        stampWhileAppearing()
+        if (focused) awaitingFocus = false
+    }
+
+    @Synchronized
+    fun onClosing(instance: Any) {
+        if (owner !== instance) return
+        awaitingFocus = false
+        setPhase(Phase.CLOSING, clock())
+    }
+
+    @Synchronized
+    fun onGone(instance: Any) {
+        if (owner !== instance) return
+        owner = null
+        awaitingFocus = false
+        setPhase(Phase.CLOSED, clock())
+    }
+
+    private fun stampWhileAppearing() {
+        if (!awaitingFocus) return
+        val nowMs = clock()
+        lastAcceptedTriggerMs = maxOf(lastAcceptedTriggerMs ?: nowMs, nowMs)
+    }
+
+    @Synchronized
+    fun reset() {
+        resetState()
+        process = null
+        clock = { SystemClock.uptimeMillis() }
+    }
+
+    private fun resetState() {
+        phase = Phase.CLOSED
+        phaseSinceMs = 0L
+        lastAcceptedTriggerMs = null
+        awaitingFocus = false
+        owner = null
+    }
+
+    private fun setPhase(next: Phase, nowMs: Long) {
+        phase = next
+        phaseSinceMs = nowMs
     }
 }
