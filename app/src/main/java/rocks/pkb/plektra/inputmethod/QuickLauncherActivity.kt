@@ -134,7 +134,6 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var loadingApps by mutableStateOf(false)
     private var launchedAutomatically = false
     private var keyboardLayout: Map<Int, LayoutMapping> = emptyMap()
-    private var enterHandledOnKeyDown = false
     private var pendingDismissKeyCode: Int? = null
     private var dismissRequestId by mutableStateOf(0)
     private var dismissInProgress = false
@@ -229,14 +228,6 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         }
 
         reloadCommandsFromRegistry()
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        if (intent.getBooleanExtra(EXTRA_TOGGLE_REQUEST, false)) {
-            requestAnimatedDismiss()
-        }
     }
 
     override fun onDestroy() {
@@ -395,7 +386,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                 return finish("dpad_down", true)
             }
             KeyEvent.KEYCODE_DPAD_CENTER -> {
-                enterHandledOnKeyDown = true
+                if ((event?.repeatCount ?: 0) > 0) return finish("dpad_center_repeat", true)
                 if (selectedIndex >= 0 && selectedIndex < filteredCommands.size) {
                     launchCommand(filteredCommands[selectedIndex])
                 } else {
@@ -473,7 +464,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         // Original key handling (unchanged from before)
         when (keyCode) {
             KeyEvent.KEYCODE_ENTER -> {
-                enterHandledOnKeyDown = true
+                if ((event?.repeatCount ?: 0) > 0) return finish("enter_repeat", true)
                 if (selectedIndex >= 0 && selectedIndex < filteredCommands.size) {
                     launchCommand(filteredCommands[selectedIndex])
                 } else {
@@ -671,14 +662,8 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         }
 
         if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
-            if (!enterHandledOnKeyDown && event?.isCanceled != true) {
-                if (selectedIndex >= 0 && selectedIndex < filteredCommands.size) {
-                    launchCommand(filteredCommands[selectedIndex])
-                } else {
-                    launchTopMatch()
-                }
-            }
-            enterHandledOnKeyDown = false
+            // The key-down may have opened the launcher in another window. Only a fresh down
+            // handled here can confirm a result.
             return finish("enter_or_dpad_center_key_up", true)
         }
 
@@ -871,20 +856,8 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_TOGGLE_REQUEST = "rocks.pkb.plektra.inputmethod.extra.TOGGLE_QUICK_LAUNCHER"
         private const val TAG = "QuickLauncher"
         private const val PREF_COMMAND_SURFACE_SOURCES = "command_surface_sources"
-
-        fun createToggleIntent(context: Context): Intent {
-            return Intent(context, QuickLauncherActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                putExtra(EXTRA_TOGGLE_REQUEST, true)
-            }
-        }
 
         fun createOpenIntent(context: Context): Intent {
             return Intent(context, QuickLauncherActivity::class.java).apply {

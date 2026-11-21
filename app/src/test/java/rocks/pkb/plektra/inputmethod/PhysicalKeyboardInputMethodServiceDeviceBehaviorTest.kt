@@ -1449,7 +1449,6 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         assertTrue(symHandled)
         assertTrue(spaceHandled)
         assertEquals(QuickLauncherActivity::class.java.name, startedIntent.component?.className)
-        assertTrue(startedIntent.getBooleanExtra(QuickLauncherActivity.EXTRA_TOGGLE_REQUEST, false))
         assertFalse("Space should not be committed when opening QuickLauncher", recorder.committedTexts.contains(" "))
     }
 
@@ -1474,7 +1473,6 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
         assertTrue(handled)
         assertEquals(QuickLauncherActivity::class.java.name, startedIntent.component?.className)
-        assertTrue(startedIntent.getBooleanExtra(QuickLauncherActivity.EXTRA_TOGGLE_REQUEST, false))
         assertFalse("Space should not be committed when reopening QuickLauncher", recorder.committedTexts.contains(" "))
     }
 

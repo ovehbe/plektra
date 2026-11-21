@@ -21,7 +21,7 @@ object QuickLauncherOpener {
 
     private fun openPlektraQuickLauncher(context: Context): Boolean {
         return try {
-            val intent = QuickLauncherActivity.createToggleIntent(context)
+            val intent = QuickLauncherActivity.createOpenIntent(context)
             context.startActivity(intent)
             true
         } catch (error: Exception) {
