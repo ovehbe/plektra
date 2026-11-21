@@ -153,7 +153,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
             super.finish()
             return
         }
-        QuickLauncherToggleState.onShown(this)
+        QuickLauncherToggleState.onShown(this, application)
         window.requestFeature(android.view.Window.FEATURE_NO_TITLE)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
         window.setFlags(
@@ -776,7 +776,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
 
     private fun cancelDismiss() {
         if (isFinishing) return
-        QuickLauncherToggleState.onShown(this, focused = hasWindowFocus())
+        QuickLauncherToggleState.onShown(this, application, focused = hasWindowFocus())
         if (!dismissInProgress) return
         dismissHandler.removeCallbacks(finishAfterDismiss)
         dismissInProgress = false

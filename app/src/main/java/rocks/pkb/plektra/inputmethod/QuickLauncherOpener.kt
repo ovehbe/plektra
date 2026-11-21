@@ -25,7 +25,7 @@ object QuickLauncherOpener {
     }
 
     private fun togglePlektraQuickLauncher(context: Context): Boolean {
-        val intent = when (QuickLauncherToggleState.onTrigger()) {
+        val intent = when (QuickLauncherToggleState.onTrigger(context.applicationContext)) {
             QuickLauncherToggleState.Decision.IGNORE -> return true
             QuickLauncherToggleState.Decision.OPEN -> QuickLauncherActivity.createOpenIntent(context)
             QuickLauncherToggleState.Decision.CLOSE -> QuickLauncherActivity.createCloseIntent(context)
@@ -78,12 +78,17 @@ internal object QuickLauncherToggleState {
     private var lastAcceptedTriggerMs: Long? = null
     private var awaitingFocus = false
     private var owner: Any? = null
+    private var process: Any? = null
 
     @Synchronized
     fun phase(): Phase = phase
 
     @Synchronized
-    fun onTrigger(): Decision {
+    fun onTrigger(app: Any): Decision {
+        if (process !== app) {
+            resetState()
+            process = app
+        }
         val nowMs = clock()
         val last = lastAcceptedTriggerMs
         if (last != null && nowMs - last < DUPLICATE_WINDOW_MS) return Decision.IGNORE
@@ -112,7 +117,11 @@ internal object QuickLauncherToggleState {
     }
 
     @Synchronized
-    fun onShown(instance: Any, focused: Boolean = false) {
+    fun onShown(instance: Any, app: Any, focused: Boolean = false) {
+        if (process !== app) {
+            resetState()
+            process = app
+        }
         owner = instance
         setPhase(Phase.OPEN, clock())
         stampWhileAppearing()
@@ -154,12 +163,17 @@ internal object QuickLauncherToggleState {
 
     @Synchronized
     fun reset() {
+        resetState()
+        process = null
+        clock = { SystemClock.uptimeMillis() }
+    }
+
+    private fun resetState() {
         phase = Phase.CLOSED
         phaseSinceMs = 0L
         lastAcceptedTriggerMs = null
         awaitingFocus = false
         owner = null
-        clock = { SystemClock.uptimeMillis() }
     }
 
     private fun setPhase(next: Phase, nowMs: Long) {
