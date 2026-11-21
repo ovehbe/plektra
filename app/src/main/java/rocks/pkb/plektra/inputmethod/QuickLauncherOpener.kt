@@ -19,6 +19,8 @@ object QuickLauncherOpener {
         }
     }
 
+    internal fun resetForTest() {}
+
     private fun openPlektraQuickLauncher(context: Context): Boolean {
         return try {
             val intent = QuickLauncherActivity.createToggleIntent(context)
