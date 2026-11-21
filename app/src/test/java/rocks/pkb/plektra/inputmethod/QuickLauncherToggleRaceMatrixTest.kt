@@ -16,6 +16,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowChoreographer
 import org.robolectric.shadows.ShadowLooper
 import rocks.pkb.plektra.SettingsManager
 
@@ -284,6 +285,12 @@ class QuickLauncherToggleRaceMatrixTest {
                 )
             }
         }
+        for (gap in listOf(300L, 600L, 1_200L)) {
+            list += Scenario(
+                "second trigger +${gap}ms while a slow start is still on its way",
+                listOf(t(0), t(gap)), true, deliveryDelayMs = gap + 300L
+            )
+        }
         for (cost in listOf(150L, 400L, 900L)) {
             for (gap in listOf(1L, 15L, 60L)) {
                 list += Scenario(
@@ -344,6 +351,85 @@ class QuickLauncherToggleRaceMatrixTest {
             assertTrue(open)
             assertEquals(1, instances)
         }
+    }
+
+    @Test
+    fun triggerDuringTheCloseAnimationReopensTheSameLauncher() {
+        for (closeBy in listOf("trigger", "back")) {
+            QuickLauncherOpener.resetForTest()
+            SettingsManager.setQuickLauncherAnimationDurationMs(app, 300)
+            var now = 0L
+            QuickLauncherToggleState.clock = { now }
+            QuickLauncherOpener.open(app)
+            val controller = Robolectric.buildActivity(
+                QuickLauncherActivity::class.java,
+                shadowOf(app).nextStartedActivity
+            ).setup()
+            val activity = controller.get()
+            activity.onWindowFocusChanged(true)
+            settle()
+            assertTrue("$closeBy: sheet shown after open", sheetShown(activity))
+
+            now = 1_000L
+            ShadowChoreographer.setPaused(true)
+            try {
+                if (closeBy == "trigger") {
+                    QuickLauncherOpener.open(app)
+                    controller.newIntent(shadowOf(app).nextStartedActivity)
+                } else {
+                    activity.onKeyDown(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
+                    activity.onKeyUp(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
+                }
+                // One frame: the dismiss has recomposed and the exit transition is under way.
+                Snapshot.sendApplyNotifications()
+                ShadowLooper.idleMainLooper(8L, java.util.concurrent.TimeUnit.MILLISECONDS)
+                assertTrue("$closeBy: still closing one frame into the close", !activity.isFinishing)
+                assertEquals(QuickLauncherToggleState.Phase.CLOSING, QuickLauncherToggleState.phase())
+
+                now = 1_300L
+                QuickLauncherOpener.open(app)
+                val reopen = shadowOf(app).nextStartedActivity
+                assertEquals(QuickLauncherActivity.REQUEST_OPEN, reopen?.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
+                controller.newIntent(reopen)
+            } finally {
+                ShadowChoreographer.setPaused(false)
+            }
+            settle()
+            assertTrue("$closeBy: launcher kept after reopen", !activity.isFinishing)
+            assertTrue("$closeBy: sheet shown again after reopen", sheetShown(activity))
+            assertEquals(QuickLauncherToggleState.Phase.OPEN, QuickLauncherToggleState.phase())
+            controller.pause().stop().destroy()
+        }
+    }
+
+    private val SHOWN_SHEET_MIN_NODES = 10
+
+    private fun settle() {
+        repeat(150) {
+            Snapshot.sendApplyNotifications()
+            ShadowLooper.idleMainLooper(8L, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
+    }
+
+    private fun sheetShown(activity: QuickLauncherActivity): Boolean {
+        fun find(view: android.view.View): android.view.View? {
+            if (view.javaClass.simpleName == "AndroidComposeView") return view
+            if (view is android.view.ViewGroup) {
+                for (i in 0 until view.childCount) find(view.getChildAt(i))?.let { return it }
+            }
+            return null
+        }
+        val composeView = find(activity.window.decorView) ?: return false
+        val root = composeView.javaClass.getMethod("getRoot").invoke(composeView)
+        return layoutNodeCount(root) > SHOWN_SHEET_MIN_NODES
+    }
+
+    private fun layoutNodeCount(node: Any): Int {
+        val getChildren = node.javaClass.methods.first {
+            it.name.startsWith("getChildren") && it.parameterCount == 0 && List::class.java.isAssignableFrom(it.returnType)
+        }
+        val children = getChildren.invoke(node) as List<*>
+        return 1 + children.sumOf { layoutNodeCount(it!!) }
     }
 
     @Test
