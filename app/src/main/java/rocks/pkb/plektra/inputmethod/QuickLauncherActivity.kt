@@ -10,6 +10,8 @@ import android.graphics.Color as AndroidColor
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.KeyEvent
 import android.view.ViewGroup
@@ -69,7 +71,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -104,10 +105,8 @@ import rocks.pkb.plektra.data.layout.LayoutMappingRepository
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.ui.theme.PlektraTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 
 class QuickLauncherActivity : LocalizedComponentActivity() {
     private var commands: List<CommandTarget> = emptyList()
@@ -138,6 +137,8 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var pendingDismissKeyCode: Int? = null
     private var dismissRequestId by mutableStateOf(0)
     private var dismissInProgress by mutableStateOf(false)
+    private val dismissHandler = Handler(Looper.getMainLooper())
+    private val finishAfterDismiss = Runnable { finish() }
     private var quickLauncherPrefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var selectedIndex by mutableStateOf(-1) // -1 means no selection, 0+ is the index
     private val fallbackModifierStateController = ModifierStateController(300L) { false }
@@ -216,7 +217,6 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         onCustomizationsReloadRequested = { reloadCommandCustomizations() },
                         onMoveFavorite = { commandId, direction -> moveFavorite(commandId, direction) },
                         onDismiss = { requestAnimatedDismiss() },
-                        onDismissAnimationFinished = { finish() },
                         onSearchFieldKeyEvent = { nativeEvent ->
                             logQuickLauncherKeyPath(
                                 entryPoint = "searchField.onPreviewKeyEvent",
@@ -255,6 +255,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     override fun onDestroy() {
+        dismissHandler.removeCallbacks(finishAfterDismiss)
         if (!isChangingConfigurations) {
             QuickLauncherToggleState.onGone(this)
         }
@@ -769,6 +770,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         } else {
             QuickLauncherToggleState.onClosing(this)
             dismissRequestId += 1
+            dismissHandler.postDelayed(finishAfterDismiss, animationDurationMs.toLong())
         }
     }
 
@@ -776,6 +778,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         if (isFinishing) return
         QuickLauncherToggleState.onShown(this, focused = hasWindowFocus())
         if (!dismissInProgress) return
+        dismissHandler.removeCallbacks(finishAfterDismiss)
         dismissInProgress = false
         dismissRequestId += 1
     }
@@ -922,7 +925,6 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 }
 
-private const val DISMISS_FRAME_GRACE_MS = 400L
 
 @Composable
 private fun QuickLauncherSheet(
@@ -951,25 +953,12 @@ private fun QuickLauncherSheet(
     onCustomizationsReloadRequested: () -> Unit,
     onMoveFavorite: (String, Int) -> Unit,
     onDismiss: () -> Unit,
-    onDismissAnimationFinished: () -> Unit,
     onSearchFieldKeyEvent: (KeyEvent) -> Boolean = { false }
 ) {
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
     val visible = remember { MutableTransitionState(false) }
-    LaunchedEffect(Unit) {
-        visible.targetState = true
-    }
     LaunchedEffect(dismissRequestId) {
-        if (!dismissing) {
-            visible.targetState = true
-            return@LaunchedEffect
-        }
-        visible.targetState = false
-        // The exit transition runs on frames; the timeout covers a window that stops drawing.
-        withTimeoutOrNull(animationDurationMs.toLong().coerceAtLeast(0L) + DISMISS_FRAME_GRACE_MS) {
-            snapshotFlow { visible.isIdle && !visible.currentState }.first { it }
-        }
-        onDismissAnimationFinished()
+        visible.targetState = !dismissing
     }
     val isCollapsedPill = pillMode && query.isBlank()
     val widthFraction = if (isCollapsedPill) 0.72f else widthPercent.coerceIn(50, 100) / 100f

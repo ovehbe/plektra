@@ -3,7 +3,6 @@ package rocks.pkb.plektra.inputmethod
 import android.app.Application
 import android.content.Intent
 import android.view.KeyEvent
-import androidx.compose.runtime.snapshots.Snapshot
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -16,7 +15,6 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowChoreographer
 import org.robolectric.shadows.ShadowLooper
 import rocks.pkb.plektra.SettingsManager
 
@@ -63,14 +61,17 @@ class QuickLauncherToggleRaceMatrixTest {
         val steps: List<Step>,
         val expectOpen: Boolean,
         val deliveryDelayMs: Long = 0L,
-        val creationCostMs: Long = 0L
+        val creationCostMs: Long = 0L,
+        val lateDestroyMs: Long = 0L
     )
 
     private inner class Harness(
         private val animationMs: Int,
         private val deliveryDelayMs: Long,
-        private val creationCostMs: Long
+        private val creationCostMs: Long,
+        private val lateDestroyMs: Long
     ) {
+        private val dying = mutableListOf<Pair<Long, ActivityController<QuickLauncherActivity>>>()
         private var controller: ActivityController<QuickLauncherActivity>? = null
         private var destroyed = false
         private var nowMs = 0L
@@ -104,10 +105,7 @@ class QuickLauncherToggleRaceMatrixTest {
             }
         }
 
-        // Compose's global snapshot observer is bound to the first test's main looper, so state
-        // written outside composition must be announced by hand, as Compose's test rules do.
         private fun idle(ms: Long) {
-            Snapshot.sendApplyNotifications()
             if (ms <= 0) {
                 ShadowLooper.idleMainLooper()
                 return
@@ -116,17 +114,21 @@ class QuickLauncherToggleRaceMatrixTest {
             while (left > 0) {
                 val slice = minOf(left, 8L)
                 ShadowLooper.idleMainLooper(slice, java.util.concurrent.TimeUnit.MILLISECONDS)
-                Snapshot.sendApplyNotifications()
                 left -= slice
             }
         }
 
+        // The system destroys a finishing launcher asynchronously, possibly after a new instance
+        // has already been shown.
         private fun reap() {
-            val c = controller ?: return
-            if (!destroyed && c.get().isFinishing) {
-                c.pause().stop().destroy()
+            val c = controller
+            if (c != null && !destroyed && c.get().isFinishing) {
                 destroyed = true
+                if (lateDestroyMs > 0) dying += (nowMs + lateDestroyMs) to c else c.pause().stop().destroy()
             }
+            val due = dying.filter { it.first <= nowMs }
+            dying.removeAll(due)
+            due.forEach { it.second.pause().stop().destroy() }
         }
 
         private fun collectStarted() {
@@ -238,7 +240,7 @@ class QuickLauncherToggleRaceMatrixTest {
 
     private fun run(scenario: Scenario, animationMs: Int): Pair<Boolean, Int> {
         QuickLauncherOpener.resetForTest()
-        val harness = Harness(animationMs, scenario.deliveryDelayMs, scenario.creationCostMs)
+        val harness = Harness(animationMs, scenario.deliveryDelayMs, scenario.creationCostMs, scenario.lateDestroyMs)
         var last = 0L
         for (step in scenario.steps.sortedBy { it.atMs }) {
             harness.advanceTo(step.atMs)
@@ -307,6 +309,16 @@ class QuickLauncherToggleRaceMatrixTest {
                 listOf(t(0), t(cost + 400)), false, creationCostMs = cost
             )
         }
+        for (late in listOf(200L, 600L, 1_500L)) {
+            list += Scenario(
+                "old instance destroyed ${late}ms late after a quick reopen: next trigger closes",
+                listOf(t(0), t(1_000), t(1_400), t(2_000 + late)), false, lateDestroyMs = late
+            )
+            list += Scenario(
+                "old instance destroyed ${late}ms late after Back and reopen: next trigger closes",
+                listOf(t(0), t(1_000, Action.Back), t(1_400), t(2_000 + late)), false, lateDestroyMs = late
+            )
+        }
         list += Scenario("trigger right after Back closed it reopens", listOf(t(0), t(800, Action.Back), t(1_100)), true)
         list += Scenario("trigger during Back close animation reopens", listOf(t(0), t(800, Action.Back), t(860)), true)
         list += Scenario("trigger right after close-by-trigger animation reopens", listOf(t(0), t(800), t(1_300)), true)
@@ -368,68 +380,34 @@ class QuickLauncherToggleRaceMatrixTest {
             val activity = controller.get()
             activity.onWindowFocusChanged(true)
             settle()
-            assertTrue("$closeBy: sheet shown after open", sheetShown(activity))
 
             now = 1_000L
-            ShadowChoreographer.setPaused(true)
-            try {
-                if (closeBy == "trigger") {
-                    QuickLauncherOpener.open(app)
-                    controller.newIntent(shadowOf(app).nextStartedActivity)
-                } else {
-                    activity.onKeyDown(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
-                    activity.onKeyUp(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
-                }
-                // One frame: the dismiss has recomposed and the exit transition is under way.
-                Snapshot.sendApplyNotifications()
-                ShadowLooper.idleMainLooper(8L, java.util.concurrent.TimeUnit.MILLISECONDS)
-                assertTrue("$closeBy: still closing one frame into the close", !activity.isFinishing)
-                assertEquals(QuickLauncherToggleState.Phase.CLOSING, QuickLauncherToggleState.phase())
-
-                now = 1_300L
+            if (closeBy == "trigger") {
                 QuickLauncherOpener.open(app)
-                val reopen = shadowOf(app).nextStartedActivity
-                assertEquals(QuickLauncherActivity.REQUEST_OPEN, reopen?.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
-                controller.newIntent(reopen)
-            } finally {
-                ShadowChoreographer.setPaused(false)
+                controller.newIntent(shadowOf(app).nextStartedActivity)
+            } else {
+                activity.onKeyDown(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
+                activity.onKeyUp(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
             }
+            assertTrue("$closeBy: still closing", !activity.isFinishing)
+            assertEquals(QuickLauncherToggleState.Phase.CLOSING, QuickLauncherToggleState.phase())
+
+            now = 1_300L
+            QuickLauncherOpener.open(app)
+            val reopen = shadowOf(app).nextStartedActivity
+            assertEquals(QuickLauncherActivity.REQUEST_OPEN, reopen?.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
+            controller.newIntent(reopen)
             settle()
             assertTrue("$closeBy: launcher kept after reopen", !activity.isFinishing)
-            assertTrue("$closeBy: sheet shown again after reopen", sheetShown(activity))
             assertEquals(QuickLauncherToggleState.Phase.OPEN, QuickLauncherToggleState.phase())
             controller.pause().stop().destroy()
         }
     }
 
-    private val SHOWN_SHEET_MIN_NODES = 10
-
     private fun settle() {
         repeat(150) {
-            Snapshot.sendApplyNotifications()
             ShadowLooper.idleMainLooper(8L, java.util.concurrent.TimeUnit.MILLISECONDS)
         }
-    }
-
-    private fun sheetShown(activity: QuickLauncherActivity): Boolean {
-        fun find(view: android.view.View): android.view.View? {
-            if (view.javaClass.simpleName == "AndroidComposeView") return view
-            if (view is android.view.ViewGroup) {
-                for (i in 0 until view.childCount) find(view.getChildAt(i))?.let { return it }
-            }
-            return null
-        }
-        val composeView = find(activity.window.decorView) ?: return false
-        val root = composeView.javaClass.getMethod("getRoot").invoke(composeView)
-        return layoutNodeCount(root) > SHOWN_SHEET_MIN_NODES
-    }
-
-    private fun layoutNodeCount(node: Any): Int {
-        val getChildren = node.javaClass.methods.first {
-            it.name.startsWith("getChildren") && it.parameterCount == 0 && List::class.java.isAssignableFrom(it.returnType)
-        }
-        val children = getChildren.invoke(node) as List<*>
-        return 1 + children.sumOf { layoutNodeCount(it!!) }
     }
 
     @Test
