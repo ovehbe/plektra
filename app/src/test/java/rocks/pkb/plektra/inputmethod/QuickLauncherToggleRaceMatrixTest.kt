@@ -404,6 +404,56 @@ class QuickLauncherToggleRaceMatrixTest {
         }
     }
 
+    /**
+     * The system routes an open request to the closing launcher when the request is started, but
+     * the shared main thread can run the pending finish before the launcher handles the request.
+     */
+    @Test
+    fun openRequestThatReachesAFinishedLauncherOpensAFreshOne() {
+        for (closeBy in listOf("trigger", "back")) {
+            QuickLauncherOpener.resetForTest()
+            SettingsManager.setQuickLauncherAnimationDurationMs(app, 120)
+            var now = 0L
+            QuickLauncherToggleState.clock = { now }
+            QuickLauncherOpener.open(app)
+            val controller = Robolectric.buildActivity(
+                QuickLauncherActivity::class.java,
+                shadowOf(app).nextStartedActivity
+            ).setup()
+            val activity = controller.get()
+            activity.onWindowFocusChanged(true)
+            settle()
+
+            now = 1_000L
+            if (closeBy == "trigger") {
+                QuickLauncherOpener.open(app)
+                controller.newIntent(shadowOf(app).nextStartedActivity)
+            } else {
+                activity.onKeyDown(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
+                activity.onKeyUp(KeyEvent.KEYCODE_BACK, KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
+            }
+
+            now = 1_300L
+            QuickLauncherOpener.open(app)
+            val reopen = shadowOf(app).nextStartedActivity
+            assertEquals(QuickLauncherActivity.REQUEST_OPEN, reopen?.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
+            settle()
+            assertTrue("$closeBy: pending finish ran first", activity.isFinishing)
+            controller.newIntent(reopen)
+            assertEquals("$closeBy: relaunch pending", QuickLauncherToggleState.Phase.OPENING,
+                QuickLauncherToggleState.phase())
+
+            val fresh = shadowOf(app).nextStartedActivity
+            assertEquals("$closeBy: fresh launcher requested", QuickLauncherActivity.REQUEST_OPEN,
+                fresh?.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
+            val next = Robolectric.buildActivity(QuickLauncherActivity::class.java, fresh).setup()
+            controller.pause().stop().destroy()
+            assertTrue("$closeBy: fresh launcher kept", !next.get().isFinishing)
+            assertEquals(QuickLauncherToggleState.Phase.OPEN, QuickLauncherToggleState.phase())
+            next.pause().stop().destroy()
+        }
+    }
+
     private fun settle() {
         repeat(150) {
             ShadowLooper.idleMainLooper(8L, java.util.concurrent.TimeUnit.MILLISECONDS)

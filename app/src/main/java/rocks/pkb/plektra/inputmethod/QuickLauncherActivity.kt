@@ -240,7 +240,17 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         setIntent(intent)
         when (intent.getStringExtra(EXTRA_REQUEST)) {
             REQUEST_CLOSE -> requestAnimatedDismiss()
-            else -> cancelDismiss()
+            else -> if (isFinishing) relaunch() else cancelDismiss()
+        }
+    }
+
+    private fun relaunch() {
+        QuickLauncherToggleState.onRelaunching()
+        try {
+            startActivity(createOpenIntent(this))
+        } catch (e: Exception) {
+            Log.w(TAG, "Quick Launcher relaunch failed", e)
+            QuickLauncherToggleState.onStartFailed()
         }
     }
 

@@ -117,6 +117,12 @@ internal object QuickLauncherToggleState {
     }
 
     @Synchronized
+    fun onRelaunching() {
+        setPhase(Phase.OPENING, clock())
+        awaitingFocus = true
+    }
+
+    @Synchronized
     fun onShown(instance: Any, app: Any, focused: Boolean = false) {
         if (process !== app) {
             resetState()
