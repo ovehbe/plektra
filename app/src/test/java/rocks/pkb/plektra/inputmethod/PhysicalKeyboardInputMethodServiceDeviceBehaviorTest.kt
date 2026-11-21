@@ -1431,6 +1431,7 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
 
     @Test
     fun symPlusQuickLauncherShortcut_opensQuickLauncherFromEditableField() {
+        QuickLauncherOpener.resetForTest()
         val context = RuntimeEnvironment.getApplication()
         SettingsManager.setQuickLauncherTextFieldShortcuts(context, true)
         SettingsManager.setQuickLauncherShortcut(context, KeyEvent.KEYCODE_SPACE)
@@ -1449,12 +1450,13 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         assertTrue(symHandled)
         assertTrue(spaceHandled)
         assertEquals(QuickLauncherActivity::class.java.name, startedIntent.component?.className)
-        assertTrue(startedIntent.getBooleanExtra(QuickLauncherActivity.EXTRA_TOGGLE_REQUEST, false))
+        assertEquals(QuickLauncherActivity.REQUEST_OPEN, startedIntent.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
         assertFalse("Space should not be committed when opening QuickLauncher", recorder.committedTexts.contains(" "))
     }
 
     @Test
     fun heldSymPlusQuickLauncherShortcut_reopensFromEditableFieldAfterLauncherCloses() {
+        QuickLauncherOpener.resetForTest()
         val context = RuntimeEnvironment.getApplication()
         SettingsManager.setQuickLauncherTextFieldShortcuts(context, true)
         SettingsManager.setQuickLauncherShortcut(context, KeyEvent.KEYCODE_SPACE)
@@ -1474,7 +1476,7 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
         assertTrue(handled)
         assertEquals(QuickLauncherActivity::class.java.name, startedIntent.component?.className)
-        assertTrue(startedIntent.getBooleanExtra(QuickLauncherActivity.EXTRA_TOGGLE_REQUEST, false))
+        assertEquals(QuickLauncherActivity.REQUEST_OPEN, startedIntent.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
         assertFalse("Space should not be committed when reopening QuickLauncher", recorder.committedTexts.contains(" "))
     }
 

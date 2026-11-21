@@ -3,6 +3,7 @@ package rocks.pkb.plektra.inputmethod
 import android.app.Application
 import android.content.Intent
 import android.view.KeyEvent
+import androidx.compose.runtime.snapshots.Snapshot
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -60,10 +61,15 @@ class QuickLauncherToggleRaceMatrixTest {
         val name: String,
         val steps: List<Step>,
         val expectOpen: Boolean,
-        val deliveryDelayMs: Long = 0L
+        val deliveryDelayMs: Long = 0L,
+        val creationCostMs: Long = 0L
     )
 
-    private inner class Harness(private val animationMs: Int, private val deliveryDelayMs: Long) {
+    private inner class Harness(
+        private val animationMs: Int,
+        private val deliveryDelayMs: Long,
+        private val creationCostMs: Long
+    ) {
         private var controller: ActivityController<QuickLauncherActivity>? = null
         private var destroyed = false
         private var nowMs = 0L
@@ -74,6 +80,9 @@ class QuickLauncherToggleRaceMatrixTest {
 
         init {
             SettingsManager.setQuickLauncherAnimationDurationMs(app, animationMs)
+            // Robolectric moves its own clock to run animation frames; scenario time is what the
+            // toggle sees, as on a device where animations do not hold up the main thread.
+            QuickLauncherToggleState.clock = { nowMs }
         }
 
         private val live: QuickLauncherActivity?
@@ -84,7 +93,7 @@ class QuickLauncherToggleRaceMatrixTest {
                 val nextDelivery = queued.firstOrNull()?.first
                 val stop = if (nextDelivery != null && nextDelivery <= targetMs) nextDelivery else targetMs
                 idle(stop - nowMs)
-                nowMs = stop
+                nowMs = maxOf(nowMs, stop)
                 reap()
                 if (nextDelivery != null && nextDelivery <= targetMs) {
                     deliver(queued.removeFirst().second)
@@ -94,7 +103,10 @@ class QuickLauncherToggleRaceMatrixTest {
             }
         }
 
+        // Compose's global snapshot observer is bound to the first test's main looper, so state
+        // written outside composition must be announced by hand, as Compose's test rules do.
         private fun idle(ms: Long) {
+            Snapshot.sendApplyNotifications()
             if (ms <= 0) {
                 ShadowLooper.idleMainLooper()
                 return
@@ -103,6 +115,7 @@ class QuickLauncherToggleRaceMatrixTest {
             while (left > 0) {
                 val slice = minOf(left, 8L)
                 ShadowLooper.idleMainLooper(slice, java.util.concurrent.TimeUnit.MILLISECONDS)
+                Snapshot.sendApplyNotifications()
                 left -= slice
             }
         }
@@ -140,6 +153,13 @@ class QuickLauncherToggleRaceMatrixTest {
                 controller = Robolectric.buildActivity(QuickLauncherActivity::class.java, intent).setup()
                 destroyed = false
                 instancesCreated += 1
+                // Creating the launcher blocks the shared main thread; input queued meanwhile is
+                // handled only afterwards.
+                if (creationCostMs > 0) {
+                    idle(creationCostMs)
+                    nowMs += creationCostMs
+                }
+                controller!!.get().takeUnless { it.isFinishing }?.onWindowFocusChanged(true)
             }
             ShadowLooper.idleMainLooper()
             reap()
@@ -175,8 +195,10 @@ class QuickLauncherToggleRaceMatrixTest {
                 Action.PauseResume -> {
                     val c = controller?.takeIf { live != null } ?: return
                     c.pause()
+                    c.get().onWindowFocusChanged(false)
                     ShadowLooper.idleMainLooper()
                     c.resume()
+                    c.get().onWindowFocusChanged(true)
                 }
                 Action.LeaveApp -> {
                     val c = controller?.takeIf { live != null } ?: return
@@ -203,6 +225,7 @@ class QuickLauncherToggleRaceMatrixTest {
                     destroyed = true
                     queued.clear()
                     QuickLauncherOpener.resetForTest()
+                    QuickLauncherToggleState.clock = { nowMs }
                 }
             }
             ShadowLooper.idleMainLooper()
@@ -214,7 +237,7 @@ class QuickLauncherToggleRaceMatrixTest {
 
     private fun run(scenario: Scenario, animationMs: Int): Pair<Boolean, Int> {
         QuickLauncherOpener.resetForTest()
-        val harness = Harness(animationMs, scenario.deliveryDelayMs)
+        val harness = Harness(animationMs, scenario.deliveryDelayMs, scenario.creationCostMs)
         var last = 0L
         for (step in scenario.steps.sortedBy { it.atMs }) {
             harness.advanceTo(step.atMs)
@@ -238,8 +261,8 @@ class QuickLauncherToggleRaceMatrixTest {
                     listOf(t(0), t(gap)), true, delivery
                 )
                 list += Scenario(
-                    "triple trigger +${gap}ms (delivery ${delivery}ms)",
-                    listOf(t(0), t(gap), t(gap * 2)), true, delivery
+                    "triple trigger within +${gap}ms (delivery ${delivery}ms)",
+                    listOf(t(0), t(gap / 2), t(gap)), true, delivery
                 )
                 list += Scenario(
                     "open, genuine close, duplicate +${gap}ms of the close (delivery ${delivery}ms)",
@@ -261,6 +284,22 @@ class QuickLauncherToggleRaceMatrixTest {
                 )
             }
         }
+        for (cost in listOf(150L, 400L, 900L)) {
+            for (gap in listOf(1L, 15L, 60L)) {
+                list += Scenario(
+                    "duplicate +${gap}ms queued behind a ${cost}ms launcher start",
+                    listOf(t(0), t(gap)), true, creationCostMs = cost
+                )
+                list += Scenario(
+                    "reopen with duplicate +${gap}ms queued behind a ${cost}ms start",
+                    listOf(t(0), t(cost + 1_000), t(cost + 3_000), t(cost + 3_000 + gap)), true, creationCostMs = cost
+                )
+            }
+            list += Scenario(
+                "genuine second trigger after a ${cost}ms start closes",
+                listOf(t(0), t(cost + 400)), false, creationCostMs = cost
+            )
+        }
         list += Scenario("trigger right after Back closed it reopens", listOf(t(0), t(800, Action.Back), t(1_100)), true)
         list += Scenario("trigger during Back close animation reopens", listOf(t(0), t(800, Action.Back), t(860)), true)
         list += Scenario("trigger right after close-by-trigger animation reopens", listOf(t(0), t(800), t(1_300)), true)
@@ -268,6 +307,7 @@ class QuickLauncherToggleRaceMatrixTest {
         list += Scenario("trigger after system back close reopens", listOf(t(0), t(800, Action.SystemBack), t(1_300)), true)
         list += Scenario("focus loss and return keeps it open", listOf(t(0), t(500, Action.PauseResume)), true)
         list += Scenario("trigger after focus loss and return closes", listOf(t(0), t(500, Action.PauseResume), t(1_000)), false)
+        list += Scenario("trigger soon after focus returns closes", listOf(t(0), t(500, Action.PauseResume), t(560)), false)
         list += Scenario("trigger after leaving the app (noHistory finish) opens", listOf(t(0), t(500, Action.LeaveApp), t(900)), true)
         list += Scenario("config change keeps it open", listOf(t(0), t(500, Action.Recreate)), true)
         list += Scenario("trigger after config change closes", listOf(t(0), t(500, Action.Recreate), t(1_000)), false)
@@ -293,6 +333,7 @@ class QuickLauncherToggleRaceMatrixTest {
             }
         }
         println("QuickLauncherToggleRaceMatrix: ${count - failures.size}/$count passed")
+        failures.forEach { println("QuickLauncherToggleRaceMatrix FAIL $it") }
         assertTrue("${failures.size} of $count scenarios failed:\n" + failures.joinToString("\n"), failures.isEmpty())
     }
 
@@ -306,15 +347,25 @@ class QuickLauncherToggleRaceMatrixTest {
     }
 
     @Test
-    fun legacyToggleIntentStillClosesAGenuinelyOpenLauncher() {
+    fun closeRequestClosesAnOpenLauncher() {
         SettingsManager.setQuickLauncherAnimationDurationMs(app, 0)
         val controller = Robolectric.buildActivity(
             QuickLauncherActivity::class.java,
             QuickLauncherActivity.createOpenIntent(app)
         ).setup()
         ShadowLooper.idleMainLooper(1_000L, java.util.concurrent.TimeUnit.MILLISECONDS)
-        controller.newIntent(QuickLauncherActivity.createToggleIntent(app))
+        controller.newIntent(QuickLauncherActivity.createCloseIntent(app))
         ShadowLooper.idleMainLooper()
         assertTrue(controller.get().isFinishing)
+    }
+
+    @Test
+    fun closeRequestThatStartsAFreshInstanceNeverShowsIt() {
+        val controller = Robolectric.buildActivity(
+            QuickLauncherActivity::class.java,
+            QuickLauncherActivity.createCloseIntent(app)
+        ).create()
+        assertTrue(controller.get().isFinishing)
+        assertEquals(QuickLauncherToggleState.Phase.CLOSED, QuickLauncherToggleState.phase())
     }
 }

@@ -69,6 +69,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -103,9 +104,10 @@ import rocks.pkb.plektra.data.layout.LayoutMappingRepository
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.ui.theme.PlektraTheme
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class QuickLauncherActivity : LocalizedComponentActivity() {
     private var commands: List<CommandTarget> = emptyList()
@@ -135,7 +137,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var enterHandledOnKeyDown = false
     private var pendingDismissKeyCode: Int? = null
     private var dismissRequestId by mutableStateOf(0)
-    private var dismissInProgress = false
+    private var dismissInProgress by mutableStateOf(false)
     private var quickLauncherPrefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
     private var selectedIndex by mutableStateOf(-1) // -1 means no selection, 0+ is the index
     private val fallbackModifierStateController = ModifierStateController(300L) { false }
@@ -146,6 +148,11 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         disableActivityAnimations()
+        if (intent?.getStringExtra(EXTRA_REQUEST) == REQUEST_CLOSE) {
+            super.finish()
+            return
+        }
+        QuickLauncherToggleState.onShown(this)
         window.requestFeature(android.view.Window.FEATURE_NO_TITLE)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
         window.setFlags(
@@ -202,6 +209,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         staticTopHighlightColor = staticTopHighlightColor,
                         animationDurationMs = animationDurationMs,
                         dismissRequestId = dismissRequestId,
+                        dismissing = dismissInProgress,
                         selectedIndex = selectedIndex,
                         onCommandSelected = { launchCommand(it) },
                         onCustomizationChanged = { updateCommandCustomization(it) },
@@ -230,12 +238,26 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (intent.getBooleanExtra(EXTRA_TOGGLE_REQUEST, false)) {
-            requestAnimatedDismiss()
+        when (intent.getStringExtra(EXTRA_REQUEST)) {
+            REQUEST_CLOSE -> requestAnimatedDismiss()
+            else -> cancelDismiss()
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        QuickLauncherToggleState.onAppearing(this, focused = false)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) QuickLauncherToggleState.onAppearing(this, focused = true)
+    }
+
     override fun onDestroy() {
+        if (!isChangingConfigurations) {
+            QuickLauncherToggleState.onGone(this)
+        }
         quickLauncherPrefsListener?.let { listener ->
             SettingsManager.getPreferences(this).unregisterOnSharedPreferenceChangeListener(listener)
         }
@@ -687,6 +709,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     override fun finish() {
+        QuickLauncherToggleState.onGone(this)
         super.finish()
         disableActivityAnimations()
     }
@@ -739,13 +762,22 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     private fun requestAnimatedDismiss() {
-        if (dismissInProgress) return
+        if (dismissInProgress || isFinishing) return
         dismissInProgress = true
         if (animationDurationMs <= 0) {
             finish()
         } else {
+            QuickLauncherToggleState.onClosing(this)
             dismissRequestId += 1
         }
+    }
+
+    private fun cancelDismiss() {
+        if (isFinishing) return
+        QuickLauncherToggleState.onShown(this, focused = hasWindowFocus())
+        if (!dismissInProgress) return
+        dismissInProgress = false
+        dismissRequestId += 1
     }
 
     private fun isDismissKey(keyCode: Int): Boolean {
@@ -867,32 +899,30 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_TOGGLE_REQUEST = "rocks.pkb.plektra.inputmethod.extra.TOGGLE_QUICK_LAUNCHER"
+        const val EXTRA_REQUEST = "rocks.pkb.plektra.inputmethod.extra.QUICK_LAUNCHER_REQUEST"
+        const val REQUEST_OPEN = "open"
+        const val REQUEST_CLOSE = "close"
         private const val TAG = "QuickLauncher"
         private const val PREF_COMMAND_SURFACE_SOURCES = "command_surface_sources"
 
-        fun createToggleIntent(context: Context): Intent {
-            return Intent(context, QuickLauncherActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-                addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
-                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                putExtra(EXTRA_TOGGLE_REQUEST, true)
-            }
-        }
+        fun createOpenIntent(context: Context): Intent = createRequestIntent(context, REQUEST_OPEN)
 
-        fun createOpenIntent(context: Context): Intent {
+        fun createCloseIntent(context: Context): Intent = createRequestIntent(context, REQUEST_CLOSE)
+
+        private fun createRequestIntent(context: Context, request: String): Intent {
             return Intent(context, QuickLauncherActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
                 addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY)
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                putExtra(EXTRA_REQUEST, request)
             }
         }
     }
 }
+
+private const val DISMISS_FRAME_GRACE_MS = 400L
 
 @Composable
 private fun QuickLauncherSheet(
@@ -914,6 +944,7 @@ private fun QuickLauncherSheet(
     staticTopHighlightColor: Int,
     animationDurationMs: Int,
     dismissRequestId: Int,
+    dismissing: Boolean,
     selectedIndex: Int,
     onCommandSelected: (CommandTarget) -> Unit,
     onCustomizationChanged: (SettingsManager.QuickLauncherCommandCustomization) -> Unit,
@@ -929,11 +960,16 @@ private fun QuickLauncherSheet(
         visible.targetState = true
     }
     LaunchedEffect(dismissRequestId) {
-        if (dismissRequestId > 0) {
-            visible.targetState = false
-            delay(animationDurationMs.toLong().coerceAtLeast(0L))
-            onDismissAnimationFinished()
+        if (!dismissing) {
+            visible.targetState = true
+            return@LaunchedEffect
         }
+        visible.targetState = false
+        // The exit transition runs on frames; the timeout covers a window that stops drawing.
+        withTimeoutOrNull(animationDurationMs.toLong().coerceAtLeast(0L) + DISMISS_FRAME_GRACE_MS) {
+            snapshotFlow { visible.isIdle && !visible.currentState }.first { it }
+        }
+        onDismissAnimationFinished()
     }
     val isCollapsedPill = pillMode && query.isBlank()
     val widthFraction = if (isCollapsedPill) 0.72f else widthPercent.coerceIn(50, 100) / 100f

@@ -110,10 +110,10 @@ class QuickLauncherActivityTest {
     fun quickLauncherIntentsSuppressSystemActivityAnimation() {
         val context = RuntimeEnvironment.getApplication()
 
-        val toggleFlags = QuickLauncherActivity.createToggleIntent(context).flags
+        val closeFlags = QuickLauncherActivity.createCloseIntent(context).flags
         val openFlags = QuickLauncherActivity.createOpenIntent(context).flags
 
-        assertNotEquals(0, toggleFlags and android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        assertNotEquals(0, closeFlags and android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION)
         assertNotEquals(0, openFlags and android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION)
     }
 
