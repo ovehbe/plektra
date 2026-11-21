@@ -964,4 +964,6 @@ Ctrl-ярлики застосунків із урахуванням розкл�
     <string name="setting_link_quick_launcher_entries">Елементи Quick Launcher</string>
     <string name="setting_link_quick_launcher_favorite_color">Колір виділення обраного в Quick Launcher</string>
     <string name="setting_link_quick_launcher_top_match_color">Колір виділення найкращого збігу в Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Виберіть, чи видаляє Plektra пробіл перед кожним символом під час його введення та чи вставляє відкладений пробіл перед наступним текстом.</string>
+    <string name="auto_space_punctuation_help_text">«Remove before» видаляє пробіли перед символом під час його введення — байдуже, чи ввели ви їх самі, чи їх додала Plektra: «Як справи ?» стає «Як справи?». Backspace одразу після цього повертає їх. Пробіл на початку рядка залишається.\n\n«Before next text» відкладає пробіл, доки не буде введено наступний текст. Тому Enter або «Надіслати» не залишають пробілу в кінці.\n\nПоля URL, ел. пошти, паролів і чисел ніколи не змінюються.</string>
 </resources>

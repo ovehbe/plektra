@@ -962,4 +962,6 @@ Nav Mode-ը օգտագործում է ստեղնի ֆիզիկական դիրքը
     <string name="setting_link_quick_launcher_entries">Quick Launcher-ի գրառումներ</string>
     <string name="setting_link_quick_launcher_favorite_color">Quick Launcher-ի ընտրյալների ընդգծման գույնը</string>
     <string name="setting_link_quick_launcher_top_match_color">Quick Launcher-ի լավագույն համընկնման ընդգծման գույնը</string>
+    <string name="auto_space_punctuation_dialog_instruction">Ընտրեք՝ արդյոք Plektra-ն հեռացնի բացատը յուրաքանչյուր նիշից առաջ մուտքագրելիս և հետաձգված բացատ տեղադրի հաջորդ տեքստից առաջ։</string>
+    <string name="auto_space_punctuation_help_text">«Remove before»-ը հեռացնում է նիշից առաջ եղած բացատները այն մուտքագրելիս՝ անկախ նրանից՝ դուք եք դրանք մուտքագրել, թե Plektra-ն է ավելացրել. «How are you ?»-ն դառնում է «How are you?»։ Անմիջապես հետո Backspace-ը վերականգնում է դրանք։ Տողի սկզբի բացատը մնում է։\n\n«Before next text»-ը հետաձգում է բացատը, մինչև նոր տեքստ մուտքագրվի։ Այդ պատճառով Enter-ը կամ Ուղարկելը վերջում բացատ չի թողնում։\n\nURL-ի, էլ. փոստի, գաղտնաբառի և թվերի դաշտերը երբեք չեն փոխվում։</string>
 </resources>

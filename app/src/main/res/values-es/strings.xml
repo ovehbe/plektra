@@ -963,4 +963,6 @@ Cada tecla puede configurarse como Keycode, Acción, Native Ctrl o Ninguno. Usa 
     <string name="setting_link_quick_launcher_entries">Entradas de Quick Launcher</string>
     <string name="setting_link_quick_launcher_favorite_color">Color de resaltado de favoritos de Quick Launcher</string>
     <string name="setting_link_quick_launcher_top_match_color">Color de resaltado de la mejor coincidencia de Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Elige si Plektra elimina el espacio antes de cada carácter al escribirlo e inserta un espacio diferido antes del texto siguiente.</string>
+    <string name="auto_space_punctuation_help_text">“Remove before” elimina los espacios antes del carácter al escribirlo, tanto si los escribiste tú como si los añadió Plektra: “¿Cómo estás ?” se convierte en “¿Cómo estás?”. Retroceso justo después los restaura. Un espacio al inicio de una línea se mantiene.\n\n“Before next text” aplaza el espacio hasta que se escriba más texto. Así, Intro o Enviar no dejan un espacio final.\n\nLos campos de URL, correo, contraseña y números nunca se modifican.</string>
 </resources>
