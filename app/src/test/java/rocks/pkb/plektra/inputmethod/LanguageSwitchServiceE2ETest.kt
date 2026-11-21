@@ -207,6 +207,32 @@ class LanguageSwitchServiceE2ETest {
         assertEquals(listOf(italian), LanguageImeShadow.switches)
         assertNull(shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity)
     }
+    @Test fun heldDuplicateAltSpaceHandledAfterTheLauncherStartsDoesNotCloseIt() {
+        QuickLauncherOpener.resetForTest()
+        SettingsManager.setQuickLauncherShortcut(context, KeyEvent.KEYCODE_SPACE)
+        SettingsManager.setQuickLauncherAltShortcutsOutsideTextFields(context, true)
+        SettingsManager.setQuickLauncherAltSpaceInTextFields(context, true)
+        val app = RuntimeEnvironment.getApplication()
+        val pressedAt = android.os.SystemClock.uptimeMillis()
+        fun press() {
+            service.onKeyDown(KeyEvent.KEYCODE_SPACE,
+                KeyEvent(pressedAt, pressedAt, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_SPACE, 0, KeyEvent.META_ALT_ON))
+            service.onKeyUp(KeyEvent.KEYCODE_SPACE,
+                KeyEvent(pressedAt, pressedAt, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_SPACE, 0, KeyEvent.META_ALT_ON))
+        }
+        press()
+        val open = shadowOf(app).nextStartedActivity
+        assertEquals(QuickLauncherActivity.REQUEST_OPEN, open?.getStringExtra(QuickLauncherActivity.EXTRA_REQUEST))
+        val launcher = Robolectric.buildActivity(QuickLauncherActivity::class.java, open).setup()
+        launcher.get().onWindowFocusChanged(true)
+        shadowOf(Looper.getMainLooper()).idleFor(600, TimeUnit.MILLISECONDS)
+
+        press()
+        assertNull(shadowOf(app).nextStartedActivity)
+        assertEquals(QuickLauncherToggleState.Phase.OPEN, QuickLauncherToggleState.phase())
+        launcher.pause().stop().destroy()
+    }
+
     @Test fun disabledSoftwareReverseOptionKeepsForwardCycle() {
         SettingsManager.setCtrlLanguagePreviousEnabled(context, false)
         modifiers().ctrlOneShot = true

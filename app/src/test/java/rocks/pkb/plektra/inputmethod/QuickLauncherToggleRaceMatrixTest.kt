@@ -405,6 +405,68 @@ class QuickLauncherToggleRaceMatrixTest {
     }
 
     /**
+     * Timeline from the emulator: the input dispatcher holds duplicate presses until the launcher
+     * has focus, and the keyboard handles the last one only after restarting input on the
+     * launcher's field, well after the duplicate window measured from handling time.
+     */
+    @Test
+    fun duplicatePressesHandledLateAreJudgedByWhenTheyWerePressed() {
+        data class Case(val name: String, val handledAtMs: List<Long>, val pressedAtMs: List<Long>, val want: List<QuickLauncherToggleState.Decision>)
+        val open = QuickLauncherToggleState.Decision.OPEN
+        val ignore = QuickLauncherToggleState.Decision.IGNORE
+        val close = QuickLauncherToggleState.Decision.CLOSE
+        val cases = listOf(
+            Case("held duplicates", listOf(0, 539, 795), listOf(0, 0, 1), listOf(open, ignore, ignore)),
+            Case("held duplicate 15ms apart", listOf(0, 795), listOf(0, 15), listOf(open, ignore)),
+            Case("second press after focus", listOf(0, 820), listOf(0, 800), listOf(open, close)),
+            Case("deliberate second press", listOf(0, 1_500), listOf(0, 1_500), listOf(open, close)),
+        )
+        for (case in cases) {
+            QuickLauncherOpener.resetForTest()
+            var now = 0L
+            QuickLauncherToggleState.clock = { now }
+            val launcher = Any()
+            val decisions = case.handledAtMs.indices.map { i ->
+                if (i == 1) {
+                    now = 86; QuickLauncherToggleState.onShown(launcher, app)
+                    now = 133; QuickLauncherToggleState.onAppearing(launcher, focused = false)
+                    now = 514; QuickLauncherToggleState.onAppearing(launcher, focused = true)
+                }
+                now = case.handledAtMs[i]
+                QuickLauncherToggleState.duringKeyEvent(case.pressedAtMs[i]) { QuickLauncherToggleState.onTrigger(app) }
+            }
+            assertEquals(case.name, case.want, decisions)
+        }
+    }
+
+    @Test
+    fun pressTimeIsOnlyUsedDuringItsKeyEvent() {
+        QuickLauncherOpener.resetForTest()
+        var now = 1_000L
+        QuickLauncherToggleState.clock = { now }
+        QuickLauncherToggleState.duringKeyEvent(1_000L) { QuickLauncherToggleState.onTrigger(app) }
+        QuickLauncherToggleState.onShown(Any(), app, focused = true)
+        now = 2_000L
+        assertEquals(QuickLauncherToggleState.Decision.CLOSE, QuickLauncherToggleState.onTrigger(app))
+        QuickLauncherOpener.resetForTest()
+        now = 5_000L
+        QuickLauncherToggleState.clock = { now }
+        QuickLauncherToggleState.onTrigger(app)
+        QuickLauncherToggleState.onShown(Any(), app, focused = true)
+        now = 6_000L
+        assertEquals("a key event without a press time", QuickLauncherToggleState.Decision.CLOSE,
+            QuickLauncherToggleState.duringKeyEvent(0L) { QuickLauncherToggleState.onTrigger(app) })
+
+        now = 10_300L
+        QuickLauncherToggleState.onShown(Any(), app, focused = true)
+        assertEquals(QuickLauncherToggleState.Decision.CLOSE,
+            QuickLauncherToggleState.duringKeyEvent(10_000L) { QuickLauncherToggleState.onTrigger(app) })
+        now = 10_420L
+        assertEquals("a press 400ms after a late-handled one", QuickLauncherToggleState.Decision.OPEN,
+            QuickLauncherToggleState.duringKeyEvent(10_400L) { QuickLauncherToggleState.onTrigger(app) })
+    }
+
+    /**
      * The system routes an open request to the closing launcher when the request is started, but
      * the shared main thread can run the pending finish before the launcher handles the request.
      */

@@ -79,9 +79,25 @@ internal object QuickLauncherToggleState {
     private var awaitingFocus = false
     private var owner: Any? = null
     private var process: Any? = null
+    private var pressedAtMsForTrigger: Long? = null
 
     @Synchronized
     fun phase(): Phase = phase
+
+    /**
+     * Runs [block] while handling a key pressed at [pressedAtMs] (the event's uptime timestamp).
+     * The input dispatcher holds presses while no window has focus and the keyboard can handle
+     * them only after the launcher starts, so duplicates are judged by when they were pressed.
+     */
+    fun <T> duringKeyEvent(pressedAtMs: Long?, block: () -> T): T {
+        val previous = pressedAtMsForTrigger
+        pressedAtMsForTrigger = pressedAtMs
+        try {
+            return block()
+        } finally {
+            pressedAtMsForTrigger = previous
+        }
+    }
 
     @Synchronized
     fun onTrigger(app: Any): Decision {
@@ -90,8 +106,9 @@ internal object QuickLauncherToggleState {
             process = app
         }
         val nowMs = clock()
+        val pressedAtMs = pressedAtMsForTrigger?.takeIf { it in 1..nowMs } ?: nowMs
         val last = lastAcceptedTriggerMs
-        if (last != null && nowMs - last < DUPLICATE_WINDOW_MS) return Decision.IGNORE
+        if (last != null && pressedAtMs - last < DUPLICATE_WINDOW_MS) return Decision.IGNORE
         val decision = when (phase) {
             Phase.CLOSED, Phase.CLOSING -> Decision.OPEN
             Phase.OPENING -> if (nowMs - phaseSinceMs >= OPENING_STALE_MS) Decision.OPEN else Decision.IGNORE
@@ -105,7 +122,7 @@ internal object QuickLauncherToggleState {
             Decision.CLOSE -> setPhase(Phase.CLOSING, nowMs)
             Decision.IGNORE -> return decision
         }
-        lastAcceptedTriggerMs = nowMs
+        lastAcceptedTriggerMs = pressedAtMs
         return decision
     }
 

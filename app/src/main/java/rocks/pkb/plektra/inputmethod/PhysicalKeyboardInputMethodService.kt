@@ -5120,7 +5120,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
         if (keyCode_ != KeyEvent.KEYCODE_DEL) rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
         return withModifierKeyDebug("KEY_DOWN", keyCode_, event_) {
-            onKeyDownInternal(keyCode_, event_)
+            QuickLauncherToggleState.duringKeyEvent(event_?.eventTime) { onKeyDownInternal(keyCode_, event_) }
         }.also {
             if (keyCode_ == KeyEvent.KEYCODE_SPACE) rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace()
         }
@@ -6155,7 +6155,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
     override fun onKeyUp(keyCode_: Int, event_: KeyEvent?): Boolean {
         return withModifierKeyDebug("KEY_UP", keyCode_, event_) {
-            onKeyUpInternal(keyCode_, event_)
+            QuickLauncherToggleState.duringKeyEvent(event_?.eventTime) { onKeyUpInternal(keyCode_, event_) }
         }
     }
 
