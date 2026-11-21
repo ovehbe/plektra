@@ -13,9 +13,12 @@ object AutoSpaceTracker {
     private const val QUOTE_CONTEXT_LOOKBACK = 240
     @Volatile
     private var autoSpacePending: Boolean = false
+    @Volatile
+    private var manualSpaceSinceMark: Boolean = false
 
     fun markAutoSpace() {
         autoSpacePending = true
+        manualSpaceSinceMark = false
         Log.d(TAG, "markAutoSpace -> pending=true")
     }
 
@@ -33,6 +36,14 @@ object AutoSpaceTracker {
         return autoSpacePending
     }
 
+    /** The user typed a space themselves, so the trailing space is no longer Plektra's own. */
+    fun noteManualSpace() {
+        manualSpaceSinceMark = true
+    }
+
+    /** Whether the space right before the cursor is still the one Plektra added automatically. */
+    fun isTrailingSpaceAuto(): Boolean = autoSpacePending && !manualSpaceSinceMark
+
     fun clear() {
         autoSpacePending = false
         Log.d(TAG, "clear pending=false")
@@ -46,7 +57,7 @@ object AutoSpaceTracker {
         inputConnection: InputConnection,
         punctuation: String
     ): Boolean {
-        if (!autoSpacePending) return false
+        if (!isTrailingSpaceAuto() || !PunctuationSpacing.fieldAllowsAutoEdits()) return false
         val beforeTwo = inputConnection.getTextBeforeCursor(2, 0)?.toString().orEmpty()
         val lastIsSpace = beforeTwo.lastOrNull() == ' '
         val prevIsWordChar = beforeTwo.dropLast(1).lastOrNull()?.isLetterOrDigit() == true
@@ -67,12 +78,14 @@ object AutoSpaceTracker {
         return true
     }
 
-    private fun hasUnclosedStraightDoubleQuote(inputConnection: InputConnection): Boolean {
-        val before = inputConnection.getTextBeforeCursor(QUOTE_CONTEXT_LOOKBACK, 0)
-            ?.toString()
-            .orEmpty()
-            .dropLast(1)
-            .substringAfterLast('\n')
+    private fun hasUnclosedStraightDoubleQuote(inputConnection: InputConnection): Boolean =
+        closesStraightDoubleQuote(
+            inputConnection.getTextBeforeCursor(QUOTE_CONTEXT_LOOKBACK, 0)?.toString().orEmpty().dropLast(1)
+        )
+
+    /** Whether a straight double quote typed after [textBefore] closes one opened on the same line. */
+    internal fun closesStraightDoubleQuote(textBefore: String): Boolean {
+        val before = textBefore.substringAfterLast('\n')
         var quoteOpen = false
         before.forEachIndexed { index, char ->
             if (char != '"') return@forEachIndexed

@@ -2026,6 +2026,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         super.onCreate()
         smoothCaretOverlayController = SmoothCaretOverlayController(this)
         ClicksAccessibilityKeyBridge.register(this)
+        rocks.pkb.plektra.core.PunctuationSpacing.fieldAllowsAutoEdits = { inputContextState.allowsPunctuationSpacing }
         lastSystemLocalesSignature = resources.configuration.locales.toLanguageTags()
         lastImeConfiguration = Configuration(resources.configuration)
         prefs = getSharedPreferences("plektra_prefs", Context.MODE_PRIVATE)
@@ -2875,6 +2876,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     ): Boolean {
         if (liveSpeechEditor != null) cancelSpeechRecognition()
         val ic = inputConnection ?: return false
+        rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
 
         if (text == " ") {
             if (::textExpansionController.isInitialized &&
@@ -2898,7 +2900,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     ic.commitText(" ", 1)
                 },
                 onStatusBarUpdate = { updateStatusBarText() }
-            )
+            ).also { rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace() }
         }
 
         if (
@@ -3164,6 +3166,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (::smoothCaretOverlayController.isInitialized) smoothCaretOverlayController.release()
         caretBadgeController.destroy()
         ClicksAccessibilityKeyBridge.unregister(this)
+        rocks.pkb.plektra.core.PunctuationSpacing.fieldAllowsAutoEdits = { true }
+        rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
         clicksPowerShiftTapFilter.reset()
         accidentalKeyPressFilter.reset()
         clicksPowerButtonEventMapper.reset()
@@ -5114,8 +5118,11 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
+        if (keyCode_ != KeyEvent.KEYCODE_DEL) rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
         return withModifierKeyDebug("KEY_DOWN", keyCode_, event_) {
             onKeyDownInternal(keyCode_, event_)
+        }.also {
+            if (keyCode_ == KeyEvent.KEYCODE_SPACE) rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace()
         }
     }
 

@@ -1940,6 +1940,9 @@ class StatusBarController(
                 if (searchTarget != null && searchTarget.handleSearchBackspace()) {
                     return
                 }
+                if (inputConnection != null && rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)) {
+                    return
+                }
                 inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
                 inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
             }
@@ -2320,6 +2323,9 @@ class StatusBarController(
             }
             if (rowIndex == 2) {
                 rowLayout.addView(createSoftwareSymbolControl("", keyHeight, fixedKeyWidth, iconRes = R.drawable.backspace_24) {
+                    if (inputConnection != null && rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)) {
+                        return@createSoftwareSymbolControl
+                    }
                     inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
                     inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
                 }, LinearLayout.LayoutParams(fixedKeyWidth, keyHeight).apply { marginStart = keySpacing })
