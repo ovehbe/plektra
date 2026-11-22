@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import android.content.SharedPreferences
 
 class PlektraApplication : Application() {
+    internal val otpRuntime by lazy { rocks.pkb.plektra.inputmethod.otp.OtpRuntime(this) }
     private var unlockedInitialized = false
     private var directBootConfigListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
 

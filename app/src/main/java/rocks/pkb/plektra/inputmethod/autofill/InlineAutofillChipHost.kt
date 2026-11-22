@@ -21,6 +21,7 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
         TypedValue.COMPLEX_UNIT_DIP, CHIP_GAP_DP, context.resources.displayMetrics
     ).toInt()
     private val pinnedRow = chipRow(context)
+    private var leadingChip: View? = null
     private val scrollingRow = chipRow(context)
     // Known limitation: on Android 11 the chips' surfaces ignore this clip, so scrolled chips draw over the pinned ones.
     private val scroller = HorizontalScrollView(context).apply {
@@ -62,8 +63,19 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
         }
     }
 
+    fun setLeadingChip(chip: View?) {
+        if (chip === leadingChip) return
+        leadingChip?.let(pinnedRow::removeView)
+        leadingChip = chip
+        if (chip != null) pinnedRow.addView(chip, 0, LayoutParams(
+            LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT
+        ).apply { marginEnd = gapPx })
+    }
+
     fun clearChips() {
-        pinnedRow.removeAllViews()
+        while (pinnedRow.childCount > (if (leadingChip == null) 0 else 1)) {
+            pinnedRow.removeViewAt(pinnedRow.childCount - 1)
+        }
         scrollingRow.removeAllViews()
     }
 

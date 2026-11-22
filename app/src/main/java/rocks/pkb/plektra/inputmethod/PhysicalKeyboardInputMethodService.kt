@@ -65,6 +65,8 @@ import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofill
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChips
+import rocks.pkb.plektra.inputmethod.otp.OtpInbox
+import rocks.pkb.plektra.inputmethod.otp.OtpRuntime
 import androidx.annotation.RequiresApi
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
@@ -190,6 +192,11 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private var smoothCaretEditorHidden = false
     private lateinit var candidatesBarController: CandidatesBarController
     private lateinit var inlineAutofillChips: InlineAutofillChips
+    private lateinit var otpRuntime: OtpRuntime
+    private var otpEditor: EditorInfo? = null
+    private var renderedOtp: OtpInbox.Entry? = null
+    // Editor identities only, never the inserted text. Keep refocused fields out of learning too.
+    private val otpEditors = mutableSetOf<Pair<String, Int>>()
     private lateinit var textExpansionController: TextExpansionController
     private lateinit var emojiShortcodeSource: EmojiShortcodeSource
     private lateinit var symbolShortcodeSource: SymbolShortcodeSource
@@ -473,7 +480,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private fun updateInputContextState(info: EditorInfo?) {
         // Exact Typing: the raw-mode choice also covers WebAPKs (matched via their host browser).
         val isRawModeApp = SettingsManager.isRawModeApp(this, info?.packageName)
-        inputContextState = InputContextState.fromEditorInfo(info, isRawModeApp)
+        inputContextState = InputContextState.fromEditorInfo(info, isRawModeApp).copy(
+            containsInsertedOtp = info?.otpEditorKey() in otpEditors
+        )
         keyboardBarHiddenInEditor = SettingsManager.isKeyboardBarHiddenInApp(this, info?.packageName)
         numberSuggestionsInEditor = SettingsManager.isNumberSuggestionsActive(this, info)
     }
@@ -2093,6 +2102,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
         candidatesBarController = CandidatesBarController(this, clipboardHistoryManager, assets, PhysicalKeyboardInputMethodService::class.java)
         candidatesBarController.isSurfaceBlocked = { keyboardBarHiddenInEditor }
+        otpRuntime = OtpRuntime.get(this)
+        otpRuntime.onChanged = { refreshOtpChip() }
         inlineAutofillChips = InlineAutofillChips(
             canHost = { inlineAutofillChipHeightPx() != null },
             show = candidatesBarController::showInlineAutofill,
@@ -3160,6 +3171,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
     
     override fun onDestroy() {
+        if (::otpRuntime.isInitialized) otpRuntime.onChanged = null
+        otpEditor = null
+        if (::candidatesBarController.isInitialized) candidatesBarController.setOtpChip(null) { }
         disableSmoothCaretExperiment()
         if (::smoothCaretOverlayController.isInitialized) smoothCaretOverlayController.release()
         caretBadgeController.destroy()
@@ -3292,6 +3306,41 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         if (!inputViewShows) return null
         if (restingBar) return candidatesBarController.inlineAutofillChipHeightPx(symPage = 0, navModeActive = false)
         return candidatesBarController.inlineAutofillChipHeightPx(symPage, ctrlLatchActive && ctrlLatchFromNavMode)
+    }
+
+    private fun EditorInfo.otpEditorKey() = packageName.orEmpty() to fieldId
+
+    private fun refreshOtpChip(render: Boolean = true, requestSurface: Boolean = true) {
+        val editor = otpEditor
+        val connection = currentInputConnection
+        val entry = if (editor != null && connection != null && !keyboardBarHiddenInEditor) otpRuntime.inbox.current() else null
+        if (entry === renderedOtp) return
+        renderedOtp = entry
+        candidatesBarController.setOtpChip(entry?.code) {
+            if (entry == null || editor == null || connection == null || otpEditor !== editor ||
+                currentInputConnection !== connection || keyboardBarHiddenInEditor) return@setOtpChip
+            if (otpRuntime.inbox.use(entry) { code ->
+                    val previous = inputContextState
+                    inputContextState = previous.copy(containsInsertedOtp = true)
+                    if (!connection.commitText(code, 1)) {
+                        inputContextState = previous
+                        false
+                    } else {
+                        otpEditors += editor.otpEditorKey()
+                        DeferredPunctuationSpaceTracker.clear()
+                        cancelPendingSelectionDrivenUiWork()
+                        suggestionController.onContextReset()
+                        textExpansionController.clear()
+                        true
+                    }
+                }) otpRuntime.refresh() else refreshOtpChip()
+        }
+        invalidateRenderedStatusSnapshot()
+        if (render) updateStatusBarText()
+        if (entry != null && requestSurface &&
+            SettingsManager.resolveEffectiveSoftwareKeyboardMode(this) != SettingsManager.SoftwareKeyboardMode.FORCE_VIRTUAL) {
+            ensureImeSurfaceVisible()
+        }
     }
 
     private fun clearInlineAutofill() {
@@ -3995,6 +4044,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ++speechEditorSession
         }
         super.onStartInput(info, restarting)
+        otpEditor = null
+        refreshOtpChip(render = false)
         clearInlineAutofill()
         if (::textExpansionController.isInitialized) textExpansionController.clear()
         if (
@@ -4036,6 +4087,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val isEditable = state.isEditable
         val isReallyEditable = state.isReallyEditable
         isInputViewActive = isEditable
+        otpEditor = info.takeIf { state.isReallyEditable }
+        refreshOtpChip(render = false, requestSurface = false)
         softwareKeypadSession.onFieldStarted(state.inputType, restarting)
         if (!restarting) hardwareKeypadAutoOpen.settle()
         keyboardVisibilityController.onInputStarted(restarting)
@@ -4234,6 +4287,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         clearInlineAutofill()
         inputContextState = InputContextState.EMPTY
+        otpEditor = null
+        refreshOtpChip()
         multiTapController.cancelAll()
         disableEmojiSearchInputCapture()
         resetModifierStates(preserveNavMode = true)
@@ -4298,6 +4353,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     
     override fun onWindowShown() {
         super.onWindowShown()
+        if (::otpRuntime.isInitialized) refreshOtpChip(requestSurface = false)
         keyboardVisibilityController.onImeWindowVisibilityChanged(shown = true)
         updateStatusBarText()
         attachTrackpadDecorViewMotionHook("onWindowShown")

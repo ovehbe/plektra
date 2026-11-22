@@ -269,6 +269,7 @@ internal fun KeyboardBarSettingsScreen(
                 inlineAutofill = it
                 SettingsManager.setInlineAutofillEnabled(context, it)
             }
+            OtpSettingsRows()
             KeyboardTextScaleSettingsCard()
             SettingsSectionDivider(stringResource(R.string.keyboard_bar_layout_section))
             KeyboardBarArrangementField(arrangement, displayedSuggestions && displayedActions) {

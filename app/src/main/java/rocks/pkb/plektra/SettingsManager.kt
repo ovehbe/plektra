@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
 import androidx.core.content.edit
+import rocks.pkb.plektra.inputmethod.otp.OtpSource
 import rocks.pkb.plektra.commands.CommandJson
 import rocks.pkb.plektra.commands.CommandLaunchSpec
 import rocks.pkb.plektra.commands.CommandSourceId
@@ -417,6 +418,10 @@ object SettingsManager {
     private const val KEY_IME_OVERLAY_DEBUG_LOGGING = "ime_overlay_debug_logging"
     private const val KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED = "experimental_candidates_view_enabled"
     private const val KEY_INLINE_AUTOFILL_ENABLED = "inline_autofill_enabled"
+    private const val KEY_OTP_ENABLED = "otp_enabled"
+    private const val KEY_OTP_SMS = "otp_source_sms"
+    private const val KEY_OTP_NOTIFICATION = "otp_source_notification"
+    private const val KEY_OTP_HELPER = "otp_source_helper"
     private const val KEY_USE_KEYBOARD_PROXIMITY = "use_keyboard_proximity"
     private const val KEY_USE_EDIT_TYPE_RANKING = "use_edit_type_ranking"
     private const val KEY_NUMBER_SUGGESTIONS_ENABLED = "number_suggestions_enabled"
@@ -3314,6 +3319,31 @@ object SettingsManager {
         getPreferences(context).edit()
             .putBoolean(KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED, enabled)
             .apply()
+    }
+
+    internal fun getOtpEnabled(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_OTP_ENABLED, false)
+
+    internal fun setOtpEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit { putBoolean(KEY_OTP_ENABLED, enabled) }
+    }
+
+    internal fun getOtpSourceEnabled(context: Context, source: OtpSource): Boolean =
+        getPreferences(context).getBoolean(otpSourceKey(source), false)
+
+    internal fun setOtpSourceEnabled(context: Context, source: OtpSource, enabled: Boolean) {
+        getPreferences(context).edit { putBoolean(otpSourceKey(source), enabled) }
+    }
+
+    private fun otpSourceKey(source: OtpSource) = when (source) {
+        OtpSource.SMS -> KEY_OTP_SMS
+        OtpSource.NOTIFICATION -> KEY_OTP_NOTIFICATION
+        OtpSource.HELPER -> KEY_OTP_HELPER
+    }
+
+    internal fun isOtpPreference(key: String) = when (key) {
+        KEY_OTP_ENABLED, KEY_OTP_SMS, KEY_OTP_NOTIFICATION, KEY_OTP_HELPER -> true
+        else -> false
     }
 
     /** Password-manager suggestions shown in the keyboard bar through Android's inline autofill. */

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Use the English fallback until OTP translations are available. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="otp_title">Show one-time codes</string>
+    <string name="otp_summary">Show a code in the keyboard bar for two minutes. Tap to insert it.</string>
+    <string name="otp_sms" translatable="false">SMS</string>
+    <string name="otp_sms_granted">SMS permission granted</string>
+    <string name="otp_sms_not_granted">SMS permission not granted</string>
+    <string name="otp_request_sms">Request SMS permission</string>
+    <string name="otp_notifications">Notifications</string>
+    <string name="otp_notifications_granted">Notification access granted</string>
+    <string name="otp_notifications_not_granted">Notification access not granted</string>
+    <string name="otp_notification_settings">Open notification access settings</string>
+    <string name="otp_helper" translatable="false">OTP Helper</string>
+    <string name="otp_helper_summary">OTP Helper broadcast target: %1$s. Other apps can also send codes to this target.</string>
+    <string name="otp_copy_package">Copy package ID</string>
+    <string name="otp_chip_description">Insert one-time code %1$s</string>
+    <item name="otp_chip" type="id" />
+</resources>
