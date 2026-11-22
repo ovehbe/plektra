@@ -472,6 +472,12 @@ class CandidatesBarController(
         candidatesStatusBar.clearInlineAutofill()
     }
 
+    internal fun setOtpChip(code: String?, onClick: () -> Unit) {
+        val allowedCode = code.takeUnless { isSurfaceBlocked() }
+        inputStatusBar.setOtpChip(allowedCode, onClick)
+        candidatesStatusBar.setOtpChip(allowedCode, onClick)
+    }
+
     fun inlineAutofillTheme(): KeyboardThemeColors = activeStatusBar().inlineAutofillTheme()
 
     /** Chip height on the active surface, or null when chips shown now would not be on screen. */

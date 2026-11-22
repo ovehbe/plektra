@@ -501,7 +501,11 @@ internal object BackupPreferenceContract {
         "field_scoped_virtual_previous_override" to "runtime-derived state",
         "typing_sound_updated_at" to "runtime refresh marker",
         "clicks_bluetooth_permission_explained" to "permission UI state",
-        "clicks_manual_charging_until" to "transient runtime state"
+        "clicks_manual_charging_until" to "transient runtime state",
+        "otp_enabled" to "local opt-in to receive one-time codes",
+        "otp_source_sms" to "local SMS access opt-in",
+        "otp_source_notification" to "local notification access opt-in",
+        "otp_source_helper" to "local opt-in to receive OTP Helper broadcasts"
     )
 
     fun expectedExportType(prefName: String, key: String): PreferenceValueType? {
