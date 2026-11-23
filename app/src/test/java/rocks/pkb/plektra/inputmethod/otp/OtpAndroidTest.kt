@@ -26,6 +26,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
 import rocks.pkb.plektra.R
 import rocks.pkb.plektra.SettingsManager
+import rocks.pkb.plektra.KeyboardBarArrangement
+import rocks.pkb.plektra.KeyboardBarConfiguration
 import rocks.pkb.plektra.inputmethod.PhysicalKeyboardInputMethodService
 import java.time.Duration
 
@@ -213,6 +215,97 @@ class OtpAndroidTest {
         } finally { ctl.destroy() }
     }
 
+    private enum class Exit { TAP, EXPIRY, REPLACEMENT, FIELD_CHANGE, FINISH }
+
+    @Test
+    fun barReturnsToNoChipGeometryAcrossEditorLifecycles() {
+        val flags = listOf(false, true)
+        val fields = listOf(InputType.TYPE_CLASS_NUMBER, InputType.TYPE_CLASS_TEXT,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
+        val failures = mutableListOf<String>()
+        var rows = 0
+        configure()
+        KeyboardBarConfiguration.setArrangement(context, KeyboardBarArrangement.SUGGESTIONS_FIRST)
+        SettingsManager.setKeyboardBarHeightAnimation(context, true)
+        for (populated in flags) for (hideEmpty in flags) for (hideVariations in flags) for (strip in flags) {
+            SettingsManager.setStatusBarVariationsVisible(context, populated)
+            SettingsManager.setStaticVariationBarModeEnabled(context, populated)
+            SettingsManager.setSuggestionsEnabled(context, populated)
+            SettingsManager.setAlwaysShowSuggestionsBarHideSensitive(context, hideEmpty)
+            SettingsManager.setAlwaysShowSuggestionsBarHideVariations(context, hideVariations)
+            SettingsManager.setModifierIndicators(context,
+                if (strip) setOf(SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP) else emptySet())
+            val ctl = Robolectric.buildService(PhysicalKeyboardInputMethodService::class.java).create()
+            try {
+                val ime = ctl.get()
+                val bar = requireNotNull(ime.onCreateInputView()) as ViewGroup
+                for (field in fields) for (exit in Exit.entries) {
+                    rows++
+                    fun exercise(withChip: Boolean): List<Int> {
+                        val id = rows * 4 + if (withChip) 2 else 0
+                        val action = if (field == fields.last()) EditorInfo.IME_ACTION_SEND else EditorInfo.IME_ACTION_DONE
+                        val code = (514000 + rows * 2).toString()
+                        val editor = focus(ime, field, action, id)
+                        geometry(bar)
+                        if (withChip) deliver(code)
+                        val first = bar.chip()
+                        check(!withChip || first != null) { "chip not shown" }
+                        when (exit) {
+                            Exit.TAP -> {
+                                if (withChip) first!!.performClick() else ime.currentInputConnection.commitText(code, 1)
+                                check(editor.text.toString() == code) { "insert failed" }
+                            }
+                            Exit.REPLACEMENT -> {
+                                if (withChip) {
+                                    deliver((code.toInt() + 1).toString())
+                                    check(bar.chip() !== first && bar.chip() != null) { "not replaced" }
+                                    first!!.performClick()
+                                    check(editor.text.isEmpty()) { "stale click inserted" }
+                                }
+                                main.idleFor(Duration.ofMinutes(2))
+                            }
+                            Exit.EXPIRY -> main.idleFor(Duration.ofMinutes(2))
+                            Exit.FIELD_CHANGE -> {
+                                focus(ime, if (field == fields.first()) fields.last() else fields.first(), action, id + 1)
+                                check(!withChip || bar.chip() != null) { "pending chip lost on focus" }
+                                main.idleFor(Duration.ofMinutes(2))
+                            }
+                            Exit.FINISH -> {
+                                ime.onFinishInput()
+                                check(bar.chip() == null) { "chip remained after finish" }
+                                main.idleFor(Duration.ofMinutes(2))
+                                focus(ime, field, action, id)
+                            }
+                        }
+                        check(bar.chip() == null) { "chip remained after exit" }
+                        return geometry(bar).also { ime.onFinishInput() }
+                    }
+                    val error = runCatching {
+                        val expected = exercise(false)
+                        val actual = exercise(true)
+                        check(expected == actual) { "expected $expected, got $actual" }
+                    }.exceptionOrNull()
+                    if (error != null) failures += "populated=$populated hideEmpty=$hideEmpty hideVariations=$hideVariations " +
+                        "strip=$strip field=$field $exit: $error"
+                }
+            } finally { ctl.destroy() }
+        }
+        println("OTP bar lifecycle matrix: $rows rows, ${failures.size} failing")
+        assertEquals(320, rows)
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    // Compare the actual settled chrome and each row (including suggestions, actions and LEDs),
+    // not just the absence of a TextView. A GONE parent or a stale zero-height row matters.
+    private fun geometry(bar: ViewGroup): List<Int> {
+        layout(bar)
+        main.idleFor(Duration.ofMillis(600))
+        layout(bar)
+        return listOf(bar.visibility, bar.layoutParams?.height ?: -2, bar.height, bar.clipBounds?.height() ?: -1) +
+            (0 until bar.childCount).map { bar.getChildAt(it).let { v -> if (v.visibility == View.VISIBLE) v.height else -1 } }
+    }
+
     private fun notificationAccess(granted: Boolean) {
         shadowOf(context.getSystemService(android.app.NotificationManager::class.java))
             .setNotificationListenerAccessGranted(ComponentName(context, OtpNotificationListener::class.java), granted)
@@ -230,7 +323,7 @@ class OtpAndroidTest {
     }
 
     private fun focus(ime: PhysicalKeyboardInputMethodService, type: Int, action: Int, id: Int): EditText {
-        val info = EditorInfo().apply { inputType = type; imeOptions = action; fieldId = id; packageName = "test.editor" }
+        val info = EditorInfo().apply { inputType = type; imeOptions = action; fieldId = id; packageName = if (action == EditorInfo.IME_ACTION_SEND) "com.whatsapp" else "test.editor" }
         val editor = EditText(context).apply { inputType = type }
         val connection = object : InputConnectionWrapper(editor.onCreateInputConnection(EditorInfo()), false) {
             override fun performEditorAction(editorAction: Int): Boolean = error("OTP must not submit")
