@@ -50,3 +50,23 @@ internal class OtpInbox(private val enabled: (OtpSource) -> Boolean, private val
         val validCode = Regex("[a-zA-Z0-9]{4,10}")
     }
 }
+
+/** Memory-only, bounded set of code fingerprints; never holds the plaintext. */
+internal class OtpFingerprints(private val capacity: Int = 64) {
+    private val fingerprints = LinkedHashSet<List<Byte>>()
+
+    fun add(code: String) {
+        fingerprints.remove(fingerprint(code))
+        if (fingerprints.size >= capacity) fingerprints.remove(fingerprints.first())
+        fingerprints += fingerprint(code)
+    }
+
+    fun remove(code: String) {
+        fingerprints.remove(fingerprint(code))
+    }
+
+    operator fun contains(word: String): Boolean =
+        fingerprints.isNotEmpty() && fingerprint(word) in fingerprints
+
+    private fun fingerprint(code: String) = MessageDigest.getInstance("SHA-256").digest(code.toByteArray()).toList()
+}

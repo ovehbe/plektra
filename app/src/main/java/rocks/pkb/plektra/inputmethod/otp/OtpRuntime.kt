@@ -19,6 +19,8 @@ internal class OtpRuntime(private val context: Context) {
             hasAccess(context, source)
     }, SystemClock::elapsedRealtime)
     var onChanged: (() -> Unit)? = null
+    /** Codes the user inserted, kept out of suggestions and learning. */
+    val insertedCodes = OtpFingerprints()
     private val expire = Runnable { refresh() }
     private val settingsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == null || SettingsManager.isOtpPreference(key)) refresh()

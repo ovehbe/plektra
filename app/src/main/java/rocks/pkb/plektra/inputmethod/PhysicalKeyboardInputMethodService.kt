@@ -195,8 +195,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private lateinit var otpRuntime: OtpRuntime
     private var otpEditor: EditorInfo? = null
     private var renderedOtp: OtpInbox.Entry? = null
-    // Editor identities only, never the inserted text. Keep refocused fields out of learning too.
-    private val otpEditors = mutableSetOf<Pair<String, Int>>()
     private lateinit var textExpansionController: TextExpansionController
     private lateinit var emojiShortcodeSource: EmojiShortcodeSource
     private lateinit var symbolShortcodeSource: SymbolShortcodeSource
@@ -480,9 +478,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private fun updateInputContextState(info: EditorInfo?) {
         // Exact Typing: the raw-mode choice also covers WebAPKs (matched via their host browser).
         val isRawModeApp = SettingsManager.isRawModeApp(this, info?.packageName)
-        inputContextState = InputContextState.fromEditorInfo(info, isRawModeApp).copy(
-            containsInsertedOtp = info?.otpEditorKey() in otpEditors
-        )
+        inputContextState = InputContextState.fromEditorInfo(info, isRawModeApp)
         keyboardBarHiddenInEditor = SettingsManager.isKeyboardBarHiddenInApp(this, info?.packageName)
         numberSuggestionsInEditor = SettingsManager.isNumberSuggestionsActive(this, info)
     }
@@ -2075,6 +2071,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             assets = assets,
             settingsProvider = { getSuggestionSettings() },
             isEnabled = { SettingsManager.isExperimentalSuggestionsEnabled(this) && !inputContextState.shouldDisableSuggestions },
+            // Inserted one-time codes are never learned or offered as new words.
+            isExcludedWord = { word -> ::otpRuntime.isInitialized && word in otpRuntime.insertedCodes },
             debugLogging = suggestionDebugLogging,
             onSuggestionsUpdated = { suggestions -> handleSuggestionsUpdated(suggestions) },
             currentLocale = initialLocale,
@@ -3308,8 +3306,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         return candidatesBarController.inlineAutofillChipHeightPx(symPage, ctrlLatchActive && ctrlLatchFromNavMode)
     }
 
-    private fun EditorInfo.otpEditorKey() = packageName.orEmpty() to fieldId
-
     private fun refreshOtpChip(render: Boolean = true, requestSurface: Boolean = true) {
         val editor = otpEditor
         val connection = currentInputConnection
@@ -3320,13 +3316,12 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             if (entry == null || editor == null || connection == null || otpEditor !== editor ||
                 currentInputConnection !== connection || keyboardBarHiddenInEditor) return@setOtpChip
             if (otpRuntime.inbox.use(entry) { code ->
-                    val previous = inputContextState
-                    inputContextState = previous.copy(containsInsertedOtp = true)
+                    // Before the commit: the editor may report the new text synchronously.
+                    otpRuntime.insertedCodes.add(code)
                     if (!connection.commitText(code, 1)) {
-                        inputContextState = previous
+                        otpRuntime.insertedCodes.remove(code)
                         false
                     } else {
-                        otpEditors += editor.otpEditorKey()
                         DeferredPunctuationSpaceTracker.clear()
                         cancelPendingSelectionDrivenUiWork()
                         suggestionController.onContextReset()
