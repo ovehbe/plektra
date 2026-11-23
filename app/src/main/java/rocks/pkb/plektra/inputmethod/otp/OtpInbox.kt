@@ -10,21 +10,30 @@ internal class OtpInbox(private val enabled: (OtpSource) -> Boolean, private val
         val sources = mutableSetOf(source)
     }
 
+    // Sources (especially Helper) don't share a message ID. A delayed repost of a dismissed
+    // code must lose even after the short replacement-dedupe window or an editor restart.
+    // Only user dismissals, insertions and actual timeouts enter this process-memory set.
+    private val dismissed = mutableSetOf<List<Byte>>()
     private val seen = mutableMapOf<List<Byte>, Long>()
+    private fun fingerprint(code: String) = MessageDigest.getInstance("SHA-256").digest(code.toByteArray()).toList()
     private var active: Entry? = null
 
     fun current(): Entry? {
         val time = now()
         seen.values.removeAll { it <= time }
-        active?.sources?.retainAll { enabled(it) }
-        if (active?.let { it.expiresAt <= time || it.sources.isEmpty() } == true) active = null
+        active?.let { entry ->
+            entry.sources.retainAll(enabled)
+            if (entry.expiresAt <= time) retire(entry)
+            else if (entry.sources.isEmpty()) active = null
+        }
         return active
     }
 
     fun offer(source: OtpSource, code: String): Boolean {
         if (!enabled(source) || !validCode.matches(code)) return false
         val previous = current()
-        val fingerprint = MessageDigest.getInstance("SHA-256").digest(code.toByteArray()).toList()
+        val fingerprint = fingerprint(code)
+        if (fingerprint in dismissed) return false
         if (seen.containsKey(fingerprint)) {
             if (previous?.code == code) previous.sources += source
             return false
@@ -32,19 +41,29 @@ internal class OtpInbox(private val enabled: (OtpSource) -> Boolean, private val
         val expiresAt = now() + WINDOW_MS
         if (seen.size >= MAX_RECENT) seen.remove(seen.keys.first())
         seen[fingerprint] = expiresAt
-        active = Entry(code, expiresAt, source)
+        active = Entry(code, now() + DISPLAY_MS, source)
         return true
     }
 
     fun use(entry: Entry, commit: (String) -> Boolean): Boolean {
         if (current() !== entry || !commit(entry.code)) return false
-        if (active === entry) active = null
+        retire(entry)
         return true
     }
 
-    fun nextExpiry(): Long? = seen.values.minOrNull()
+    fun dismiss(entry: Entry) {
+        if (current() === entry) retire(entry)
+    }
+
+    private fun retire(entry: Entry) {
+        dismissed += fingerprint(entry.code)
+        if (active === entry) active = null
+    }
+
+    fun nextExpiry(): Long? = listOfNotNull(active?.expiresAt, seen.values.minOrNull()).minOrNull()
 
     private companion object {
+        const val DISPLAY_MS = 60_000L
         const val WINDOW_MS = 120_000L
         const val MAX_RECENT = 64
         val validCode = Regex("[a-zA-Z0-9]{4,10}")

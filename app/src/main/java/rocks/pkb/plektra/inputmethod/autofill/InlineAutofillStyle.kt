@@ -53,7 +53,7 @@ internal object InlineAutofillStyle {
                 text = code
                 textDirection = View.TEXT_DIRECTION_LTR
                 visibility = View.VISIBLE
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, TITLE_TEXT_SIZE_SP)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             }
         }
     }

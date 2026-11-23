@@ -60,6 +60,7 @@ import rocks.pkb.plektra.inputmethod.NotificationHelper
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
+import rocks.pkb.plektra.inputmethod.otp.OtpChip
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHost
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 import android.content.res.AssetManager
@@ -67,6 +68,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import rocks.pkb.plektra.SettingsActivity
 
@@ -429,7 +431,8 @@ class StatusBarController(
     private var onExpansionSuggestionSelected: ((String) -> Unit)? = null
     private var inlineAutofillHost: InlineAutofillChipHost? = null
     private var inlineAutofillActive = false
-    private val hasOtpChip get() = inlineAutofillHost?.hasLocalChip == true
+    private var otpChip: OtpChip? = null
+    private val hasOtpChip get() = otpChip != null
     private var rerenderLastUpdate: (() -> Unit)? = null
     private var lastClipboardOverlay = false
     private var baseLeftPadding: Int = 0
@@ -551,6 +554,7 @@ class StatusBarController(
         clipboardHistoryView?.themeOverride = activeColors
         emojiPickerView?.themeOverride = activeColors
         inlineAutofillHost?.theme = activeColors
+        otpChip?.applyTheme(activeColors)
         applySurfaceCloseButtonTheme(activeColors)
     }
 
@@ -601,7 +605,7 @@ class StatusBarController(
         val arrangement = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).arrangement
         val rows = if (arrangement == rocks.pkb.plektra.KeyboardBarArrangement.ACTIONS_FIRST)
             listOf(variations, suggestions) else listOf(suggestions, variations)
-        val children = (rows + listOf(modifiers, surface)).filterNotNull()
+        val children = (listOf(otpChip) + rows + listOf(modifiers, surface)).filterNotNull()
         val alreadyOrdered = children.withIndex().all { (index, child) ->
             child.parent === layout && layout.indexOfChild(child) == index
         }
@@ -970,10 +974,13 @@ class StatusBarController(
         rerenderLastUpdate?.invoke()
     }
 
-    internal fun setOtpChip(code: String?, onClick: () -> Unit) {
-        if (code == null && !hasOtpChip) return
-        val host = inlineAutofillHost ?: InlineAutofillChipHost(context).also { inlineAutofillHost = it }
-        host.setLocalChip(code, activeThemeColors(), onClick)
+    internal fun setOtpChip(code: String?, onDismiss: () -> Unit, onClick: () -> Unit) {
+        otpChip?.let { chip ->
+            chip.clear()
+            (chip.parent as? ViewGroup)?.removeView(chip)
+        }
+        otpChip = code?.let { OtpChip(context, it, onClick, onDismiss) }
+        otpChip?.let { statusBarLayout?.addView(it, 0) }
     }
 
     fun inlineAutofillTheme(): KeyboardThemeColors = activeThemeColors()
@@ -1049,7 +1056,7 @@ class StatusBarController(
             !isFullSoftwareKeyboardMode && symPage == 0 && !clipboardOverlay
         return when {
             navModeActive || clipboardOverlay || (symPage != 0 && !softwareOverlayPage) ||
-                !(barPresentation.hasPersistentContent || hasConfiguredMenuButtons || isFullSoftwareKeyboardMode || hasOtpChip) -> null
+                !(barPresentation.hasPersistentContent || hasConfiguredMenuButtons || isFullSoftwareKeyboardMode) -> null
             barPresentation.actions && !sharedRow -> InlineAutofillTarget.ACTIONS
             else -> InlineAutofillTarget.SUGGESTIONS
         }
@@ -3478,7 +3485,7 @@ class StatusBarController(
         val expansionActive = expansionSuggestions.isNotEmpty()
         lastClipboardOverlay = snapshot.clipboardOverlay
         // Word suggestions pause while chips show.
-        val inlineAutofillTarget = if (inlineAutofillActive || hasOtpChip) {
+        val inlineAutofillTarget = if (inlineAutofillActive) {
             inlineAutofillTarget(
                 configuredBarPresentation, isFullSoftwareKeyboardMode, snapshot.symPage, snapshot.navModeActive, snapshot.clipboardOverlay
             )
@@ -3516,13 +3523,13 @@ class StatusBarController(
         val keepEmptyBarForAnimation = hideEmptyActionsRow &&
             SettingsManager.keyboardBarHeightAnimationDurationMs(context) > 0
         placeInlineAutofillHost(inlineAutofillTarget)
-        if (inlineAutofillTarget != null && hasOtpChip) {
-            inlineAutofillHost?.sizeLocalChip(inlineChipHeightPx(inlineAutofillTarget, activeColors))
-            if (layout.isGone) (layout as? ImeChromeLayout)?.revealFromCollapsedHeight()
-        }
+        val showOtp = hasOtpChip && !snapshot.navModeActive && !snapshot.clipboardOverlay &&
+            (snapshot.symPage == 0 || isSoftwareKeyboardOverlayPage)
+        otpChip?.isVisible = showOtp
+        if (showOtp && layout.isGone) (layout as? ImeChromeLayout)?.revealFromCollapsedHeight()
         if ((!hasSuggestionRow && !showSlimMenuButtons && !barPresentation.actions && !barPresentation.bottomIndicators && !isFullSoftwareKeyboardMode &&
                 snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty() &&
-                inlineAutofillTarget == null && !keepEmptyBarForAnimation) || snapshot.navModeActive) {
+                inlineAutofillTarget == null && !showOtp && !keepEmptyBarForAnimation) || snapshot.navModeActive) {
             collapseLayout()
             return
         }
@@ -3637,7 +3644,7 @@ class StatusBarController(
                 !(SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context) &&
                     alwaysShowRowStaysEmpty(snapshot, inlineAutofillTarget != null))
         )
-        ledStatusView.compactOnly = fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE && !barPresentation.actions && !hasTransientSurface
+        ledStatusView.compactOnly = fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE && !barPresentation.actions && !hasTransientSurface && !showOtp
         val ledOnly = ledStatusView.compactOnly && showLedStrip
         (statusBarLayout as? ImeChromeLayout)?.ledOnlyReservedHeightPx =
             if (ledOnly) ledStatusView.reservedStripHeightPx() else null
@@ -3854,7 +3861,7 @@ class StatusBarController(
             lastSymPageRendered = 0 // Reset when closing SYM page
         }
         if (fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE &&
-            variationsWrapper?.visibility != View.VISIBLE && !showLedStrip && !keepEmptyBarForAnimation) collapseLayout()
+            variationsWrapper?.visibility != View.VISIBLE && !showLedStrip && !showOtp && !keepEmptyBarForAnimation) collapseLayout()
     }
 
     private fun updateAccessibilityStateDescription(view: View) {

@@ -472,10 +472,10 @@ class CandidatesBarController(
         candidatesStatusBar.clearInlineAutofill()
     }
 
-    internal fun setOtpChip(code: String?, onClick: () -> Unit) {
+    internal fun setOtpChip(code: String?, onDismiss: () -> Unit = {}, onClick: () -> Unit) {
         val allowedCode = code.takeUnless { isSurfaceBlocked() }
-        inputStatusBar.setOtpChip(allowedCode, onClick)
-        candidatesStatusBar.setOtpChip(allowedCode, onClick)
+        inputStatusBar.setOtpChip(allowedCode, onDismiss, onClick)
+        candidatesStatusBar.setOtpChip(allowedCode, onDismiss, onClick)
     }
 
     fun inlineAutofillTheme(): KeyboardThemeColors = activeStatusBar().inlineAutofillTheme()

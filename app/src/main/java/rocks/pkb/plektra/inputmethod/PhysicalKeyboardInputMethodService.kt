@@ -1345,7 +1345,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         outputKeyCodeName: String
     ): Boolean {
         inputConnection.finishComposingText()
-        inputConnection.commitText("\n", 1)
+        if (inputConnection.commitText("\n", 1)) dismissOtpChip()
         textInputController.handleAutoCapAfterEnter(
             keyCode,
             inputConnection,
@@ -2188,6 +2188,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             showAddSubstitutionDialog(word)
         }
         candidatesBarController.onSuggestionCommitted = {
+            dismissOtpChip()
             if (shiftLayerLatched || altModifierLayerLatched) {
                 shiftLayerLatched = false
                 altModifierLayerLatched = false
@@ -2245,6 +2246,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             }
 
             override fun onVariationSelected(variation: String) {
+                dismissOtpChip()
                 val keepLayerLatchedAfterVariation =
                     SettingsManager.isStaticVariationBarLayerStickyEnabled(this@PhysicalKeyboardInputMethodService)
                 val hasLatchedLayer = shiftLayerLatched || altModifierLayerLatched
@@ -2384,7 +2386,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             handleSoftwareKeyboardTextInput(text, inputConnection ?: currentInputConnection, snapshot)
         }
         candidatesBarController.onSymTextCommitted = {
-            modifierStateController.consumeShiftOneShot()
+            onSymbolCommitted()
             updateStatusBarText()
         }
         candidatesBarController.onSoftwareKeyboardBoundaryTextInput = { text, inputConnection ->
@@ -2425,6 +2427,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Register callback to be notified when an Alt character is inserted after long press.
         // Variations are updated automatically by updateStatusBarText().
         alternateCharacterManager.onAltCharInserted = { char ->
+            dismissOtpChip()
             DeferredPunctuationSpaceTracker.onTextCommitted(this, char.toString())
             updateStatusBarText()
             val ic = currentInputConnection
@@ -2444,6 +2447,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         // Track normal characters committed via Alt short press (no long press triggered)
         alternateCharacterManager.onNormalCharCommitted = { text ->
+            dismissOtpChip()
             if (::suggestionController.isInitialized) {
                 // Avoid double-tracking plain letters already handled by the main pipeline.
                 val ch = text.firstOrNull()
@@ -2477,7 +2481,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 keyCode,
                 currentInputConnection,
                 updateStatusBar = { updateStatusBarText() },
-                onSymbolCommitted = { modifierStateController.consumeShiftOneShot() }
+                onSymbolCommitted = ::onSymbolCommitted
             )
         }
         candidatesBarController.onSymPageKeyLongPressed = { keyCode ->
@@ -2889,6 +2893,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     ): Boolean {
         if (liveSpeechEditor != null) cancelSpeechRecognition()
         val ic = inputConnection ?: return false
+        if (text.isNotEmpty() && ic === currentInputConnection) dismissOtpChip()
         rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
 
         if (text == " ") {
@@ -3316,13 +3321,26 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
     private fun EditorInfo.otpEditorKey() = packageName.orEmpty() to fieldId
 
+    private fun onSymbolCommitted() {
+        dismissOtpChip()
+        modifierStateController.consumeShiftOneShot()
+    }
+
+    private fun dismissOtpChip(entry: OtpInbox.Entry? = renderedOtp) {
+        if (entry == null || entry !== renderedOtp) return
+        otpRuntime.inbox.dismiss(entry)
+        otpRuntime.refresh()
+    }
+
     private fun refreshOtpChip(render: Boolean = true, requestSurface: Boolean = true) {
         val editor = otpEditor
         val connection = currentInputConnection
         val entry = if (editor != null && connection != null && !keyboardBarHiddenInEditor) otpRuntime.inbox.current() else null
         if (entry === renderedOtp) return
         renderedOtp = entry
-        candidatesBarController.setOtpChip(entry?.code) {
+        candidatesBarController.setOtpChip(entry?.code, onDismiss = {
+            if (otpEditor === editor && currentInputConnection === connection) dismissOtpChip(entry)
+        }) {
             if (entry == null || editor == null || connection == null || otpEditor !== editor ||
                 currentInputConnection !== connection || keyboardBarHiddenInEditor) return@setOtpChip
             if (otpRuntime.inbox.use(entry) { code ->
@@ -5381,6 +5399,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ::textExpansionController.isInitialized &&
             textExpansionController.handleKeyDown(keyCode)
         ) {
+            if (keyCode == KeyEvent.KEYCODE_SPACE) dismissOtpChip()
             return true
         }
 
@@ -5503,7 +5522,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 val inputConnection = currentInputConnection
                 val committed = handleBoundaryTextBeforeCommit(symChar, inputConnection) ||
                     inputConnection?.commitText(symChar, 1) == true
-                if (committed) modifierStateController.consumeShiftOneShot()
+                if (committed) onSymbolCommitted()
                 updateStatusBarText()
                 return true
             }
@@ -5964,6 +5983,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     event?.unicodeChar?.takeIf { it != 0 } != null -> event.unicodeChar.toChar().toString()
                     else -> ""
                 }
+                if (typedText.isNotEmpty() && event?.isMetaPressed != true) dismissOtpChip()
                 val insertedDeferredSpace =
                     DeferredPunctuationSpaceTracker.prepareForTextCommit(this, ic, typedText)
                 if (insertedDeferredSpace) {
@@ -6485,7 +6505,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                 keyCode,
                 currentInputConnection,
                 updateStatusBar = { updateStatusBarText() },
-                onSymbolCommitted = { modifierStateController.consumeShiftOneShot() }
+                onSymbolCommitted = ::onSymbolCommitted
             )
         ) {
             return true

@@ -242,6 +242,7 @@ class OtpAndroidTest {
                 val action = EditorInfo.IME_ACTION_DONE
                 runCatching {
                     val first = focus(ime, type, action, rows * 3)
+                    val receivedAt = android.os.SystemClock.elapsedRealtime()
                     runtime.receive(OtpSource.SMS) { code }
                     val original = checkNotNull(root.chip()) { "SMS chip missing" }
                     check(first.text.isEmpty()) { "arrival typed" }
@@ -266,7 +267,8 @@ class OtpAndroidTest {
                             ""
                         }
                         Dismiss.TIMEOUT -> {
-                            main.idleFor(Duration.ofMillis(59_999))
+                            // Switching fields can advance Robolectric's clock; don't restart the deadline there.
+                            main.idleFor(Duration.ofMillis(receivedAt + 59_999 - android.os.SystemClock.elapsedRealtime()))
                             runtime.receive(replay) { code }
                             check(root.chip() === target) { "expired early or duplicate replaced chip" }
                             main.idleFor(Duration.ofMillis(1)); ""

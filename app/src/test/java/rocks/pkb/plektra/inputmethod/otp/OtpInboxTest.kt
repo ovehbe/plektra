@@ -95,7 +95,7 @@ class OtpInboxTest {
             assertFalse(inbox.offer(second, "789654"))
             now = 120_100
             assertTrue(inbox.offer(first, "654321"))
-            now += 119_999
+            now += 59_999
             assertNotNull(inbox.current())
             now++
             assertNull(inbox.current())
