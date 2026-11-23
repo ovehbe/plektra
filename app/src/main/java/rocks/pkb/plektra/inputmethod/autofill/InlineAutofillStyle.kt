@@ -4,12 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.Icon
-import android.view.ContextThemeWrapper
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
-import androidx.autofill.R as AutofillR
 import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
@@ -43,28 +37,6 @@ internal object InlineAutofillStyle {
     private fun paddingPx(context: Context) = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, CHIP_HORIZONTAL_PADDING_DP, context.resources.displayMetrics
     ).toInt()
-
-    // Local content has no autofill service/RemoteViews. Inflate the AndroidX inline v1
-    // template directly (also works on API 29) and apply the same title and chip tokens.
-    fun localChip(parent: ViewGroup, code: String): View {
-        val themed = ContextThemeWrapper(parent.context, AutofillR.style.Theme_AutofillInlineSuggestion)
-        return LayoutInflater.from(themed).inflate(AutofillR.layout.autofill_inline_suggestion, parent, false).apply {
-            findViewById<TextView>(AutofillR.id.autofill_inline_suggestion_title).apply {
-                text = code
-                textDirection = View.TEXT_DIRECTION_LTR
-                visibility = View.VISIBLE
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
-            }
-        }
-    }
-
-    fun themeLocalChip(chip: View, theme: KeyboardThemeColors) {
-        chip.setBackgroundResource(R.drawable.inline_autofill_chip)
-        chip.background.mutate().setTint(chipColor(theme))
-        val padding = paddingPx(chip.context)
-        chip.setPadding(padding, 0, padding, 0)
-        chip.findViewById<TextView>(AutofillR.id.autofill_inline_suggestion_title).setTextColor(textColor(theme))
-    }
 
     // ViewStyle.Builder is public but inherits its setters from a @RestrictTo base class.
     @SuppressLint("RestrictedApi")

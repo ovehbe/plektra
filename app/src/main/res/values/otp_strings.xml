@@ -2,7 +2,7 @@
 <!-- Use the English fallback until OTP translations are available. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="otp_title">Show one-time codes</string>
-    <string name="otp_summary">Show a code in the keyboard bar for one minute. Tap to insert, or swipe to dismiss.</string>
+    <string name="otp_summary">Show a code in the middle suggestion slot for one minute. Tap to insert or hold to dismiss.</string>
     <string name="otp_sms" translatable="false">SMS</string>
     <string name="otp_sms_granted">SMS permission granted</string>
     <string name="otp_sms_not_granted">SMS permission not granted</string>
@@ -14,8 +14,6 @@
     <string name="otp_helper" translatable="false">OTP Helper</string>
     <string name="otp_helper_summary">OTP Helper broadcast target: %1$s. Other apps can also send codes to this target.</string>
     <string name="otp_copy_package">Copy package ID</string>
-    <string name="otp_chip_description">Insert one-time code %1$s</string>
-    <string name="otp_dismiss">Dismiss one-time code</string>
-    <string name="otp_close_symbol" translatable="false">✕</string>
-    <item name="otp_chip" type="id" />
+    <string name="clipboard_paste_suggestion">Show recent clipboard text</string>
+    <string name="clipboard_paste_suggestion_summary">Preview copied text in the middle suggestion slot for one minute, except in password fields. Tap to paste or hold to dismiss.</string>
 </resources>

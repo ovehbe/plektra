@@ -13,7 +13,8 @@ internal class OtpInbox(private val enabled: (OtpSource) -> Boolean, private val
     // Sources (especially Helper) don't share a message ID. A delayed repost of a dismissed
     // code must lose even after the short replacement-dedupe window or an editor restart.
     // Only user dismissals, insertions and actual timeouts enter this process-memory set.
-    private val dismissed = mutableSetOf<List<Byte>>()
+    private val dismissed = linkedSetOf<List<Byte>>()
+    fun wasDismissed(code: String) = validCode.matches(code) && fingerprint(code) in dismissed
     private val seen = mutableMapOf<List<Byte>, Long>()
     private fun fingerprint(code: String) = MessageDigest.getInstance("SHA-256").digest(code.toByteArray()).toList()
     private var active: Entry? = null
@@ -57,6 +58,7 @@ internal class OtpInbox(private val enabled: (OtpSource) -> Boolean, private val
 
     private fun retire(entry: Entry) {
         dismissed += fingerprint(entry.code)
+        if (dismissed.size > MAX_RECENT) dismissed.remove(dismissed.first())
         if (active === entry) active = null
     }
 

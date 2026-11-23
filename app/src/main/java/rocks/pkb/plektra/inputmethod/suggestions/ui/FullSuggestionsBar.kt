@@ -112,6 +112,24 @@ class FullSuggestionsBar(
     private var actionSlots: List<String?> = emptyList()
     private var currentInputConnection: android.view.inputmethod.InputConnection? = null
 
+    /** Private actions are never word candidates: no casing, learning, logging, or auto-space. */
+    internal class CenterAction(val label: String, val dismiss: () -> Unit, val insert: () -> Unit)
+    internal var centerAction: CenterAction? = null
+        set(value) {
+            if (field === value) return
+            if (field != null) {
+                // A touch that began on an old code/editor must not activate its replacement.
+                (container?.getChildAt(1) as? TextView)?.let { old ->
+                    old.setOnClickListener(null)
+                    old.setOnLongClickListener(null)
+                    old.text = null
+                    container?.removeView(old)
+                }
+            }
+            field = value
+            resetActionMode()
+        }
+
     /** Shown instead of the suggestion slots, never among them, and keeps the row visible. */
     var inlineContent: View? = null
         set(value) {
@@ -432,7 +450,7 @@ class FullSuggestionsBar(
         }
         val canShowSuggestions = contentEnabled && shouldShow && !shouldDisableSuggestions &&
             (suggestions.isNotEmpty() || !addWordCandidate.isNullOrBlank())
-        val shouldKeepBarVisible = reserveEmptyRow || alwaysShowSuggestionsBar
+        val shouldKeepBarVisible = centerAction != null || reserveEmptyRow || alwaysShowSuggestionsBar
         if (!canShowSuggestions && !hasMenuButtons && !shouldKeepBarVisible) {
             cancelPendingSuggestionsAccessibilityEnable()
             suggestionButtons.clear()
@@ -474,7 +492,7 @@ class FullSuggestionsBar(
             previewOnly -> List(3) { suggestions.getOrNull(it) }
             else -> buildSlots(suggestions, addWordCandidate)
         }
-        applySuggestionsAccessibilityThrottle(slots)
+        applySuggestionsAccessibilityThrottle(if (centerAction == null) slots else slots.mapIndexed { i, word -> word.takeUnless { i == 1 } })
         if (actionCandidate != null && slots != actionSlots) {
             actionCandidate = null
             actionSlots = emptyList()
@@ -735,7 +753,7 @@ class FullSuggestionsBar(
         val padV = dpToPx(3f * heightScale)
         val padH = dpToPx(12f)
 
-        val addOnly = addWordCandidate != null &&
+        val addOnly = centerAction == null && addWordCandidate != null &&
             slots[0]?.equals(addWordCandidate, ignoreCase = true) == true &&
             slots[1] == null &&
             slots[2] == null
@@ -761,7 +779,8 @@ class FullSuggestionsBar(
                     marginEnd = chromeSpacingPx()
                 }
             }
-            if (suggestion != null && actionCandidate?.equals(suggestion, ignoreCase = true) == true) {
+            val action = centerAction.takeIf { index == 1 }
+            if (action == null && suggestion != null && actionCandidate?.equals(suggestion, ignoreCase = true) == true) {
                 val actionSlot = buildSuggestionActionSlot(
                     candidate = suggestion,
                     weightLayoutParams = weightLayoutParams,
@@ -780,7 +799,7 @@ class FullSuggestionsBar(
                 setCompoundDrawables(null, null, null, null)
                 contentDescription = null
                 alpha = 1f
-                text = (suggestion ?: "")
+                text = action?.label ?: suggestion.orEmpty()
                 gravity = if (continuousSpeechPreview) Gravity.CENTER_VERTICAL or Gravity.END else Gravity.CENTER
                 KeyboardBarTypography.applyAutoSize(this, minTextSp, maxTextSp)
                 if (continuousSpeechPreview) {
@@ -791,21 +810,28 @@ class FullSuggestionsBar(
                 includeFontPadding = false
                 minHeight = 0
                 setTextColor(themeOverride?.textAndIcons ?: Color.WHITE)
-                setTypeface(null, if (SettingsManager.getSuggestionsBold(context))
+                setTypeface(null, if (action != null || SettingsManager.getSuggestionsBold(context))
                     android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
                 maxLines = 1
                 ellipsize = if (continuousSpeechPreview) TextUtils.TruncateAt.START else TextUtils.TruncateAt.END
                 setPadding(padH, padV, padH, padV)
                 styleSuggestionSurface(this)
                 layoutParams = weightLayoutParams
-                isClickable = suggestion != null && !previewOnly
-                isFocusable = suggestion != null && !previewOnly
-                importantForAccessibility = if (suggestion.isNullOrBlank()) {
+                isClickable = action != null || (suggestion != null && !previewOnly)
+                isFocusable = isClickable
+                importantForAccessibility = if (action == null && suggestion.isNullOrBlank()) {
                     View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 } else {
                     View.IMPORTANT_FOR_ACCESSIBILITY_YES
                 }
-                if (suggestion != null && !previewOnly) {
+                if (action != null) {
+                    setOnClickListener { action.insert() }
+                    setOnLongClickListener {
+                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        action.dismiss()
+                        true
+                    }
+                } else if (suggestion != null && !previewOnly) {
                     if (onSuggestionSelectedOverride != null) {
                         setOnClickListener { view ->
                             resetActionMode()

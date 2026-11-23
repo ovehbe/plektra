@@ -418,6 +418,7 @@ object SettingsManager {
     private const val KEY_IME_OVERLAY_DEBUG_LOGGING = "ime_overlay_debug_logging"
     private const val KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED = "experimental_candidates_view_enabled"
     private const val KEY_INLINE_AUTOFILL_ENABLED = "inline_autofill_enabled"
+    internal const val KEY_CLIPBOARD_PASTE_SUGGESTION = "clipboard_paste_suggestion"
     private const val KEY_OTP_ENABLED = "otp_enabled"
     private const val KEY_OTP_SMS = "otp_source_sms"
     private const val KEY_OTP_NOTIFICATION = "otp_source_notification"
@@ -3319,6 +3320,13 @@ object SettingsManager {
         getPreferences(context).edit()
             .putBoolean(KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED, enabled)
             .apply()
+    }
+
+    internal fun getClipboardPasteSuggestion(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_CLIPBOARD_PASTE_SUGGESTION, false)
+
+    internal fun setClipboardPasteSuggestion(context: Context, enabled: Boolean) {
+        getPreferences(context).edit { putBoolean(KEY_CLIPBOARD_PASTE_SUGGESTION, enabled) }
     }
 
     internal fun getOtpEnabled(context: Context): Boolean =

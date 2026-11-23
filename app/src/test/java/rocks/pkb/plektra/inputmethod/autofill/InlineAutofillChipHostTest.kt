@@ -355,7 +355,7 @@ class InlineAutofillChipHostTest {
                 val height = root.height
                 val children = root.childCount
                 val fillPlacement = placementOf(fill, root)
-                controller.setOtpChip("012345") { }
+                controller.setCenterSuggestion("012345") { }
                 render()
                 count++
                 runCatching {
@@ -375,7 +375,7 @@ class InlineAutofillChipHostTest {
                                 (slots.getChildAt(2) as TextView).text == WORDS[1]) { "lost word neighbors" }
                         }
                     }
-                    controller.setOtpChip(null) { }
+                    controller.setCenterSuggestion(null) { }
                     render()
                     check(visibleTexts(root).filter(String::isNotEmpty) == before && root.height == height) { "not restored" }
                 }.onFailure { failures += "$arrangement/candidates=$candidates/password=$password/actions=$actions: $it" }

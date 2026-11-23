@@ -89,6 +89,7 @@ import java.util.Locale
 import android.view.inputmethod.InputMethodManager
 import android.view.inputmethod.InputMethodSubtype
 import rocks.pkb.plektra.clipboard.ClipboardHistoryManager
+import rocks.pkb.plektra.clipboard.RecentPaste
 import android.content.pm.PackageManager
 import rikka.shizuku.Shizuku
 
@@ -193,11 +194,13 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private var smoothCaretEditorHidden = false
     private lateinit var candidatesBarController: CandidatesBarController
     private lateinit var inlineAutofillChips: InlineAutofillChips
+    private lateinit var recentPaste: RecentPaste
+    private var renderedPaste: RecentPaste.Entry? = null
     private lateinit var otpRuntime: OtpRuntime
-    private var otpEditor: EditorInfo? = null
+    private var slotEditor: EditorInfo? = null
     private var renderedOtp: OtpInbox.Entry? = null
     // Editor-scoped fingerprints, never inserted text. Refocusing the same editor must stay safe.
-    private val otpEditors = mutableMapOf<Pair<String, Int>, InsertedCodes>()
+    private val privateEditors = mutableMapOf<Pair<String, Int>, InsertedCodes>()
     private lateinit var textExpansionController: TextExpansionController
     private lateinit var emojiShortcodeSource: EmojiShortcodeSource
     private lateinit var symbolShortcodeSource: SymbolShortcodeSource
@@ -482,7 +485,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Exact Typing: the raw-mode choice also covers WebAPKs (matched via their host browser).
         val isRawModeApp = SettingsManager.isRawModeApp(this, info?.packageName)
         inputContextState = InputContextState.fromEditorInfo(info, isRawModeApp).copy(
-            containsInsertedOtp = info?.otpEditorKey() in otpEditors
+            containsInsertedOtp = info?.privateEditorKey() in privateEditors
         )
         keyboardBarHiddenInEditor = SettingsManager.isKeyboardBarHiddenInApp(this, info?.packageName)
         numberSuggestionsInEditor = SettingsManager.isNumberSuggestionsActive(this, info)
@@ -1345,7 +1348,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         outputKeyCodeName: String
     ): Boolean {
         inputConnection.finishComposingText()
-        if (inputConnection.commitText("\n", 1)) dismissOtpChip()
+        if (inputConnection.commitText("\n", 1)) dismissCenterSuggestion()
         textInputController.handleAutoCapAfterEnter(
             keyCode,
             inputConnection,
@@ -2077,7 +2080,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             assets = assets,
             settingsProvider = { getSuggestionSettings() },
             isEnabled = { SettingsManager.isExperimentalSuggestionsEnabled(this) && !inputContextState.shouldDisableSuggestions },
-            privateEditorText = { otpEditors[currentInputEditorInfo?.otpEditorKey()] },
+            privateEditorText = { privateEditors[currentInputEditorInfo?.privateEditorKey()] },
             debugLogging = suggestionDebugLogging,
             onSuggestionsUpdated = { suggestions -> handleSuggestionsUpdated(suggestions) },
             currentLocale = initialLocale,
@@ -2105,8 +2108,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
         candidatesBarController = CandidatesBarController(this, clipboardHistoryManager, assets, PhysicalKeyboardInputMethodService::class.java)
         candidatesBarController.isSurfaceBlocked = { keyboardBarHiddenInEditor }
+        recentPaste = RecentPaste(this) { refreshCenterSuggestion() }
         otpRuntime = OtpRuntime.get(this)
-        otpRuntime.onChanged = { refreshOtpChip() }
+        otpRuntime.onChanged = { refreshCenterSuggestion() }
         inlineAutofillChips = InlineAutofillChips(
             canHost = { inlineAutofillChipHeightPx() != null },
             show = candidatesBarController::showInlineAutofill,
@@ -2188,7 +2192,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             showAddSubstitutionDialog(word)
         }
         candidatesBarController.onSuggestionCommitted = {
-            dismissOtpChip()
+            dismissCenterSuggestion()
             if (shiftLayerLatched || altModifierLayerLatched) {
                 shiftLayerLatched = false
                 altModifierLayerLatched = false
@@ -2246,7 +2250,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             }
 
             override fun onVariationSelected(variation: String) {
-                dismissOtpChip()
+                dismissCenterSuggestion()
                 val keepLayerLatchedAfterVariation =
                     SettingsManager.isStaticVariationBarLayerStickyEnabled(this@PhysicalKeyboardInputMethodService)
                 val hasLatchedLayer = shiftLayerLatched || altModifierLayerLatched
@@ -2410,6 +2414,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         clipboardHistoryManager.addAccessStateListener {
             uiHandler.post {
+                refreshCenterSuggestion()
                 candidatesBarController.updateClipboardCount(clipboardHistoryManager.getHistorySize())
             }
         }
@@ -2427,7 +2432,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Register callback to be notified when an Alt character is inserted after long press.
         // Variations are updated automatically by updateStatusBarText().
         alternateCharacterManager.onAltCharInserted = { char ->
-            dismissOtpChip()
+            dismissCenterSuggestion()
             DeferredPunctuationSpaceTracker.onTextCommitted(this, char.toString())
             updateStatusBarText()
             val ic = currentInputConnection
@@ -2447,7 +2452,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         // Track normal characters committed via Alt short press (no long press triggered)
         alternateCharacterManager.onNormalCharCommitted = { text ->
-            dismissOtpChip()
+            dismissCenterSuggestion()
             if (::suggestionController.isInitialized) {
                 // Avoid double-tracking plain letters already handled by the main pipeline.
                 val ch = text.firstOrNull()
@@ -2570,6 +2575,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         // Register listener for SharedPreferences changes
         prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPrefs, key ->
             Log.d(TRACKPAD_DEBUG_TAG, "SharedPrefs changed: key=$key")
+            if (key == SettingsManager.KEY_CLIPBOARD_PASTE_SUGGESTION || key == null) refreshCenterSuggestion()
             if (key == "sym_mappings_custom") {
                 Log.d(TAG, "SYM mappings page 1 changed, reloading...")
                 // Reload SYM mappings for page 1
@@ -2763,6 +2769,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     keyboardBarHiddenInEditor = SettingsManager.isKeyboardBarHiddenInApp(
                         this, currentInputEditorInfo?.packageName
                     )
+                    refreshCenterSuggestion()
                     // Closes an open clipboard or emoji picker page and drops invisible candidates.
                     symLayoutController.currentSymPage()
                     if (keyboardBarHiddenInEditor) {
@@ -2893,7 +2900,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     ): Boolean {
         if (liveSpeechEditor != null) cancelSpeechRecognition()
         val ic = inputConnection ?: return false
-        if (text.isNotEmpty() && ic === currentInputConnection) dismissOtpChip()
+        if (text.isNotEmpty() && ic === currentInputConnection) dismissCenterSuggestion()
         rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
 
         if (text == " ") {
@@ -3181,8 +3188,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     
     override fun onDestroy() {
         if (::otpRuntime.isInitialized) otpRuntime.onChanged = null
-        otpEditor = null
-        if (::candidatesBarController.isInitialized) candidatesBarController.setOtpChip(null) { }
+        if (::recentPaste.isInitialized) recentPaste.current(false)
+        slotEditor = null
+        if (::candidatesBarController.isInitialized) candidatesBarController.setCenterSuggestion(null) { }
         disableSmoothCaretExperiment()
         if (::smoothCaretOverlayController.isInitialized) smoothCaretOverlayController.release()
         caretBadgeController.destroy()
@@ -3319,52 +3327,81 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         return candidatesBarController.inlineAutofillChipHeightPx(symPage, ctrlLatchActive && ctrlLatchFromNavMode)
     }
 
-    private fun EditorInfo.otpEditorKey() = packageName.orEmpty() to fieldId
+    private fun EditorInfo.privateEditorKey() = packageName.orEmpty() to fieldId
 
     private fun onSymbolCommitted() {
-        dismissOtpChip()
+        dismissCenterSuggestion()
         modifierStateController.consumeShiftOneShot()
     }
 
-    private fun dismissOtpChip(entry: OtpInbox.Entry? = renderedOtp) {
-        if (entry == null || entry !== renderedOtp) return
-        otpRuntime.inbox.dismiss(entry)
-        otpRuntime.refresh()
+    private fun dismissCenterSuggestion() {
+        renderedOtp?.let {
+            otpRuntime.inbox.dismiss(it)
+            otpRuntime.refresh()
+            return
+        }
+        renderedPaste?.let {
+            recentPaste.dismiss(it)
+            refreshCenterSuggestion()
+        }
     }
 
-    private fun refreshOtpChip(render: Boolean = true, requestSurface: Boolean = true) {
-        val editor = otpEditor
+    private fun pasteAllowed() = SettingsManager.getClipboardPasteSuggestion(this) &&
+        !inputContextState.isPasswordField && clipboardHistoryManager.isHistoryAccessible()
+
+    private fun refreshCenterSuggestion(render: Boolean = true, requestSurface: Boolean = true) {
+        val editor = slotEditor
         val connection = currentInputConnection
-        val entry = if (editor != null && connection != null && !keyboardBarHiddenInEditor) otpRuntime.inbox.current() else null
-        if (entry === renderedOtp) return
-        renderedOtp = entry
-        candidatesBarController.setOtpChip(entry?.code, onDismiss = {
-            if (otpEditor === editor && currentInputConnection === connection) dismissOtpChip(entry)
+        val allowed = editor != null && connection != null && !keyboardBarHiddenInEditor
+        val otp = if (allowed) otpRuntime.inbox.current() else null
+        val paste = recentPaste.current(allowed && otp == null && pasteAllowed())?.takeUnless {
+            // OTP Helper can copy the same code it broadcasts. Don't re-offer it as a paste.
+            otpRuntime.inbox.wasDismissed(it.label)
+        }
+        if (otp === renderedOtp && paste === renderedPaste) return
+        renderedOtp = otp
+        renderedPaste = paste
+        val label = otp?.code ?: paste?.label
+        fun stillBound() = slotEditor === editor && currentInputConnection === connection &&
+            !keyboardBarHiddenInEditor && otp === renderedOtp && paste === renderedPaste
+        candidatesBarController.setCenterSuggestion(label, onDismiss = {
+            if (stillBound()) dismissCenterSuggestion()
         }) {
-            if (entry == null || editor == null || connection == null || otpEditor !== editor ||
-                currentInputConnection !== connection || keyboardBarHiddenInEditor) return@setOtpChip
-            if (otpRuntime.inbox.use(entry) { code ->
-                    val previous = inputContextState
-                    inputContextState = previous.copy(containsInsertedOtp = true)
-                    otpEditors.getOrPut(editor.otpEditorKey()) { InsertedCodes() }.remember(code)
-                    if (!connection.commitText(code, 1)) {
-                        inputContextState = previous
-                        false
-                    } else {
-                        DeferredPunctuationSpaceTracker.clear()
-                        cancelPendingSelectionDrivenUiWork()
-                        suggestionController.onContextReset()
-                        textExpansionController.clear()
-                        true
-                    }
-                }) otpRuntime.refresh() else refreshOtpChip()
+            if (!stillBound() || editor == null || connection == null) return@setCenterSuggestion
+            if (otp != null) {
+                otpRuntime.inbox.use(otp) { commitPrivateText(editor, connection, it, isPaste = false) }
+                otpRuntime.refresh()
+            } else if (paste != null) {
+                if (pasteAllowed() && otpRuntime.inbox.current() == null) {
+                    recentPaste.use(paste) { commitPrivateText(editor, connection, it, isPaste = true) }
+                }
+                refreshCenterSuggestion()
+            }
         }
         invalidateRenderedStatusSnapshot()
         if (render) updateStatusBarText()
-        if (entry != null && requestSurface &&
+        if (label != null && requestSurface &&
             SettingsManager.resolveEffectiveSoftwareKeyboardMode(this) != SettingsManager.SoftwareKeyboardMode.FORCE_VIRTUAL) {
             ensureImeSurfaceVisible()
         }
+    }
+
+    private fun commitPrivateText(editor: EditorInfo, connection: InputConnection, text: String, isPaste: Boolean): Boolean {
+        val previous = inputContextState
+        inputContextState = previous.copy(containsInsertedOtp = true)
+        val guard = privateEditors.getOrPut(editor.privateEditorKey()) { InsertedCodes() }
+        // Arbitrary/multiline pastes can resurface one token at a time. Guard the editor rather
+        // than retaining the clip or trying to model every tokenizer's possible substrings.
+        if (isPaste) guard.protectWholeEditor() else guard.remember(text)
+        if (!connection.commitText(text, 1)) {
+            inputContextState = previous
+            return false
+        }
+        DeferredPunctuationSpaceTracker.clear()
+        cancelPendingSelectionDrivenUiWork()
+        suggestionController.onContextReset()
+        textExpansionController.clear()
+        return true
     }
 
     private fun clearInlineAutofill() {
@@ -4068,8 +4105,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ++speechEditorSession
         }
         super.onStartInput(info, restarting)
-        otpEditor = null
-        refreshOtpChip(render = false)
+        slotEditor = null
+        refreshCenterSuggestion(render = false)
         clearInlineAutofill()
         if (::textExpansionController.isInitialized) textExpansionController.clear()
         if (
@@ -4111,8 +4148,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val isEditable = state.isEditable
         val isReallyEditable = state.isReallyEditable
         isInputViewActive = isEditable
-        otpEditor = info.takeIf { state.isReallyEditable }
-        refreshOtpChip(render = false, requestSurface = false)
+        slotEditor = info.takeIf { state.isReallyEditable }
+        refreshCenterSuggestion(render = false, requestSurface = false)
         softwareKeypadSession.onFieldStarted(state.inputType, restarting)
         if (!restarting) hardwareKeypadAutoOpen.settle()
         keyboardVisibilityController.onInputStarted(restarting)
@@ -4311,8 +4348,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         clearInlineAutofill()
         inputContextState = InputContextState.EMPTY
-        otpEditor = null
-        refreshOtpChip()
+        slotEditor = null
+        refreshCenterSuggestion()
         multiTapController.cancelAll()
         disableEmojiSearchInputCapture()
         resetModifierStates(preserveNavMode = true)
@@ -4377,7 +4414,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     
     override fun onWindowShown() {
         super.onWindowShown()
-        if (::otpRuntime.isInitialized) refreshOtpChip(requestSurface = false)
+        if (::otpRuntime.isInitialized) refreshCenterSuggestion(requestSurface = false)
         keyboardVisibilityController.onImeWindowVisibilityChanged(shown = true)
         updateStatusBarText()
         attachTrackpadDecorViewMotionHook("onWindowShown")
@@ -5274,6 +5311,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val initialInputConnection = currentInputConnection
         val inputType = info?.inputType ?: EditorInfo.TYPE_NULL
         val hasEditableField = initialInputConnection != null && inputType != EditorInfo.TYPE_NULL
+        if (hasEditableField && keyCode in listOf(KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_SPACE)) {
+            dismissCenterSuggestion()
+        }
         // Accepted hardware input settles the keypad choice before shortcut early returns.
         if (hasEditableField && keyCode != KeyEvent.KEYCODE_BACK && event != null &&
             event.flags and KeyEvent.FLAG_SOFT_KEYBOARD == 0) {
@@ -5399,7 +5439,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             ::textExpansionController.isInitialized &&
             textExpansionController.handleKeyDown(keyCode)
         ) {
-            if (keyCode == KeyEvent.KEYCODE_SPACE) dismissOtpChip()
             return true
         }
 
@@ -5983,7 +6022,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     event?.unicodeChar?.takeIf { it != 0 } != null -> event.unicodeChar.toChar().toString()
                     else -> ""
                 }
-                if (typedText.isNotEmpty() && event?.isMetaPressed != true) dismissOtpChip()
+                if (typedText.isNotEmpty() && event?.isMetaPressed != true) dismissCenterSuggestion()
                 val insertedDeferredSpace =
                     DeferredPunctuationSpaceTracker.prepareForTextCommit(this, ic, typedText)
                 if (insertedDeferredSpace) {
@@ -7062,7 +7101,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
             ic.deleteSurroundingText(deleteBefore, deleteAfter)
             val textToCommit = if (shouldAppendSpace) "$replacement " else replacement
-            ic.commitText(textToCommit, 1)
+            if (ic.commitText(textToCommit, 1)) dismissCenterSuggestion()
             if (shiftOneShot) {
                 modifierStateController.consumeShiftOneShot()
             }

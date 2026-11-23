@@ -502,6 +502,7 @@ internal object BackupPreferenceContract {
         "typing_sound_updated_at" to "runtime refresh marker",
         "clicks_bluetooth_permission_explained" to "permission UI state",
         "clicks_manual_charging_until" to "transient runtime state",
+        "clipboard_paste_suggestion" to "local opt-in to preview clipboard text",
         "otp_enabled" to "local opt-in to receive one-time codes",
         "otp_source_sms" to "local SMS access opt-in",
         "otp_source_notification" to "local notification access opt-in",

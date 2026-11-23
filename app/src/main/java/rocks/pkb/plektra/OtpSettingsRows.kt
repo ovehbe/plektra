@@ -22,6 +22,7 @@ import rocks.pkb.plektra.inputmethod.otp.OtpSource
 @Composable
 internal fun OtpSettingsRows() {
     val context = LocalContext.current
+    var paste by remember { mutableStateOf(SettingsManager.getClipboardPasteSuggestion(context)) }
     var master by remember { mutableStateOf(SettingsManager.getOtpEnabled(context)) }
     var sources by remember { mutableStateOf(OtpSource.entries.filter { SettingsManager.getOtpSourceEnabled(context, it) }.toSet()) }
     var smsAccess by remember { mutableStateOf(false) }
@@ -35,6 +36,9 @@ internal fun OtpSettingsRows() {
     DisposableEffect(context) {
         val preferences = SettingsManager.getPreferences(context)
         val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || key == SettingsManager.KEY_CLIPBOARD_PASTE_SUGGESTION) {
+                paste = SettingsManager.getClipboardPasteSuggestion(context)
+            }
             if (key == null || SettingsManager.isOtpPreference(key)) {
                 master = SettingsManager.getOtpEnabled(context)
                 sources = OtpSource.entries.filter { SettingsManager.getOtpSourceEnabled(context, it) }.toSet()
@@ -46,6 +50,8 @@ internal fun OtpSettingsRows() {
     fun notificationSettings() {
         runCatching { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
     }
+    KeyboardBarCheckRow(stringResource(R.string.clipboard_paste_suggestion), paste, "keyboard_bar.clipboard_paste_suggestion",
+        stringResource(R.string.clipboard_paste_suggestion_summary)) { SettingsManager.setClipboardPasteSuggestion(context, it) }
     KeyboardBarCheckRow(stringResource(R.string.otp_title), master, "keyboard_bar.otp",
         stringResource(R.string.otp_summary)) { SettingsManager.setOtpEnabled(context, it) }
     if (!master) return

@@ -8,6 +8,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.view.inputmethod.InputConnection
 import rocks.pkb.plektra.inputmethod.ui.KeyboardThemeColors
+import rocks.pkb.plektra.inputmethod.suggestions.ui.FullSuggestionsBar.CenterAction
 
 /**
  * Coordinates the two StatusBarController instances (full input view vs
@@ -472,10 +473,10 @@ class CandidatesBarController(
         candidatesStatusBar.clearInlineAutofill()
     }
 
-    internal fun setOtpChip(code: String?, onDismiss: () -> Unit = {}, onClick: () -> Unit) {
-        val allowedCode = code.takeUnless { isSurfaceBlocked() }
-        inputStatusBar.setOtpChip(allowedCode, onDismiss, onClick)
-        candidatesStatusBar.setOtpChip(allowedCode, onDismiss, onClick)
+    internal fun setCenterSuggestion(label: String?, onDismiss: () -> Unit = {}, onClick: () -> Unit) {
+        val action = label?.takeUnless { isSurfaceBlocked() }?.let { CenterAction(it, onDismiss, onClick) }
+        inputStatusBar.centerSuggestion = action
+        candidatesStatusBar.centerSuggestion = action
     }
 
     fun inlineAutofillTheme(): KeyboardThemeColors = activeStatusBar().inlineAutofillTheme()
