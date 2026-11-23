@@ -378,6 +378,46 @@ class InlineAutofillChipHostTest {
         }
     }
 
+    @Test
+    fun otpLayoutMatrix() {
+        val failures = mutableListOf<String>()
+        var count = 0
+        for (arrangement in KeyboardBarArrangement.entries) for (candidates in listOf(false, true)) {
+            for (password in listOf(false, true)) for (actions in listOf(false, true)) {
+                configure(actions, suggestions = true, arrangement, ledStrip = true)
+                val controller = CandidatesBarController(context)
+                val root = if (candidates) controller.getCandidatesView() else controller.getInputView()
+                controller.setCandidatesSurfaceActive(candidates)
+                fun render() { controller.updateStatusBars(snapshot(), "", null, null); layout(root) }
+                render()
+                val fill = chip()
+                if (password) check(controller.showInlineAutofill(listOf(fill), listOf(true)))
+                layout(root)
+                val before = visibleTexts(root).filter(String::isNotEmpty)
+                val height = root.height
+                val fillPlacement = placementOf(fill, root)
+                controller.setOtpChip("012345") { }
+                render()
+                count++
+                runCatching {
+                    val target = checkNotNull(root.findViewById<View>(rocks.pkb.plektra.R.id.otp_chip))
+                    check(visibleTexts(root).containsAll(before)) { "covered bar text" }
+                    check(!password || placementOf(fill, root) == fillPlacement && fill.width > 0) { "covered autofill" }
+                    check(root.height > height) { "did not grow chrome" }
+                    val title = target.findViewById<TextView>(androidx.autofill.R.id.autofill_inline_suggestion_title)
+                    check(kotlin.math.abs(title.leftIn(root) + title.width / 2 - root.width / 2) <= 1) { "off center" }
+                    check(title.textSize >= 18f * context.resources.displayMetrics.scaledDensity) { "small code" }
+                    controller.setOtpChip(null) { }
+                    render()
+                    check(visibleTexts(root).filter(String::isNotEmpty) == before && root.height == height) { "not restored" }
+                }.onFailure { failures += "$arrangement/candidates=$candidates/password=$password/actions=$actions: $it" }
+            }
+        }
+        println("OTP layout matrix: $count rows, ${failures.size} failing")
+        assertEquals(24, count)
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
     private fun configure(
         actions: Boolean,
         suggestions: Boolean,

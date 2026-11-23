@@ -8,6 +8,8 @@ import android.os.Looper
 import android.provider.Telephony
 import android.service.notification.StatusBarNotification
 import android.text.InputType
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -28,7 +30,9 @@ import rocks.pkb.plektra.R
 import rocks.pkb.plektra.SettingsManager
 import rocks.pkb.plektra.KeyboardBarArrangement
 import rocks.pkb.plektra.KeyboardBarConfiguration
+import rocks.pkb.plektra.inputmethod.CandidatesBarController
 import rocks.pkb.plektra.inputmethod.PhysicalKeyboardInputMethodService
+import rocks.pkb.plektra.inputmethod.StatusBarController.StatusSnapshot
 import java.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
@@ -213,6 +217,107 @@ class OtpAndroidTest {
             main.idle()
             assertNull(view.chip())
         } finally { ctl.destroy() }
+    }
+
+    private enum class Dismiss { CLOSE, SWIPE, TIMEOUT, LETTER, DIGIT, PUNCTUATION, SPACE, SOFT_CHAR, SOFT_SPACE, INSERT }
+
+    @Test
+    fun otpDismissMatrix() {
+        configure()
+        SettingsManager.setAutoCapitalizeFirstLetter(context, false)
+        OtpSource.entries.forEach { SettingsManager.setOtpSourceEnabled(context, it, true) }
+        shadowOf(context).grantPermissions(Manifest.permission.RECEIVE_SMS)
+        notificationAccess(true)
+        val ctl = Robolectric.buildService(PhysicalKeyboardInputMethodService::class.java).create()
+        val failures = mutableListOf<String>()
+        var rows = 0
+        try {
+            val ime = ctl.get()
+            val root = requireNotNull(ime.onCreateInputView())
+            val bar = ReflectionHelpers.getField<CandidatesBarController>(ime, "candidatesBarController")
+            for (exit in Dismiss.entries) for (replay in OtpSource.entries) for (changeField in listOf(false, true)) {
+                rows++
+                val code = (650000 + rows).toString()
+                val type = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                val action = EditorInfo.IME_ACTION_DONE
+                runCatching {
+                    val first = focus(ime, type, action, rows * 3)
+                    runtime.receive(OtpSource.SMS) { code }
+                    val original = checkNotNull(root.chip()) { "SMS chip missing" }
+                    check(first.text.isEmpty()) { "arrival typed" }
+                    val editor = if (changeField) focus(ime, type, action, rows * 3 + 1) else first
+                    val target = checkNotNull(root.chip()) { "pending chip lost on focus" }
+                    if (changeField) {
+                        original.performClick()
+                        check(first.text.isEmpty() && editor.text.isEmpty() && root.chip() === target) { "stale tap" }
+                    }
+                    layout(root)
+                    val expected = when (exit) {
+                        Dismiss.CLOSE -> {
+                            checkNotNull(root.findClose()) { "no close button" }.performClick(); ""
+                        }
+                        Dismiss.SWIPE -> {
+                            val t = android.os.SystemClock.uptimeMillis()
+                            for ((i, event) in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP).withIndex()) {
+                                MotionEvent.obtain(t, t + i * 20L, event, target.width / 2f + 120f * i, target.height / 2f, 0).also {
+                                    target.dispatchTouchEvent(it); it.recycle()
+                                }
+                            }
+                            ""
+                        }
+                        Dismiss.TIMEOUT -> {
+                            main.idleFor(Duration.ofMillis(59_999))
+                            runtime.receive(replay) { code }
+                            check(root.chip() === target) { "expired early or duplicate replaced chip" }
+                            main.idleFor(Duration.ofMillis(1)); ""
+                        }
+                        Dismiss.INSERT -> { target.performClick(); code }
+                        Dismiss.SOFT_CHAR, Dismiss.SOFT_SPACE -> {
+                            val text = if (exit == Dismiss.SOFT_SPACE) " " else "é"
+                            bar.onSoftwareKeyboardTextInput!!.invoke(text, ime.currentInputConnection, StatusSnapshot(
+                                false, false, false, false, false, false, false, false, false, false, 0))
+                            text
+                        }
+                        else -> {
+                            val (key, text) = when (exit) {
+                                Dismiss.SPACE -> KeyEvent.KEYCODE_SPACE to " "
+                                Dismiss.DIGIT -> KeyEvent.KEYCODE_7 to "7"
+                                Dismiss.PUNCTUATION -> KeyEvent.KEYCODE_PERIOD to "."
+                                else -> KeyEvent.KEYCODE_A to "a"
+                            }
+                            val down = KeyEvent(KeyEvent.ACTION_DOWN, key)
+                            val up = KeyEvent.changeAction(down, KeyEvent.ACTION_UP)
+                            if (!ime.onKeyDown(key, down)) editor.dispatchKeyEvent(down)
+                            if (!ime.onKeyUp(key, up)) editor.dispatchKeyEvent(up)
+                            text
+                        }
+                    }
+                    main.idle()
+                    check(root.chip() == null) { "still shown after $exit" }
+                    target.performClick()
+                    check(editor.text.toString() == expected) { "unexpected edit" }
+                    runtime.receive(replay) { code }
+                    check(root.chip() == null) { "duplicate resurrected" }
+                    ime.onFinishInput()
+                    main.idleFor(Duration.ofMinutes(3))
+                    runtime.receive(replay) { code }
+                    focus(ime, type, action, rows * 3 + 2)
+                    check(root.chip() == null) { "late replay resurrected on refocus" }
+                    deliver((660000 + rows).toString())
+                    check(root.chip() != null) { "different code suppressed" }
+                }.onFailure { failures += "$exit/$replay/change=$changeField: $it" }
+                ime.onFinishInput()
+            }
+        } finally { ctl.destroy() }
+        println("OTP dismiss matrix: $rows rows, ${failures.size} failing")
+        assertEquals(60, rows)
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    private fun View.findClose(): View? {
+        if (visibility != View.VISIBLE) return null
+        if (this is TextView && text.toString() == "✕") return this
+        return (this as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { group.getChildAt(it).findClose() } }
     }
 
     private enum class Exit { TAP, EXPIRY, REPLACEMENT, FIELD_CHANGE, FINISH }
