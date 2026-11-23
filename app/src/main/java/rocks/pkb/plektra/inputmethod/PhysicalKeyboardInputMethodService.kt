@@ -2075,6 +2075,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             assets = assets,
             settingsProvider = { getSuggestionSettings() },
             isEnabled = { SettingsManager.isExperimentalSuggestionsEnabled(this) && !inputContextState.shouldDisableSuggestions },
+            canReadEditorText = { !inputContextState.containsInsertedOtp },
             debugLogging = suggestionDebugLogging,
             onSuggestionsUpdated = { suggestions -> handleSuggestionsUpdated(suggestions) },
             currentLocale = initialLocale,
@@ -3330,6 +3331,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                         DeferredPunctuationSpaceTracker.clear()
                         cancelPendingSelectionDrivenUiWork()
                         suggestionController.onContextReset()
+                        // Re-evaluate starter predictions without reading the inserted secret back.
+                        suggestionController.readInitialContext(connection)
                         textExpansionController.clear()
                         true
                     }

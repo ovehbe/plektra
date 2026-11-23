@@ -36,9 +36,9 @@ class InlineAutofillRowResizeTest {
         val rowPx = dp(VariationBarView.rowHeightDp(1.2f))
 
         assertEquals(rowPx, wrapper.layoutParams.height)
-        bar.hostsInlineContent = true
+        bar.inlineContent = View(context)
         assertEquals(dp(VariationBarView.rowHeightDp(1.2f) * 2f), wrapper.layoutParams.height)
-        bar.hostsInlineContent = false
+        bar.inlineContent = null
         assertEquals(rowPx, wrapper.layoutParams.height)
     }
 
