@@ -966,4 +966,6 @@ Każdy klawisz można skonfigurować jako Keycode, Akcja, Native Ctrl lub Brak. 
     <string name="setting_link_quick_launcher_entries">Pozycje Quick Launcher</string>
     <string name="setting_link_quick_launcher_favorite_color">Kolor wyróżnienia ulubionych w Quick Launcher</string>
     <string name="setting_link_quick_launcher_top_match_color">Kolor wyróżnienia najlepszego dopasowania w Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Wybierz, czy Plektra usuwa spację przed każdym znakiem podczas jego wpisywania i wstawia odroczoną spację przed dalszym tekstem.</string>
+    <string name="auto_space_punctuation_help_text">„Remove before” usuwa spacje przed znakiem podczas jego wpisywania, niezależnie od tego, czy wpisałeś je sam, czy dodała je Plektra: „Jak się masz ?” zmienia się w „Jak się masz?”. Backspace zaraz potem je przywraca. Spacja na początku wiersza zostaje.\n\n„Before next text” odracza spację do czasu wpisania dalszego tekstu. Dzięki temu Enter lub Wyślij nie zostawia spacji na końcu.\n\nPola adresu URL, e-maila, hasła i liczb nigdy nie są zmieniane.</string>
 </resources>

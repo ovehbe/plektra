@@ -963,4 +963,6 @@ Mỗi phím có thể cấu hình là Keycode, Action, Native Ctrl hoặc None. 
     <string name="setting_link_quick_launcher_entries">Mục Quick Launcher</string>
     <string name="setting_link_quick_launcher_favorite_color">Màu tô sáng mục yêu thích của Quick Launcher</string>
     <string name="setting_link_quick_launcher_top_match_color">Màu tô sáng kết quả khớp nhất của Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Chọn xem Plektra có xóa dấu cách trước mỗi ký tự khi bạn gõ ký tự đó và chèn một dấu cách hoãn lại trước văn bản tiếp theo hay không.</string>
+    <string name="auto_space_punctuation_help_text">“Remove before” xóa các dấu cách trước ký tự khi bạn gõ ký tự đó, dù bạn tự gõ hay Plektra tự thêm: “Bạn khỏe không ?” trở thành “Bạn khỏe không?”. Nhấn Backspace ngay sau đó sẽ khôi phục chúng. Dấu cách ở đầu dòng được giữ nguyên.\n\n“Before next text” hoãn dấu cách cho đến khi bạn gõ thêm văn bản. Vì vậy Enter hoặc Gửi không để lại dấu cách ở cuối.\n\nCác trường URL, email, mật khẩu và số không bao giờ bị thay đổi.</string>
 </resources>

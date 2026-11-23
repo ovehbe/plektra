@@ -72,13 +72,13 @@
     <string name="auto_space_punctuation_title">Punctuation spacing</string>
     <string name="auto_space_punctuation_selected">Selected:</string>
     <string name="auto_space_punctuation_none_selected">none</string>
-    <string name="auto_space_punctuation_dialog_instruction">Choose whether Plektra removes its own auto-space before each character and inserts a deferred space before following text.</string>
+    <string name="auto_space_punctuation_dialog_instruction">Choose whether Plektra removes the space before each character as you type it and inserts a deferred space before following text.</string>
     <string name="auto_space_punctuation_character_column">Character</string>
     <string name="auto_space_punctuation_before_column">Remove before</string>
     <string name="auto_space_punctuation_after_column">Before next text</string>
     <string name="auto_space_punctuation_help_action">Explain punctuation spacing</string>
     <string name="auto_space_punctuation_help_title">How punctuation spacing works</string>
-    <string name="auto_space_punctuation_help_text">“Remove before” removes only a space automatically inserted by Plektra, not one you typed manually.\n\n“Before next text” defers the space until more text is typed. Enter or Send therefore leaves no trailing space.</string>
+    <string name="auto_space_punctuation_help_text">“Remove before” removes the spaces before the character as you type it, whether you typed them or Plektra added them: “How are you ?” becomes “How are you?”. Backspace right after puts them back. A space at the start of a line stays.\n\n“Before next text” defers the space until more text is typed. Enter or Send therefore leaves no trailing space.\n\nURL, email, password and number fields are never changed.</string>
     <string name="auto_space_punctuation_choose">Selected:</string>
     <string name="auto_space_punctuation_choose_off">Off</string>
     <string name="auto_space_punctuation_reset">Reset</string>

@@ -965,4 +965,6 @@ Chaque touche peut être configurée comme Keycode, Action, Native Ctrl ou Aucun
     <string name="setting_link_quick_launcher_entries">Entrées de Quick Launcher</string>
     <string name="setting_link_quick_launcher_favorite_color">Couleur de surbrillance des favoris de Quick Launcher</string>
     <string name="setting_link_quick_launcher_top_match_color">Couleur de surbrillance du meilleur résultat de Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Choisissez si Plektra supprime l’espace avant chaque caractère pendant la saisie et insère un espace différé avant le texte suivant.</string>
+    <string name="auto_space_punctuation_help_text">« Remove before » supprime les espaces avant le caractère pendant que vous le tapez, que vous les ayez tapés ou que Plektra les ait ajoutés : « Comment ça va ? » devient « Comment ça va? ». Retour arrière juste après les rétablit. Un espace en début de ligne est conservé.\n\n« Before next text » diffère l’espace jusqu’à ce que d’autres caractères soient tapés. Entrée ou Envoyer ne laisse donc pas d’espace final.\n\nLes champs d’URL, d’e-mail, de mot de passe et de nombres ne sont jamais modifiés.</string>
 </resources>

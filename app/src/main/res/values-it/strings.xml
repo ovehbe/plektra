@@ -1143,4 +1143,6 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="setting_link_quick_launcher_entries">Voci di Quick Launcher</string>
     <string name="setting_link_quick_launcher_favorite_color">Colore di evidenziazione dei preferiti di Quick Launcher</string>
     <string name="setting_link_quick_launcher_top_match_color">Colore di evidenziazione del miglior risultato di Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Scegli se Plektra rimuove lo spazio prima di ogni carattere mentre lo digiti e inserisce uno spazio differito prima del testo successivo.</string>
+    <string name="auto_space_punctuation_help_text">“Remove before” rimuove gli spazi prima del carattere mentre lo digiti, che li abbia digitati tu o li abbia aggiunti Plektra: “Come stai ?” diventa “Come stai?”. Backspace subito dopo li ripristina. Uno spazio a inizio riga resta.\n\n“Before next text” rimanda lo spazio finché non viene digitato altro testo. Così Invio o Invia non lasciano uno spazio finale.\n\nI campi URL, email, password e numerici non vengono mai modificati.</string>
 </resources>

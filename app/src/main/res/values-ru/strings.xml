@@ -966,4 +966,6 @@ Nav Mode использует физическое положение клави
     <string name="setting_link_quick_launcher_entries">Элементы Quick Launcher</string>
     <string name="setting_link_quick_launcher_favorite_color">Цвет выделения избранного в Quick Launcher</string>
     <string name="setting_link_quick_launcher_top_match_color">Цвет выделения лучшего совпадения в Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Выберите, удаляет ли Plektra пробел перед каждым символом при его вводе и вставляет ли отложенный пробел перед следующим текстом.</string>
+    <string name="auto_space_punctuation_help_text">«Remove before» удаляет пробелы перед символом при его вводе — неважно, ввели ли вы их сами или их добавила Plektra: «Как дела ?» превращается в «Как дела?». Backspace сразу после этого возвращает их. Пробел в начале строки остаётся.\n\n«Before next text» откладывает пробел до ввода следующего текста. Поэтому Enter или «Отправить» не оставляют пробела в конце.\n\nПоля URL, эл. почты, паролей и чисел никогда не изменяются.</string>
 </resources>

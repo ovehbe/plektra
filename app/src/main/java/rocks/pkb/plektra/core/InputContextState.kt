@@ -98,6 +98,10 @@ data class InputContextState(
         get() = isPasswordField || inputClass == InputType.TYPE_CLASS_NUMBER ||
             inputClass == InputType.TYPE_CLASS_PHONE || inputClass == InputType.TYPE_CLASS_DATETIME
 
+    /** Prose, where Plektra may adjust the spacing around punctuation; never URLs, addresses, secrets, numbers or code. */
+    val allowsPunctuationSpacing: Boolean
+        get() = inputClass == InputType.TYPE_CLASS_TEXT && !shouldDisableAutoCorrect
+
     val isUriField: Boolean
         get() = restrictedReason == RestrictedReason.URI
 

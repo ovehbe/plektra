@@ -48,13 +48,13 @@
     <string name="auto_space_punctuation_title">Satzzeichen-Abstände</string>
     <string name="auto_space_punctuation_selected">Ausgewählt:</string>
     <string name="auto_space_punctuation_none_selected">keine</string>
-    <string name="auto_space_punctuation_dialog_instruction">Lege pro Zeichen fest, ob Plektra sein eigenes Auto-Leerzeichen davor entfernt und vor folgendem Text verzögert ein Leerzeichen einfügt.</string>
+    <string name="auto_space_punctuation_dialog_instruction">Lege pro Zeichen fest, ob Plektra das Leerzeichen davor beim Tippen entfernt und vor folgendem Text verzögert ein Leerzeichen einfügt.</string>
     <string name="auto_space_punctuation_character_column">Zeichen</string>
     <string name="auto_space_punctuation_before_column">Davor entfernen</string>
     <string name="auto_space_punctuation_after_column">Vor Folgetext</string>
     <string name="auto_space_punctuation_help_action">Satzzeichen-Abstände erklären</string>
     <string name="auto_space_punctuation_help_title">So funktionieren die Abstände</string>
-    <string name="auto_space_punctuation_help_text">„Davor entfernen“ entfernt nur ein automatisch von Plektra gesetztes Leerzeichen, keine manuelle Eingabe.\n\n„Vor Folgetext“ merkt den Abstand vor. Er wird erst beim nächsten Text eingefügt; bei Enter oder Senden bleibt kein Leerzeichen am Ende.</string>
+    <string name="auto_space_punctuation_help_text">„Davor entfernen“ entfernt beim Tippen des Zeichens die Leerzeichen davor, egal ob du sie getippt oder Plektra sie gesetzt hat: Aus „Wie geht es dir ?“ wird „Wie geht es dir?“. Die Rücktaste direkt danach stellt sie wieder her. Ein Leerzeichen am Zeilenanfang bleibt.\n\n„Vor Folgetext“ merkt den Abstand vor. Er wird erst beim nächsten Text eingefügt; bei Enter oder Senden bleibt kein Leerzeichen am Ende.\n\nURL-, E-Mail-, Passwort- und Zahlenfelder werden nie verändert.</string>
     <string name="auto_space_punctuation_choose">Ausgewählt:</string>
     <string name="auto_space_punctuation_choose_off">Aus</string>
     <string name="auto_space_punctuation_reset">Zurücksetzen</string>
