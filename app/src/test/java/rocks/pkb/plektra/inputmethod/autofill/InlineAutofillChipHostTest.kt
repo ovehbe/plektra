@@ -192,6 +192,45 @@ class InlineAutofillChipHostTest {
     }
 
     @Test
+    fun localCodeUsesPasswordChipHostPlacementAndAFullRowTarget() {
+        for (actions in listOf(false, true)) {
+            configure(actions = actions, suggestions = true)
+            val colors = SettingsManager.defaultKeyboardTheme().copy(suggestion = 0x80654321.toInt(), textAndIcons = 0xffabcdef.toInt())
+            SettingsManager.setKeyboardTheme(context, SettingsManager.KeyboardThemeTarget.HARDWARE, colors)
+            val (controller, view) = inputSurface()
+            val password = chip()
+            controller.showInlineAutofill(listOf(password), listOf(false))
+            layout(view)
+            val host = hostOf(password)
+            val row = rowOf(password, view)
+            controller.clearInlineAutofill()
+            controller.setOtpChip("123456") { }
+            controller.updateStatusBars(snapshot(), "", null, null)
+            layout(view)
+            val target = view.findViewById<View>(rocks.pkb.plektra.R.id.otp_chip)
+            assertEquals(host, hostOf(target))
+            assertEquals(row, rowOf(target, view))
+            assertEquals(host.height, target.height)
+            val title = target.findViewById<TextView>(androidx.autofill.R.id.autofill_inline_suggestion_title)
+            val visual = title.parent as View
+            assertEquals(controller.inlineAutofillChipHeightPx(0, false), visual.height)
+            assertEquals(InlineAutofillStyle.textColor(colors.toKeyboardThemeColors()), title.currentTextColor)
+            assertEquals(12 * context.resources.displayMetrics.density, visual.paddingStart.toFloat(), 1f)
+            assertEquals(14 * context.resources.displayMetrics.scaledDensity, title.textSize, 1f)
+            val minPx = 48 * context.resources.displayMetrics.density
+            assertTrue(target.isClickable && target.width >= minPx && target.height >= minPx)
+            assertTrue(visibleTexts(view).intersect(WORDS.toSet()).isEmpty())
+            controller.showInlineAutofill(listOf(password), listOf(false))
+            assertEquals(hostOf(password), hostOf(target))
+            controller.setOtpChip(null) { }
+            controller.updateStatusBars(snapshot(), "", null, null)
+            assertEquals(host, hostOf(password))
+            controller.clearInlineAutofill()
+            assertTrue(visibleTexts(view).containsAll(WORDS))
+        }
+    }
+
+    @Test
     fun clearingResumesWordSuggestions() {
         configure(actions = false, suggestions = true)
         val (controller, view) = inputSurface()

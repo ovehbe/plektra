@@ -155,7 +155,7 @@ class OtpAndroidTest {
                 val code = (817220 + index * 2 + if (populated) 1 else 0).toString()
                 deliver(code)
                 val originalChip = view.chip()!!
-                assertEquals(code, originalChip.text.toString())
+                assertEquals(code, originalChip.codeLabel())
                 assertEquals("", original.text.toString())
                 ime.onFinishInput()
                 assertNull(view.chip())
@@ -188,7 +188,7 @@ class OtpAndroidTest {
             val editor = focus(ime, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
                 EditorInfo.IME_ACTION_NONE, 3)
             layout(view)
-            val emptyHeight = view.height
+            val emptyHeight = if (view.visibility == View.VISIBLE) view.height else 0
             assertNull(view.chip())
             deliver("654823")
             layout(view)
@@ -202,7 +202,7 @@ class OtpAndroidTest {
             deliver("654824")
             stale.performClick()
             assertEquals("", editor.text.toString())
-            assertEquals("654824", view.chip()?.text.toString())
+            assertEquals("654824", view.chip()?.codeLabel())
             main.idleFor(Duration.ofMinutes(2))
             assertNull(view.chip())
             deliver("654825")
@@ -211,6 +211,76 @@ class OtpAndroidTest {
             main.idle()
             assertNull(view.chip())
         } finally { ctl.destroy() }
+    }
+
+    private enum class End { TAP, EXPIRE, REPLACE, CHANGE_FIELD, FINISH }
+
+    @Test
+    fun chipLifecycleRestoresNormalRowsMatrix() {
+        val failures = mutableListOf<String>()
+        var scenarios = 0
+        val flags = listOf(false, true)
+        val fields = listOf(InputType.TYPE_CLASS_NUMBER, InputType.TYPE_CLASS_TEXT,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
+        for (populated in flags) for (hideEmpty in flags) for (hideVariations in flags) for (strip in flags) {
+            configure()
+            SettingsManager.setStatusBarVariationsVisible(context, populated)
+            SettingsManager.setSuggestionsEnabled(context, populated)
+            SettingsManager.setAlwaysShowSuggestionsBarHideSensitive(context, hideEmpty)
+            SettingsManager.setAlwaysShowSuggestionsBarHideVariations(context, hideVariations)
+            SettingsManager.setModifierIndicators(context, if (strip) setOf(SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP) else emptySet())
+            val ctl = Robolectric.buildService(PhysicalKeyboardInputMethodService::class.java).create()
+            try {
+                val ime = ctl.get()
+                val root = ime.onCreateInputView() as ViewGroup
+                fun rows(): List<Int> {
+                    layout(root)
+                    main.idleFor(Duration.ofMillis(500))
+                    layout(root)
+                    return if (root.visibility != View.VISIBLE) emptyList() else listOf(root.height) +
+                        (0 until root.childCount).map { root.getChildAt(it) }.map { if (it.visibility == View.VISIBLE) it.height else 0 }
+                }
+                for (field in fields) for (end in End.entries) {
+                    val id = ++scenarios
+                    val action = if (field == fields.last()) EditorInfo.IME_ACTION_SEND else EditorInfo.IME_ACTION_NEXT
+                    fun start(type: Int = field, fieldId: Int = id) = focus(ime, type, action, fieldId)
+                    val editor = start()
+                    val expected = rows()
+                    val code = (650000 + id * 2).toString()
+                    deliver(code)
+                    rows()
+                    val chip = requireNotNull(root.chip())
+                    when (end) {
+                        End.TAP -> { chip.performClick(); assertEquals(code, editor.text.toString()) }
+                        End.EXPIRE -> main.idleFor(Duration.ofMinutes(2))
+                        End.REPLACE -> {
+                            val next = (code.toInt() + 1).toString()
+                            deliver(next)
+                            chip.performClick()
+                            assertEquals("", editor.text.toString())
+                            assertEquals(next, root.chip()?.codeLabel())
+                            main.idleFor(Duration.ofMinutes(2))
+                        }
+                        End.CHANGE_FIELD, End.FINISH -> {
+                            if (end == End.FINISH) { ime.onFinishInput(); assertNull(root.chip()) }
+                            start(fields[(fields.indexOf(field) + 1) % fields.size], -id)
+                            chip.performClick()
+                            assertEquals("", editor.text.toString())
+                            main.idleFor(Duration.ofMinutes(2))
+                            start()
+                        }
+                    }
+                    assertNull(root.chip())
+                    val actual = rows()
+                    if (expected != actual) failures += "$end field=$field populated=$populated hideEmpty=$hideEmpty hideVariations=$hideVariations strip=$strip: $expected -> $actual"
+                    ime.onFinishInput()
+                }
+            } finally { ctl.destroy() }
+        }
+        assertEquals(320, scenarios)
+        println("OTP restoration: $scenarios scenarios, ${failures.size} failures")
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
     private fun notificationAccess(granted: Boolean) {
@@ -255,9 +325,11 @@ class OtpAndroidTest {
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
     }
 
-    private fun View.chip(): TextView? {
+    private fun View.codeLabel() = findViewById<TextView>(androidx.autofill.R.id.autofill_inline_suggestion_title).text.toString()
+
+    private fun View.chip(): View? {
         if (visibility != View.VISIBLE) return null
-        if (id == R.id.otp_chip) return this as TextView
+        if (id == R.id.otp_chip) return this
         return (this as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { group.getChildAt(it).chip() } }
     }
 }

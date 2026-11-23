@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.Icon
+import android.view.View
+import android.widget.TextView
 import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
@@ -34,13 +36,25 @@ internal object InlineAutofillStyle {
 
     fun textColor(theme: KeyboardThemeColors): Int = opaque(theme.textAndIcons)
 
+    private fun paddingPx(context: Context) = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, CHIP_HORIZONTAL_PADDING_DP, context.resources.displayMetrics
+    ).toInt()
+
+    /** Local content uses the same AndroidX title/chip layout without an autofill service or Slice. */
+    fun apply(chip: View, title: TextView, theme: KeyboardThemeColors) {
+        chip.setBackgroundResource(R.drawable.inline_autofill_chip)
+        chip.background.mutate().setTint(chipColor(theme))
+        val padding = paddingPx(chip.context)
+        chip.setPadding(padding, 0, padding, 0)
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, TITLE_TEXT_SIZE_SP)
+        title.setTextColor(textColor(theme))
+    }
+
     // ViewStyle.Builder is public but inherits its setters from a @RestrictTo base class.
     @SuppressLint("RestrictedApi")
     @RequiresApi(Build.VERSION_CODES.R)
     fun build(context: Context, theme: KeyboardThemeColors): Bundle {
-        val padding = TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, CHIP_HORIZONTAL_PADDING_DP, context.resources.displayMetrics
-        ).toInt()
+        val padding = paddingPx(context)
         val chip = ViewStyle.Builder()
             .setBackground(Icon.createWithResource(context, R.drawable.inline_autofill_chip).setTint(chipColor(theme)))
             .setPadding(padding, 0, padding, 0)

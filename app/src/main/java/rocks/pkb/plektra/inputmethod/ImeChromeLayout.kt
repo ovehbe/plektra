@@ -600,8 +600,13 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         if (visibility != View.VISIBLE) forgetHeight()
     }
 
+    /** A transient chip can reveal a collapsed bar without permanently reserving an empty row. */
+    fun revealChipRowFromEmpty() {
+        lastTargetHeight = 0
+    }
+
     /** A hidden bar or keyboard shows again at its new height; only on-screen row changes animate. */
-    private fun forgetHeight() {
+    fun forgetHeight() {
         heightAnimator?.cancel()
         heightAnimator = null
         animatedHeight = null

@@ -254,7 +254,7 @@ class FullSuggestionsBar(
 
     private fun applyHeight() {
         val height = targetHeightPx
-        val frameHeight = if (inlineContent != null) inlineContentHeightPx else height
+        val frameHeight = inlineContent?.let { maxOf(inlineContentHeightPx, it.minimumHeight) } ?: height
         frameContainer?.let { frame ->
             val params = (frame.layoutParams as? LinearLayout.LayoutParams)
                 ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, frameHeight)
@@ -521,7 +521,8 @@ class FullSuggestionsBar(
         frame.alpha = 1f
         renderMinimalUiButtons()
         val slotsParams = bar.layoutParams as FrameLayout.LayoutParams
-        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, inlineContentHeightPx).apply {
+        applyHeight() // A local chip can change the minimum hit area without replacing the host.
+        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
             marginStart = slotsParams.marginStart
             marginEnd = slotsParams.marginEnd
         }

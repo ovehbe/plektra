@@ -297,9 +297,10 @@ class VariationBarView(
         ).toInt()
 
     /** Autofill chips cover the row; it then takes the theme's autofill row height. */
-    var hostsInlineContent: Boolean = false
+    val hostsInlineContent get() = inlineContent != null
+    var inlineContent: View? = null
         set(value) {
-            if (field == value) return
+            if (field == null && value == null) return
             field = value
             applyHeight()
         }
@@ -316,7 +317,7 @@ class VariationBarView(
 
     private fun applyHeight() {
         val height = targetHeightPx()
-        val rowHeight = if (hostsInlineContent) inlineContentHeightPx() else height
+        val rowHeight = inlineContent?.let { maxOf(inlineContentHeightPx(), it.minimumHeight) } ?: height
         val verticalPadding = verticalPaddingPx()
         var geometryChanged = false
         container?.let { view ->

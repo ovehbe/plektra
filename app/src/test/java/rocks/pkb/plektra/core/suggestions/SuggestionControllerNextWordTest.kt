@@ -279,7 +279,21 @@ class SuggestionControllerNextWordTest {
         assertEquals(SuggestionKind.STARTER_WORD, latest[2].kind)
     }
 
-    private fun newController(): SuggestionController {
+    @Test
+    fun protectedEditorPredictsFromNewKeysWithoutImportingItsText() {
+        val controller = newController(canReadEditorText = { false })
+        val editor = Proxy.newProxyInstance(InputConnection::class.java.classLoader, arrayOf(InputConnection::class.java)) { _, method, _ ->
+            throw AssertionError("Suggestion pipeline read protected editor: ${method.name}")
+        } as InputConnection
+        controller.readInitialContext(editor)
+        controller.onCursorMoved(editor)
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(250))
+        controller.onBoundaryKey(KeyEvent.KEYCODE_SPACE, null, editor)
+        controller.onCharacterCommitted("ordinary", editor)
+        assertEquals("ordinary", controller.pendingAddWord())
+    }
+
+    private fun newController(canReadEditorText: () -> Boolean = { true }): SuggestionController {
         val context = RuntimeEnvironment.getApplication()
         return SuggestionController(
             context = context,
@@ -288,7 +302,8 @@ class SuggestionControllerNextWordTest {
             onSuggestionsUpdated = { snapshots.add(it) },
             currentLocale = Locale.GERMANY,
             dictionaryRepositoryFactory = { _, _, _, _, _ -> fakeRepository },
-            nextWordPredictorOverride = NextWordPredictor(store)
+            nextWordPredictorOverride = NextWordPredictor(store),
+            canReadEditorText = canReadEditorText
         ).also { controllers.add(it) }
     }
 

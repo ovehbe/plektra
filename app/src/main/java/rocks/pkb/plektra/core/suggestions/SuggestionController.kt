@@ -38,7 +38,9 @@ class SuggestionController(
     ) -> DictionaryRepository)? = null,
     nextWordPredictorOverride: NextWordPredictor? = null,
     private val activeSuggestionLocalesProvider: (() -> List<Locale>)? = null,
-    private val numberDigitMapProvider: () -> Map<Char, Char> = { emptyMap() }
+    private val numberDigitMapProvider: () -> Map<Char, Char> = { emptyMap() },
+    // After a secret insertion predict from newly typed keys, never by importing the editor buffer.
+    private val canReadEditorText: () -> Boolean = { true }
 ) {
 
     private val appContext = context.applicationContext
@@ -130,7 +132,7 @@ class SuggestionController(
     }
 
     private fun numberTokenForSuggestions(word: String, settings: SuggestionSettings): NumberSuggestions.Token? {
-        if (!settings.numberSuggestionsEnabled) return null
+        if (!settings.numberSuggestionsEnabled || !canReadEditorText()) return null
         val before = try {
             numberContextConnection?.getTextBeforeCursor(NumberSuggestions.CONTEXT_CHARS, 0)?.toString()
         } catch (_: Exception) {
@@ -386,6 +388,10 @@ class SuggestionController(
         inputConnection: InputConnection?,
         boundaryCharOverride: Char? = null
     ): AutoReplaceController.ReplaceResult {
+        if (!canReadEditorText()) {
+            onContextReset()
+            return AutoReplaceController.ReplaceResult(false, false)
+        }
         if (debugLogging) {
             Log.d(
                 "PlektraIME",
@@ -622,7 +628,7 @@ class SuggestionController(
     }
 
     fun handleBackspaceUndo(keyCode: Int, inputConnection: InputConnection?): Boolean {
-        if (!isEnabled()) return false
+        if (!isEnabled() || !canReadEditorText()) return false
         val undone = autoReplaceController.handleBackspaceUndo(keyCode, inputConnection)
         if (undone) {
             pendingAddUserWord = autoReplaceController.consumeLastUndoOriginalWord()
@@ -908,6 +914,7 @@ class SuggestionController(
     }
 
     private fun lastCharBeforeCursor(inputConnection: InputConnection?): Char? {
+        if (!canReadEditorText()) return null
         return try {
             inputConnection?.getTextBeforeCursor(1, 0)?.lastOrNull()
         } catch (_: Exception) {
@@ -931,7 +938,7 @@ class SuggestionController(
         inputConnection: InputConnection?,
         includeAfterCursor: Boolean = true
     ): String? {
-        if (inputConnection == null) return null
+        if (inputConnection == null || !canReadEditorText()) return null
         return try {
             val before = inputConnection.getTextBeforeCursor(CURSOR_WORD_CONTEXT_CHARS, 0)?.toString() ?: ""
             val after = if (includeAfterCursor) {
