@@ -9,6 +9,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
 import rocks.pkb.plektra.inputmethod.ui.KeyboardThemeColors
 
 /**
@@ -35,6 +38,7 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
             if (field == value) return
             field = value
             setBackgroundColor(InlineAutofillStyle.hostColor(value))
+            (leadingChip as? TextView)?.let { InlineAutofillStyle.styleLocalChip(it, value) }
         }
 
     init {
@@ -63,13 +67,17 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
         }
     }
 
+    /** A chip of Plektra's own (one-time code), pinned before the service's chips. */
     fun setLeadingChip(chip: View?) {
         if (chip === leadingChip) return
         leadingChip?.let(pinnedRow::removeView)
         leadingChip = chip
-        if (chip != null) pinnedRow.addView(chip, 0, LayoutParams(
-            LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT
-        ).apply { marginEnd = gapPx })
+        if (chip != null) {
+            (chip.parent as? ViewGroup)?.removeView(chip)
+            // The full row height: the chip is drawn inset, but all of the row takes the tap.
+            pinnedRow.addView(chip, 0, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
+                .apply { marginEnd = gapPx })
+        }
     }
 
     fun clearChips() {
@@ -90,7 +98,17 @@ internal class InlineAutofillChipHost(context: Context) : LinearLayout(context) 
         gravity = Gravity.CENTER_VERTICAL
     }
 
-    private companion object {
-        const val CHIP_GAP_DP = 4f
+    companion object {
+        private const val CHIP_GAP_DP = 4f
+
+        /** A chip styled like the ones the autofill service renders from [InlineAutofillStyle.build]. */
+        fun localChip(context: Context, title: String, description: String, @DrawableRes icon: Int,
+            theme: KeyboardThemeColors?): TextView = TextView(context).apply {
+            text = title
+            contentDescription = description
+            textDirection = View.TEXT_DIRECTION_LTR
+            setCompoundDrawablesRelative(AppCompatResources.getDrawable(context, icon), null, null, null)
+            InlineAutofillStyle.styleLocalChip(this, theme)
+        }
     }
 }

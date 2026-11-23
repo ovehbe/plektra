@@ -25,6 +25,8 @@ class SuggestionController(
     private val assets: AssetManager,
     private val settingsProvider: () -> SuggestionSettings,
     private val isEnabled: () -> Boolean = { true },
+    /** Words that are never suggested, learned, auto-replaced or offered for the dictionary. */
+    private val isExcludedWord: (String) -> Boolean = { false },
     debugLogging: Boolean = false,
     private val onSuggestionsUpdated: (List<SuggestionResult>) -> Unit,
     private var currentLocale: Locale = Locale.ITALIAN,
@@ -248,7 +250,7 @@ class SuggestionController(
 
     private fun updateSuggestionsForWord(word: String) {
         val settings = settingsProvider()
-        if (!isEnabled() || !settings.suggestionsEnabled || word.isBlank() || word.length > 48) {
+        if (!isEnabled() || !settings.suggestionsEnabled || word.isBlank() || word.length > 48 || isExcludedWord(word)) {
             cancelPendingWordSuggestions()
             pendingAddUserWord = null
             latestSuggestions.set(emptyList())
@@ -341,7 +343,8 @@ class SuggestionController(
 
     private fun addWordCandidateFor(word: String?, repository: DictionaryRepository = dictionaryRepository): String? {
         val candidate = word?.trim() ?: return null
-        if (candidate.isEmpty() || candidate.length > 48 || candidate.none { it.isLetterOrDigit() }) return null
+        if (candidate.isEmpty() || candidate.length > 48 || candidate.none { it.isLetterOrDigit() } ||
+            isExcludedWord(candidate)) return null
         if (!repository.isReady) return null
         return if (repository.isKnownWord(candidate)) null else candidate
     }
@@ -403,9 +406,11 @@ class SuggestionController(
             val word = extractWordAtCursor(inputConnection, includeAfterCursor = false)
             if (!word.isNullOrBlank()) {
                 tracker.setWord(word, notify = false)
-                Log.d("PlektraIME", "SYNC: Synced tracker to actual word='$word' before boundary")
+                Log.d("PlektraIME", "SYNC: Synced tracker to actual word before boundary")
             }
         }
+        // An excluded word ends like an empty one: kept as typed, never learned.
+        if (isExcludedWord(tracker.currentWord.trim())) tracker.reset()
 
         val boundaryChar = boundaryCharOverride ?: boundaryCharFor(keyCode, event)
         val wordBeforeBoundary = tracker.currentWord.takeIf { it.isNotBlank() }
