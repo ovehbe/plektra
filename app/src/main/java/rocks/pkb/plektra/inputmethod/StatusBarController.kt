@@ -66,6 +66,7 @@ import android.content.res.AssetManager
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
+import androidx.core.view.isGone
 import androidx.core.view.updatePadding
 import rocks.pkb.plektra.SettingsActivity
 
@@ -3511,7 +3512,7 @@ class StatusBarController(
         placeInlineAutofillHost(inlineAutofillTarget)
         if (inlineAutofillTarget != null && hasOtpChip) {
             inlineAutofillHost?.sizeLocalChip(inlineChipHeightPx(inlineAutofillTarget, activeColors))
-            if (layout.visibility == View.GONE) (layout as? ImeChromeLayout)?.revealFromCollapsedHeight()
+            if (layout.isGone) (layout as? ImeChromeLayout)?.revealFromCollapsedHeight()
         }
         if ((!hasSuggestionRow && !showSlimMenuButtons && !barPresentation.actions && !barPresentation.bottomIndicators && !isFullSoftwareKeyboardMode &&
                 snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty() &&
