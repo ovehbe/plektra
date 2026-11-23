@@ -522,6 +522,11 @@ internal class ImeChromeLayout(context: Context) : LinearLayout(context) {
         setMeasuredDimension(measuredWidth, measuredHeight)
     }
 
+    /** GONE rows don't get a zero-height measure pass. Seed the normal row reveal from zero. */
+    fun revealFromCollapsedHeight() {
+        lastTargetHeight = 0
+    }
+
     private fun animatedModeHeight(target: Int, animateRowChanges: Boolean = false): Int {
         val previousTarget = lastTargetHeight
         lastTargetHeight = target

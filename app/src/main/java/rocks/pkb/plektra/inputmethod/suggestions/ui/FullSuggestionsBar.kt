@@ -157,7 +157,7 @@ class FullSuggestionsBar(
         get() = dpToPx(InlineAutofillRowHeight.rowHeightDp(
             rowHeightDp(themeOverride?.suggestionsHeightScale ?: 1f),
             themeOverride?.autofillRowHeightScale ?: InlineAutofillRowHeight.DEFAULT_SCALE
-        ))
+        )).coerceAtLeast(inlineContent?.minimumHeight ?: 0)
 
     /**
      * Sets the assets and IME service class needed for subtype cycling.
@@ -509,6 +509,8 @@ class FullSuggestionsBar(
     }
 
     private fun showInlineContent(content: View, frame: FrameLayout, bar: LinearLayout) {
+        // The same host can gain or lose a local touch target without changing parent.
+        applyHeight()
         cancelPendingSuggestionsAccessibilityEnable()
         suggestionButtons.clear()
         bar.visibility = View.GONE

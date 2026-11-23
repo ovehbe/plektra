@@ -304,6 +304,13 @@ class VariationBarView(
             applyHeight()
         }
 
+    internal var inlineMinimumHeight = 0
+        set(value) {
+            if (field == value) return
+            field = value
+            if (hostsInlineContent) applyHeight()
+        }
+
     private fun inlineContentHeightPx(): Int =
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
@@ -316,7 +323,7 @@ class VariationBarView(
 
     private fun applyHeight() {
         val height = targetHeightPx()
-        val rowHeight = if (hostsInlineContent) inlineContentHeightPx() else height
+        val rowHeight = if (hostsInlineContent) maxOf(inlineContentHeightPx(), inlineMinimumHeight) else height
         val verticalPadding = verticalPaddingPx()
         var geometryChanged = false
         container?.let { view ->

@@ -157,7 +157,7 @@ class OtpAndroidTest {
                 val code = (817220 + index * 2 + if (populated) 1 else 0).toString()
                 deliver(code)
                 val originalChip = view.chip()!!
-                assertEquals(code, originalChip.text.toString())
+                assertEquals(code, originalChip.title.text.toString())
                 assertEquals("", original.text.toString())
                 ime.onFinishInput()
                 assertNull(view.chip())
@@ -190,7 +190,7 @@ class OtpAndroidTest {
             val editor = focus(ime, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
                 EditorInfo.IME_ACTION_NONE, 3)
             layout(view)
-            val emptyHeight = view.height
+            val emptyHeight = if (view.visibility == View.GONE) 0 else view.height
             assertNull(view.chip())
             deliver("654823")
             layout(view)
@@ -204,7 +204,7 @@ class OtpAndroidTest {
             deliver("654824")
             stale.performClick()
             assertEquals("", editor.text.toString())
-            assertEquals("654824", view.chip()?.text.toString())
+            assertEquals("654824", view.chip()?.title?.text.toString())
             main.idleFor(Duration.ofMinutes(2))
             assertNull(view.chip())
             deliver("654825")
@@ -302,6 +302,7 @@ class OtpAndroidTest {
         layout(bar)
         main.idleFor(Duration.ofMillis(600))
         layout(bar)
+        if (bar.visibility == View.GONE) return listOf(View.GONE, bar.layoutParams.height)
         return listOf(bar.visibility, bar.layoutParams?.height ?: -2, bar.height, bar.clipBounds?.height() ?: -1) +
             (0 until bar.childCount).map { bar.getChildAt(it).let { v -> if (v.visibility == View.VISIBLE) v.height else -1 } }
     }
@@ -323,7 +324,12 @@ class OtpAndroidTest {
     }
 
     private fun focus(ime: PhysicalKeyboardInputMethodService, type: Int, action: Int, id: Int): EditText {
-        val info = EditorInfo().apply { inputType = type; imeOptions = action; fieldId = id; packageName = if (action == EditorInfo.IME_ACTION_SEND) "com.whatsapp" else "test.editor" }
+        val info = EditorInfo().apply {
+            inputType = type
+            imeOptions = action
+            fieldId = id
+            packageName = if (action == EditorInfo.IME_ACTION_SEND) "com.whatsapp" else "test.editor"
+        }
         val editor = EditText(context).apply { inputType = type }
         val connection = object : InputConnectionWrapper(editor.onCreateInputConnection(EditorInfo()), false) {
             override fun performEditorAction(editorAction: Int): Boolean = error("OTP must not submit")
@@ -348,9 +354,11 @@ class OtpAndroidTest {
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
     }
 
-    private fun View.chip(): TextView? {
+    private val View.title: TextView get() = findViewById(androidx.autofill.R.id.autofill_inline_suggestion_title)
+
+    private fun View.chip(): View? {
         if (visibility != View.VISIBLE) return null
-        if (id == R.id.otp_chip) return this as TextView
+        if (id == R.id.otp_chip) return this
         return (this as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { group.getChildAt(it).chip() } }
     }
 }

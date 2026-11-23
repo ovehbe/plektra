@@ -334,6 +334,50 @@ class InlineAutofillChipHostTest {
         }
     }
 
+    @Test
+    fun localCodeUsesPasswordChipTemplatePlacementAndUnclippedRowHeightTarget() {
+        for (actions in listOf(false, true)) {
+            configure(actions, suggestions = true)
+            SettingsManager.setKeyboardTheme(context, SettingsManager.KeyboardThemeTarget.HARDWARE,
+                SettingsManager.defaultKeyboardTheme().copy(textAndIcons = 0xffaacc11.toInt(),
+                    suggestion = 0xff663388.toInt(), suggestionsHeightScale = 0.8f))
+            val (controller, root) = inputSurface()
+            val height = requireNotNull(controller.inlineAutofillChipHeightPx(0, false))
+            val password = chip().apply { layoutParams.height = height }
+            assertTrue(controller.showInlineAutofill(listOf(password), listOf(true)))
+            val pinnedRow = password.parent
+            val placement = placementOf(password, root)
+            controller.clearInlineAutofill()
+            var taps = 0
+            controller.setOtpChip("4567") { taps++ }
+            controller.updateStatusBars(snapshot(), "", null, null)
+            layout(root)
+            val target = root.findViewById<ViewGroup>(rocks.pkb.plektra.R.id.otp_chip)
+            assertTrue(target.parent === pinnedRow)
+            assertEquals(placement, placementOf(target, root))
+            val visual = target.getChildAt(0)
+            val title = visual.findViewById<TextView>(androidx.autofill.R.id.autofill_inline_suggestion_title)
+            assertEquals(0xffaacc11.toInt(), title.currentTextColor)
+            assertEquals("4567", title.text.toString())
+            assertEquals(height, visual.height)
+            val density = context.resources.displayMetrics.density
+            assertEquals((12 * density).toInt(), visual.paddingLeft)
+            assertEquals(visual.paddingLeft, visual.paddingRight)
+            assertEquals(14f, title.textSize / context.resources.displayMetrics.scaledDensity, 0.1f)
+            assertTrue(target.width >= 48 * density && target.height >= 48 * density)
+            assertEquals((target.parent.parent as InlineAutofillChipHost).height, target.height)
+            assertEquals(rowOf(target, root).height, target.height)
+            assertTrue(controller.showInlineAutofill(listOf(password), listOf(true)))
+            target.performClick()
+            assertEquals(1, taps)
+            controller.setOtpChip(null) { }
+            controller.updateStatusBars(snapshot(), "", null, null)
+            layout(root)
+            assertEquals(placement, placementOf(password, root))
+            assertNull(root.findViewById<View>(rocks.pkb.plektra.R.id.otp_chip))
+        }
+    }
+
     private fun configure(
         actions: Boolean,
         suggestions: Boolean,

@@ -33,7 +33,7 @@ data class InputContextState(
      * Disabled for: PASSWORD, URI, EMAIL, FILTER, LITERAL_ENTRY
      */
     val shouldDisableSuggestions: Boolean
-        get() = containsInsertedOtp || isAppRawMode || restrictedReason != null
+        get() = isAppRawMode || restrictedReason != null
     
     /**
      * Disable auto-correction (automatic word replacement).
@@ -62,7 +62,7 @@ data class InputContextState(
      * Enabled for: URI (browsers use URI fields as search bars), PASSWORD (accents may be needed), FILTER (accents in search queries)
      */
     val shouldDisableVariations: Boolean
-        get() = containsInsertedOtp || restrictedReason == RestrictedReason.EMAIL
+        get() = restrictedReason == RestrictedReason.EMAIL
     
     /**
      * Field requires all characters to be capitalized (textCapCharacters flag).

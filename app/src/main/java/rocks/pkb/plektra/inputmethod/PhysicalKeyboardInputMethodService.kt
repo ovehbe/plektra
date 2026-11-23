@@ -65,6 +65,7 @@ import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofill
 import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChips
+import rocks.pkb.plektra.inputmethod.otp.InsertedCodes
 import rocks.pkb.plektra.inputmethod.otp.OtpInbox
 import rocks.pkb.plektra.inputmethod.otp.OtpRuntime
 import androidx.annotation.RequiresApi
@@ -195,8 +196,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private lateinit var otpRuntime: OtpRuntime
     private var otpEditor: EditorInfo? = null
     private var renderedOtp: OtpInbox.Entry? = null
-    // Editor identities only, never the inserted text. Keep refocused fields out of learning too.
-    private val otpEditors = mutableSetOf<Pair<String, Int>>()
+    // Editor-scoped fingerprints, never inserted text. Refocusing the same editor must stay safe.
+    private val otpEditors = mutableMapOf<Pair<String, Int>, InsertedCodes>()
     private lateinit var textExpansionController: TextExpansionController
     private lateinit var emojiShortcodeSource: EmojiShortcodeSource
     private lateinit var symbolShortcodeSource: SymbolShortcodeSource
@@ -2075,6 +2076,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             assets = assets,
             settingsProvider = { getSuggestionSettings() },
             isEnabled = { SettingsManager.isExperimentalSuggestionsEnabled(this) && !inputContextState.shouldDisableSuggestions },
+            privateEditorText = { otpEditors[currentInputEditorInfo?.otpEditorKey()] },
             debugLogging = suggestionDebugLogging,
             onSuggestionsUpdated = { suggestions -> handleSuggestionsUpdated(suggestions) },
             currentLocale = initialLocale,
@@ -3322,11 +3324,11 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             if (otpRuntime.inbox.use(entry) { code ->
                     val previous = inputContextState
                     inputContextState = previous.copy(containsInsertedOtp = true)
+                    otpEditors.getOrPut(editor.otpEditorKey()) { InsertedCodes() }.remember(code)
                     if (!connection.commitText(code, 1)) {
                         inputContextState = previous
                         false
                     } else {
-                        otpEditors += editor.otpEditorKey()
                         DeferredPunctuationSpaceTracker.clear()
                         cancelPendingSelectionDrivenUiWork()
                         suggestionController.onContextReset()

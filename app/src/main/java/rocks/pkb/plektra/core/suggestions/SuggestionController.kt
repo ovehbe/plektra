@@ -38,7 +38,8 @@ class SuggestionController(
     ) -> DictionaryRepository)? = null,
     nextWordPredictorOverride: NextWordPredictor? = null,
     private val activeSuggestionLocalesProvider: (() -> List<Locale>)? = null,
-    private val numberDigitMapProvider: () -> Map<Char, Char> = { emptyMap() }
+    private val numberDigitMapProvider: () -> Map<Char, Char> = { emptyMap() },
+    private val privateEditorText: () -> ((String) -> Boolean)? = { null }
 ) {
 
     private val appContext = context.applicationContext
@@ -130,7 +131,7 @@ class SuggestionController(
     }
 
     private fun numberTokenForSuggestions(word: String, settings: SuggestionSettings): NumberSuggestions.Token? {
-        if (!settings.numberSuggestionsEnabled) return null
+        if (!settings.numberSuggestionsEnabled || privateEditorText() != null) return null
         val before = try {
             numberContextConnection?.getTextBeforeCursor(NumberSuggestions.CONTEXT_CHARS, 0)?.toString()
         } catch (_: Exception) {
@@ -349,6 +350,11 @@ class SuggestionController(
 
     fun onCharacterCommitted(text: CharSequence, inputConnection: InputConnection?) {
         if (!isEnabled()) return
+        // Typing a suffix doesn't make the enclosing private editor word safe to suggest.
+        if (privateEditorText() != null && extractWordAtCursor(inputConnection) == "") {
+            onContextReset()
+            return
+        }
         if (debugLogging) {
             val caller = Throwable().stackTrace.getOrNull(1)?.let { "${it.className}#${it.methodName}:${it.lineNumber}" }
             Log.d("PlektraIME", "SuggestionController.onCharacterCommitted('$text') caller=$caller")
@@ -386,6 +392,13 @@ class SuggestionController(
         inputConnection: InputConnection?,
         boundaryCharOverride: Char? = null
     ): AutoReplaceController.ReplaceResult {
+        // A pasted code bypasses the tracker. Never sync the editor token back into
+        // correction, debug output or next-word learning, even after refocusing it.
+        if (privateEditorText() != null) {
+            val boundary = boundaryCharOverride ?: boundaryCharFor(keyCode, event)
+            tracker.onBoundaryReached(boundary, inputConnection)
+            return AutoReplaceController.ReplaceResult(false, boundary != null && inputConnection != null)
+        }
         if (debugLogging) {
             Log.d(
                 "PlektraIME",
@@ -443,7 +456,7 @@ class SuggestionController(
         
         numberContextConnection = inputConnection
         val word = extractWordAtCursor(inputConnection)
-        if (!word.isNullOrBlank()) {
+        if (word != null) {
             tracker.setWord(word)
         } else if (previousCompletedWord == null) {
             publishSentenceStartPredictionsOrStarter()
@@ -472,7 +485,7 @@ class SuggestionController(
                 return@Runnable
             }
             val word = extractWordAtCursor(inputConnection)
-            if (!word.isNullOrBlank()) {
+            if (word != null) {
                 tracker.setWord(word)
             } else {
                 tracker.reset()
@@ -964,7 +977,13 @@ class SuggestionController(
                 }
             }
             val word = before.substring(start) + after.substring(0, end)
-            if (word.isBlank()) null else word
+            // Null is a real word boundary (starter predictions). A protected token resets
+            // the tracker without ever handing its text to the engine, debug output or UI.
+            when {
+                word.isBlank() -> null
+                privateEditorText()?.invoke(word) == true -> ""
+                else -> word
+            }
         } catch (_: Exception) {
             null
         }
@@ -1021,7 +1040,7 @@ class SuggestionController(
         pendingInitialContextConnection?.let { inputConnection ->
             pendingInitialContextConnection = null
             val word = extractWordAtCursor(inputConnection)
-            if (!word.isNullOrBlank()) {
+            if (word != null) {
                 tracker.setWord(word)
                 return
             }
