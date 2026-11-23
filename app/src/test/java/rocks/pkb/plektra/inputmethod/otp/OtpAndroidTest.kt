@@ -9,7 +9,9 @@ import android.provider.Telephony
 import android.service.notification.StatusBarNotification
 import android.text.InputType
 import android.view.KeyEvent
-import android.view.MotionEvent
+import android.content.ClipData
+import android.content.ClipboardManager
+import rocks.pkb.plektra.inputmethod.AlternateCharacterManager
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -26,7 +28,6 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.util.ReflectionHelpers
-import rocks.pkb.plektra.R
 import rocks.pkb.plektra.SettingsManager
 import rocks.pkb.plektra.KeyboardBarArrangement
 import rocks.pkb.plektra.KeyboardBarConfiguration
@@ -161,7 +162,7 @@ class OtpAndroidTest {
                 val code = (817220 + index * 2 + if (populated) 1 else 0).toString()
                 deliver(code)
                 val originalChip = view.chip()!!
-                assertEquals(code, originalChip.title.text.toString())
+                assertEquals(code, (originalChip as TextView).text.toString())
                 assertEquals("", original.text.toString())
                 ime.onFinishInput()
                 assertNull(view.chip())
@@ -208,7 +209,7 @@ class OtpAndroidTest {
             deliver("654824")
             stale.performClick()
             assertEquals("", editor.text.toString())
-            assertEquals("654824", view.chip()?.title?.text.toString())
+            assertEquals("654824", (view.chip() as? TextView)?.text.toString())
             main.idleFor(Duration.ofMinutes(2))
             assertNull(view.chip())
             deliver("654825")
@@ -219,7 +220,7 @@ class OtpAndroidTest {
         } finally { ctl.destroy() }
     }
 
-    private enum class Dismiss { CLOSE, SWIPE, TIMEOUT, LETTER, DIGIT, PUNCTUATION, SPACE, SOFT_CHAR, SOFT_SPACE, INSERT }
+    private enum class Dismiss { HOLD, ENTER, SUGGESTION, VARIATION, SYMBOL, ALT, TIMEOUT, LETTER, DIGIT, PUNCTUATION, SPACE, SOFT_CHAR, SOFT_SPACE, INSERT }
 
     @Test
     fun otpDismissMatrix() {
@@ -239,7 +240,7 @@ class OtpAndroidTest {
                 rows++
                 val code = (650000 + rows).toString()
                 val type = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                val action = EditorInfo.IME_ACTION_DONE
+                val action = EditorInfo.IME_ACTION_NONE
                 runCatching {
                     val first = focus(ime, type, action, rows * 3)
                     val receivedAt = android.os.SystemClock.elapsedRealtime()
@@ -254,17 +255,13 @@ class OtpAndroidTest {
                     }
                     layout(root)
                     val expected = when (exit) {
-                        Dismiss.CLOSE -> {
-                            checkNotNull(root.findClose()) { "no close button" }.performClick(); ""
-                        }
-                        Dismiss.SWIPE -> {
-                            val t = android.os.SystemClock.uptimeMillis()
-                            for ((i, event) in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP).withIndex()) {
-                                MotionEvent.obtain(t, t + i * 20L, event, target.width / 2f + 120f * i, target.height / 2f, 0).also {
-                                    target.dispatchTouchEvent(it); it.recycle()
-                                }
-                            }
-                            ""
+                        Dismiss.HOLD -> { check(target.performLongClick()); "" }
+                        Dismiss.ENTER -> { ime.onKeyDown(KeyEvent.KEYCODE_ENTER, KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER)); editor.text.toString() }
+                        Dismiss.SUGGESTION -> { bar.onSuggestionCommitted!!.invoke(); "" }
+                        Dismiss.VARIATION -> { bar.onVariationSelectedListener!!.onVariationSelected("é"); "" }
+                        Dismiss.SYMBOL -> { bar.onSymTextCommitted!!.invoke(); "" }
+                        Dismiss.ALT -> {
+                            ReflectionHelpers.getField<AlternateCharacterManager>(ime, "alternateCharacterManager").onAltCharInserted!!.invoke('#'); ""
                         }
                         Dismiss.TIMEOUT -> {
                             // Switching fields can advance Robolectric's clock; don't restart the deadline there.
@@ -312,14 +309,131 @@ class OtpAndroidTest {
             }
         } finally { ctl.destroy() }
         println("OTP dismiss matrix: $rows rows, ${failures.size} failing")
-        assertEquals(60, rows)
+        assertEquals(84, rows)
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
-    private fun View.findClose(): View? {
-        if (visibility != View.VISIBLE) return null
-        if (this is TextView && text.toString() == "✕") return this
-        return (this as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { group.getChildAt(it).findClose() } }
+    private fun copy(text: String, age: Long = 0, sensitive: Boolean = false) {
+        val clipboard = context.getSystemService(ClipboardManager::class.java)
+        clipboard.setPrimaryClip(ClipData.newPlainText("text", text).apply {
+            if (sensitive) description.extras = android.os.PersistableBundle().apply {
+                putBoolean("android.content.extra.IS_SENSITIVE", true)
+            }
+        })
+        // ShadowClipboardManager stamps copies with uptime; Android uses wall time.
+        ReflectionHelpers.callInstanceMethod<Unit>(clipboard.primaryClip!!.description, "setTimestamp",
+            ReflectionHelpers.ClassParameter.from(Long::class.javaPrimitiveType, System.currentTimeMillis() - age))
+        main.idle()
+    }
+
+    private fun clipboardToggle(enabled: Boolean) {
+        SettingsManager.getPreferences(context).edit().putBoolean("clipboard_paste_suggestion", enabled).apply()
+        main.idle()
+    }
+
+    @Test
+    fun clipboardCenterSlotMatrix() {
+        configure()
+        SettingsManager.setAutoCapitalizeFirstLetter(context, false)
+        val ctl = Robolectric.buildService(PhysicalKeyboardInputMethodService::class.java).create()
+        val failures = mutableListOf<String>()
+        var rows = 0
+        try {
+            val ime = ctl.get()
+            val root = requireNotNull(ime.onCreateInputView())
+            val bar = ReflectionHelpers.getField<CandidatesBarController>(ime, "candidatesBarController")
+            fun clip() = root.centerLabel { it.startsWith("paste") }
+            for (exit in Dismiss.entries) for (beforeFocus in listOf(true, false)) {
+                rows++
+                runCatching {
+                    clipboardToggle(true)
+                    val text = "paste${rows} " + "private text ".repeat(8)
+                    val type = InputType.TYPE_CLASS_TEXT
+                    val action = EditorInfo.IME_ACTION_NONE
+                    if (beforeFocus) copy(text)
+                    val editor = focus(ime, type, action, rows)
+                    if (!beforeFocus) copy(text)
+                    val slot = checkNotNull(clip()) { "missing clipboard slot" }
+                    check(slot.text.length < text.length && editor.text.isEmpty()) { "not a truncated preview" }
+                    when (exit) {
+                        Dismiss.HOLD -> check(slot.performLongClick())
+                        Dismiss.INSERT -> { slot.performClick(); slot.performClick(); check(editor.text.toString() == text) }
+                        Dismiss.TIMEOUT -> main.idleFor(Duration.ofSeconds(60))
+                        Dismiss.SYMBOL -> bar.onSymTextCommitted!!.invoke()
+                        Dismiss.VARIATION -> bar.onVariationSelectedListener!!.onVariationSelected("é")
+                        Dismiss.SUGGESTION -> bar.onSuggestionCommitted!!.invoke()
+                        Dismiss.ALT -> ReflectionHelpers.getField<AlternateCharacterManager>(ime, "alternateCharacterManager").onAltCharInserted!!.invoke('#')
+                        Dismiss.SOFT_SPACE, Dismiss.SOFT_CHAR -> bar.onSoftwareKeyboardTextInput!!.invoke(
+                            if (exit == Dismiss.SOFT_SPACE) " " else "é", ime.currentInputConnection,
+                            StatusSnapshot(false, false, false, false, false, false, false, false, false, false, 0))
+                        else -> {
+                            val key = when (exit) {
+                                Dismiss.ENTER -> KeyEvent.KEYCODE_ENTER
+                                Dismiss.SPACE -> KeyEvent.KEYCODE_SPACE
+                                Dismiss.PUNCTUATION -> KeyEvent.KEYCODE_PERIOD
+                                Dismiss.DIGIT -> KeyEvent.KEYCODE_7
+                                else -> KeyEvent.KEYCODE_A
+                            }
+                            ime.onKeyDown(key, KeyEvent(KeyEvent.ACTION_DOWN, key))
+                            ime.onKeyUp(key, KeyEvent(KeyEvent.ACTION_UP, key))
+                        }
+                    }
+                    main.idle()
+                    check(clip() == null) { "not dismissed" }
+                    focus(ime, type, action, rows + 200)
+                    check(clip() == null) { "resurrected" }
+                }.onFailure { failures += "$exit/beforeFocus=$beforeFocus: $it" }
+                ime.onFinishInput()
+            }
+            for (gate in listOf("disabled", "password", "web password", "visible password", "PIN", "old", "sensitive", "OTP", "toggle off", "switch to password", "near expiry")) {
+                rows++
+                runCatching {
+                    clipboardToggle(gate != "disabled")
+                    copy("paste-$rows", when (gate) { "old" -> 60001; "near expiry" -> 58000; else -> 0 }, gate == "sensitive")
+                    val type = when (gate) {
+                        "password" -> InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                        "web password" -> InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+                        "visible password" -> InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                        "PIN" -> InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+                        else -> InputType.TYPE_CLASS_TEXT
+                    }
+                    focus(ime, type, EditorInfo.IME_ACTION_DONE, rows)
+                    if (gate == "OTP") {
+                        checkNotNull(clip()); deliver("991234"); checkNotNull(root.chip())
+                        check(clip() == null); root.chip()!!.performLongClick(); checkNotNull(clip())
+                    } else {
+                        when (gate) {
+                            "toggle off" -> { checkNotNull(clip()); clipboardToggle(false) }
+                            "switch to password" -> {
+                                val stale = checkNotNull(clip())
+                                val password = focus(ime, InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD,
+                                    EditorInfo.IME_ACTION_DONE, rows + 100)
+                                stale.performClick(); check(password.text.isEmpty())
+                            }
+                            "near expiry" -> { checkNotNull(clip()); main.idleFor(Duration.ofSeconds(2)) }
+                        }
+                        check(clip() == null)
+                    }
+                }.onFailure { failures += "$gate: $it" }
+                ime.onFinishInput()
+            }
+        } finally { ctl.destroy() }
+        println("Clipboard slot matrix: $rows rows, ${failures.size} failing")
+        assertEquals(39, rows)
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun newest64DismissalsSurviveLateCrossSourceReplays() {
+        var now = 0L
+        val inbox = OtpInbox({ true }, { now })
+        repeat(65) { i ->
+            check(inbox.offer(OtpSource.HELPER, (710000 + i).toString()))
+            inbox.dismiss(inbox.current()!!)
+        }
+        now += 300_000
+        for (i in 1..64) assertFalse(inbox.offer(OtpSource.NOTIFICATION, (710000 + i).toString()))
+        assertTrue("oldest fingerprint should be evicted", inbox.offer(OtpSource.SMS, "710000"))
     }
 
     private enum class Exit { TAP, EXPIRY, REPLACEMENT, FIELD_CHANGE, FINISH }
@@ -461,11 +575,12 @@ class OtpAndroidTest {
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)
     }
 
-    private val View.title: TextView get() = findViewById(androidx.autofill.R.id.autofill_inline_suggestion_title)
+    private fun View.chip(): View? = centerLabel { it.matches(Regex("[0-9]{6}")) }
 
-    private fun View.chip(): View? {
-        if (visibility != View.VISIBLE) return null
-        if (id == R.id.otp_chip) return this
-        return (this as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { group.getChildAt(it).chip() } }
+    private fun View.centerLabel(matches: (String) -> Boolean): TextView? {
+        if (visibility != View.VISIBLE || this !is ViewGroup) return null
+        val middle = getChildAt(1) as? TextView
+        if (childCount == 3 && middle?.visibility == View.VISIBLE && matches(middle.text.toString())) return middle
+        return (0 until childCount).firstNotNullOfOrNull { getChildAt(it).centerLabel(matches) }
     }
 }

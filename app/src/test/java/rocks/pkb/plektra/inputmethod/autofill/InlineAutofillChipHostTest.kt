@@ -335,53 +335,14 @@ class InlineAutofillChipHostTest {
     }
 
     @Test
-    fun localCodeKeepsInlineThemeAndAnIndependentUnclippedTouchTarget() {
-        for (actions in listOf(false, true)) {
-            configure(actions, suggestions = true)
-            SettingsManager.setKeyboardTheme(context, SettingsManager.KeyboardThemeTarget.HARDWARE,
-                SettingsManager.defaultKeyboardTheme().copy(textAndIcons = 0xffaacc11.toInt(),
-                    suggestion = 0xff663388.toInt(), suggestionsHeightScale = 0.8f))
-            val (controller, root) = inputSurface()
-            val height = requireNotNull(controller.inlineAutofillChipHeightPx(0, false))
-            val password = chip().apply { layoutParams.height = height }
-            assertTrue(controller.showInlineAutofill(listOf(password), listOf(true)))
-            val placement = placementOf(password, root)
-            controller.clearInlineAutofill()
-            var taps = 0
-            controller.setOtpChip("4567") { taps++ }
-            controller.updateStatusBars(snapshot(), "", null, null)
-            layout(root)
-            val target = root.findViewById<ViewGroup>(rocks.pkb.plektra.R.id.otp_chip)
-            assertTrue(target.parent === root)
-            val visual = target.getChildAt(0)
-            val title = visual.findViewById<TextView>(androidx.autofill.R.id.autofill_inline_suggestion_title)
-            assertEquals(0xffaacc11.toInt(), title.currentTextColor)
-            assertEquals("4567", title.text.toString())
-            assertTrue(visual.height >= title.height)
-            val density = context.resources.displayMetrics.density
-            assertEquals((12 * density).toInt(), target.paddingLeft)
-            assertEquals(target.paddingLeft, target.paddingRight)
-            assertEquals(22f, title.textSize / context.resources.displayMetrics.scaledDensity, 0.1f)
-            assertTrue(target.width >= 48 * density && target.height >= 48 * density)
-            assertTrue(title.height <= target.height)
-            assertTrue(controller.showInlineAutofill(listOf(password), listOf(true)))
-            target.performClick()
-            assertEquals(1, taps)
-            controller.setOtpChip(null) { }
-            controller.updateStatusBars(snapshot(), "", null, null)
-            layout(root)
-            assertEquals(placement, placementOf(password, root))
-            assertNull(root.findViewById<View>(rocks.pkb.plektra.R.id.otp_chip))
-        }
-    }
-
-    @Test
-    fun otpLayoutMatrix() {
+    fun centerSlotLayoutMatrix() {
         val failures = mutableListOf<String>()
         var count = 0
         for (arrangement in KeyboardBarArrangement.entries) for (candidates in listOf(false, true)) {
             for (password in listOf(false, true)) for (actions in listOf(false, true)) {
                 configure(actions, suggestions = true, arrangement, ledStrip = true)
+                SettingsManager.setExperimentalSuggestionsEnabled(context, true)
+                SettingsManager.setAlwaysShowSuggestionsBar(context, true)
                 val controller = CandidatesBarController(context)
                 val root = if (candidates) controller.getCandidatesView() else controller.getInputView()
                 controller.setCandidatesSurfaceActive(candidates)
@@ -392,27 +353,43 @@ class InlineAutofillChipHostTest {
                 layout(root)
                 val before = visibleTexts(root).filter(String::isNotEmpty)
                 val height = root.height
+                val children = root.childCount
                 val fillPlacement = placementOf(fill, root)
                 controller.setOtpChip("012345") { }
                 render()
                 count++
                 runCatching {
-                    val target = checkNotNull(root.findViewById<View>(rocks.pkb.plektra.R.id.otp_chip))
-                    check(visibleTexts(root).containsAll(before)) { "covered bar text" }
+                    check(root.childCount == children && root.height == height) { "added OTP row" }
+                    val after = visibleTexts(root)
+                    check(after.containsAll(before - WORDS.first())) { "covered other bar content" }
                     check(!password || placementOf(fill, root) == fillPlacement && fill.width > 0) { "covered autofill" }
-                    check(root.height > height) { "did not grow chrome" }
-                    val title = target.findViewById<TextView>(androidx.autofill.R.id.autofill_inline_suggestion_title)
-                    check(kotlin.math.abs(title.leftIn(root) + title.width / 2 - root.width / 2) <= 1) { "off center" }
-                    check(title.textSize >= 18f * context.resources.displayMetrics.scaledDensity) { "small code" }
+                    // If the password provider owns this very strip, never evict it to show local text.
+                    if (fillPlacement != Placement.SUGGESTIONS) {
+                        val title = root.findLabel("012345") ?: error("missing code")
+                        val slots = title.parent as ViewGroup
+                        check(slots.childCount == 3 && slots.getChildAt(1) === title) { "not middle word slot" }
+                        val neighbor = slots.getChildAt(0) as TextView
+                        check(title.height == neighbor.height && title.autoSizeMaxTextSize == neighbor.autoSizeMaxTextSize)
+                        if (!password) {
+                            check(neighbor.text == WORDS[2] &&
+                                (slots.getChildAt(2) as TextView).text == WORDS[1]) { "lost word neighbors" }
+                        }
+                    }
                     controller.setOtpChip(null) { }
                     render()
                     check(visibleTexts(root).filter(String::isNotEmpty) == before && root.height == height) { "not restored" }
                 }.onFailure { failures += "$arrangement/candidates=$candidates/password=$password/actions=$actions: $it" }
             }
         }
-        println("OTP layout matrix: $count rows, ${failures.size} failing")
+        println("Center slot layout matrix: $count rows, ${failures.size} failing")
         assertEquals(24, count)
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    private fun View.findLabel(label: String): TextView? {
+        if (visibility != View.VISIBLE) return null
+        if (this is TextView && text == label) return this
+        return (this as? ViewGroup)?.let { (0 until childCount).firstNotNullOfOrNull { getChildAt(it).findLabel(label) } }
     }
 
     private fun configure(
