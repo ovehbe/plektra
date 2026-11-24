@@ -19,6 +19,7 @@ import rocks.pkb.plektra.data.mappings.DeviceSymMappingRepository
 import rocks.pkb.plektra.data.variation.VariationRepository
 import rocks.pkb.plektra.core.AutoSpaceTracker
 import rocks.pkb.plektra.core.DeferredPunctuationSpaceTracker
+import rocks.pkb.plektra.core.PunctuationSpacing
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -50,11 +51,11 @@ class AlternateCharacterManager(
         text: String,
         inputConnection: InputConnection
     ): Boolean {
-        if (text.length != 1) return false
-        val boundary = rocks.pkb.plektra.core.Punctuation.normalizeApostrophe(text[0])
-        if (boundary == '\'' || boundary !in rocks.pkb.plektra.core.Punctuation.BOUNDARY) {
+        if (text.length != 1 || text[0] !in rocks.pkb.plektra.core.Punctuation.BOUNDARY) {
+            PunctuationSpacing.clearUndo()
             return false
         }
+        val boundary = text[0]
         return onBoundaryTextRequested?.invoke(boundary.toString(), inputConnection) == true
     }
 
@@ -749,6 +750,7 @@ class AlternateCharacterManager(
         replacement: String,
         commitAtCursor: (() -> Boolean)?
     ): ReplacementOutcome {
+        PunctuationSpacing.clearUndo()
         val anchor = insertedTextAnchors.remove(keyCode)
         if (replacement.isEmpty()) return ReplacementOutcome.UNCHANGED
         if (insertedText.isNullOrEmpty()) {

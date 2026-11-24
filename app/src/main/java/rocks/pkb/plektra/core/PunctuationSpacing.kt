@@ -1,6 +1,7 @@
 package rocks.pkb.plektra.core
 
 import android.content.Context
+import android.view.inputmethod.ExtractedTextRequest
 import android.view.inputmethod.InputConnection
 import rocks.pkb.plektra.SettingsManager
 
@@ -17,7 +18,22 @@ object PunctuationSpacing {
     @Volatile
     var fieldAllowsAutoEdits: () -> Boolean = { true }
 
-    private class Undo(val textBefore: String, val spaces: String, val mark: Char)
+    private class Undo(
+        val textBefore: String, val applied: String, val literal: String, val cursorDelta: Int, var cursor: Int?
+    )
+
+    private fun cursor(ic: InputConnection): Int? =
+        ic.getExtractedText(ExtractedTextRequest().apply { hintMaxChars = 1 }, 0)
+            ?.takeIf { it.selectionStart >= 0 && it.selectionStart == it.selectionEnd }
+            ?.let { it.startOffset + it.selectionEnd }
+
+    /** Called before editing: [applied] replaces [removed] code units, [literal] is what the user typed. */
+    internal fun recordFix(ic: InputConnection, prefix: String, removed: Int, applied: String, literal: String) {
+        val delta = applied.length - removed
+        undo = if (applied == literal) null else Undo(
+            prefix.takeLast(UNDO_CONTEXT) + applied, applied, literal, delta, cursor(ic)?.plus(delta)
+        )
+    }
 
     @Volatile
     private var undo: Undo? = null
@@ -28,6 +44,8 @@ object PunctuationSpacing {
      */
     fun beforeMark(context: Context, inputConnection: InputConnection, mark: Char): Boolean {
         if (mark !in SettingsManager.getAutoSpacePunctuation(context) || !fieldAllowsAutoEdits()) return false
+        // Comma-space owns both sides of the comma. Let it see the original spaces.
+        if (mark == Punctuation.COMMA_SPACE_PUNCTUATION && SettingsManager.getCommaSpace(context)) return false
         if (mark in Punctuation.FRENCH_SPACED_PUNCTUATION && SettingsManager.shouldApplyFrenchPunctuationSpacing(context)) {
             return false
         }
@@ -41,28 +59,41 @@ object PunctuationSpacing {
         val autoSpace = AutoSpaceTracker.isTrailingSpaceAuto() && spaces.length == 1
         AutoSpaceTracker.clear()
         if (autoSpace && mark !in SettingsManager.getSpaceAfterPunctuation(context)) {
+            recordFix(inputConnection, prefix, spaces.length, "$mark ", spaces + mark)
             inputConnection.beginBatchEdit()
             inputConnection.deleteSurroundingText(spaces.length, 0)
             inputConnection.commitText("$mark ", 1)
             inputConnection.endBatchEdit()
-            undo = null
             return true
         }
+        recordFix(inputConnection, prefix, spaces.length, mark.toString(), spaces + mark)
         inputConnection.deleteSurroundingText(spaces.length, 0)
-        undo = Undo(prefix.takeLast(UNDO_CONTEXT) + mark, spaces, mark)
         return false
     }
 
-    /** Backspace right after a removal puts the spaces back in front of the mark. */
+    /** The editor also reports our own cursor advance. Only a different selection invalidates it. */
+    fun onSelectionChanged(oldEnd: Int, start: Int, end: Int) {
+        val pending = undo ?: return
+        // Some editors don't expose ExtractedText. Anchor their first acknowledgement by the
+        // size of our edit; subsequent moves must match the absolute position, not just a suffix.
+        val expected = pending.cursor ?: (oldEnd + pending.cursorDelta)
+        if (start == end && end == expected) pending.cursor = end else clearUndo()
+    }
+
+    /** Backspace consumes at most one fix, leaving the typed punctuation in place. */
     fun handleBackspaceUndo(inputConnection: InputConnection): Boolean {
         val pending = undo ?: return false
         undo = null
+        if (!inputConnection.getSelectedText(0).isNullOrEmpty()) return false
+        if (pending.cursor != null && cursor(inputConnection)?.let { it != pending.cursor } == true) return false
         val before = inputConnection.getTextBeforeCursor(pending.textBefore.length, 0)?.toString()
         if (before != pending.textBefore) return false
         inputConnection.beginBatchEdit()
-        inputConnection.deleteSurroundingText(1, 0)
-        inputConnection.commitText(pending.spaces + pending.mark, 1)
+        inputConnection.deleteSurroundingText(pending.applied.length, 0)
+        inputConnection.commitText(pending.literal, 1)
         inputConnection.endBatchEdit()
+        AutoSpaceTracker.clear()
+        DeferredPunctuationSpaceTracker.clear()
         return true
     }
 

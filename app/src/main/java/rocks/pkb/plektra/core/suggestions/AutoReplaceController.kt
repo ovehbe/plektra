@@ -267,6 +267,8 @@ class AutoReplaceController(
         ): Boolean {
             if (boundary != null) {
                 val committed = commitBoundary(connection, boundary, settings)
+                // No replacement: a Space key here is the user's space, not the correction's.
+                if (boundary == ' ') AutoSpaceTracker.noteManualSpace()
                 tracker.reset()
                 return committed
             }

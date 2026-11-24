@@ -87,6 +87,13 @@ class CandidatesBarController(
         candidatesStatusBar.requestEmojiPickerSearch()
     }
 
+    var onSpacingReverted: (() -> Unit)? = null
+        set(value) {
+            field = value
+            inputStatusBar.onSpacingReverted = value
+            candidatesStatusBar.onSpacingReverted = value
+        }
+
     var onSymTextCommitted: (() -> Unit)? = null
         set(value) {
             field = value

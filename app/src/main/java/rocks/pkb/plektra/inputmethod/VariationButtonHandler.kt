@@ -7,6 +7,7 @@ import android.view.inputmethod.InputConnection
 import rocks.pkb.plektra.SettingsManager
 import rocks.pkb.plektra.core.AutoSpaceTracker
 import rocks.pkb.plektra.core.DeferredPunctuationSpaceTracker
+import rocks.pkb.plektra.core.PunctuationSpacing
 
 /**
  * Handles clicks on variation buttons.
@@ -35,6 +36,7 @@ object VariationButtonHandler {
         inputConnection: InputConnection,
         listener: OnVariationSelectedListener?
     ): Boolean {
+        PunctuationSpacing.clearUndo()
         if (variation.length != 1) return false
         val boundary = rocks.pkb.plektra.core.Punctuation.normalizeApostrophe(variation[0])
         if (boundary == '\'' || boundary !in rocks.pkb.plektra.core.Punctuation.BOUNDARY) {

@@ -44,6 +44,7 @@ import rocks.pkb.plektra.R
 import rocks.pkb.plektra.inputmethod.NotificationHelper
 import rocks.pkb.plektra.core.AutoCorrectionManager
 import rocks.pkb.plektra.core.DeferredPunctuationSpaceTracker
+import rocks.pkb.plektra.core.PunctuationSpacing
 import rocks.pkb.plektra.core.InputContextState
 import rocks.pkb.plektra.core.ModifierDebugLog
 import rocks.pkb.plektra.core.ModifierStateController
@@ -2192,6 +2193,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             showAddSubstitutionDialog(word)
         }
         candidatesBarController.onSuggestionCommitted = {
+            PunctuationSpacing.clearUndo()
             dismissCenterSuggestion()
             if (shiftLayerLatched || altModifierLayerLatched) {
                 shiftLayerLatched = false
@@ -2269,6 +2271,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
 
         // Register listener for cursor movement (both controllers)
         val cursorListener = {
+            PunctuationSpacing.clearUndo()
             if (shiftLayerLatched || altModifierLayerLatched) {
                 shiftLayerLatched = false
                 altModifierLayerLatched = false
@@ -2356,6 +2359,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             sendCtrlShortcut(KeyEvent.KEYCODE_Y)
         }
         candidatesBarController.onSoftwareKeyboardKeyPressed = { keyCode ->
+            if (keyCode != KeyEvent.KEYCODE_DEL) PunctuationSpacing.clearUndo()
             typingSoundPlayer.play(keyCode)
         }
         candidatesBarController.onSoftwareKeyboardModifierKeyDown = { keyCode ->
@@ -2388,6 +2392,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         candidatesBarController.onSoftwareKeyboardTextInput = { text, inputConnection, snapshot ->
             handleSoftwareKeyboardTextInput(text, inputConnection ?: currentInputConnection, snapshot)
+        }
+        candidatesBarController.onSpacingReverted = {
+            suggestionController.onContextReset()
+            updateStatusBarText()
         }
         candidatesBarController.onSymTextCommitted = {
             onSymbolCommitted()
@@ -2904,6 +2912,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
 
         if (text == " ") {
+            rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace()
             if (::textExpansionController.isInitialized &&
                 textExpansionController.handleKeyDown(KeyEvent.KEYCODE_SPACE)
             ) {
@@ -2925,7 +2934,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
                     ic.commitText(" ", 1)
                 },
                 onStatusBarUpdate = { updateStatusBarText() }
-            ).also { rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace() }
+            )
         }
 
         if (
@@ -4117,6 +4126,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             // Text context alone cannot identify a field: every empty editor looks like "|".
             clearAutoCapSuppression()
         }
+        PunctuationSpacing.clearUndo()
         DeferredPunctuationSpaceTracker.clear()
         bounceKeyFilter.reset()
         clicksPowerShiftTapFilter.reset()
@@ -4938,6 +4948,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     ) {
         val perfStart = ImePerfLogger.mark()
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (newSelStart != oldSelStart || newSelEnd != oldSelEnd || newSelStart != newSelEnd) {
+            PunctuationSpacing.onSelectionChanged(oldSelEnd, newSelStart, newSelEnd)
+        }
         liveSpeechEditor?.let { editor ->
             val expected = if (candidatesEnd >= 0) candidatesEnd else editor.expectedCursor
             if ((oldSelStart != newSelStart || oldSelEnd != newSelEnd) &&
@@ -5231,11 +5244,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
-        if (keyCode_ != KeyEvent.KEYCODE_DEL) rocks.pkb.plektra.core.PunctuationSpacing.clearUndo()
+        if (keyCode_ != KeyEvent.KEYCODE_DEL) PunctuationSpacing.clearUndo()
+        if (keyCode_ == KeyEvent.KEYCODE_SPACE) rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace()
         return withModifierKeyDebug("KEY_DOWN", keyCode_, event_) {
             onKeyDownInternal(keyCode_, event_)
-        }.also {
-            if (keyCode_ == KeyEvent.KEYCODE_SPACE) rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace()
         }
     }
 

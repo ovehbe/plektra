@@ -49,7 +49,7 @@ object Punctuation {
         inputConnection: android.view.inputmethod.InputConnection,
         punctuation: Char
     ): Boolean {
-        if (punctuation !in FRENCH_SPACED_PUNCTUATION) return false
+        if (punctuation !in FRENCH_SPACED_PUNCTUATION || !PunctuationSpacing.fieldAllowsAutoEdits()) return false
 
         val before = inputConnection.getTextBeforeCursor(16, 0)?.toString().orEmpty()
         val existingSpaceCount = before.takeLastWhile { it == ' ' || it == '\u00A0' || it == NARROW_NO_BREAK_SPACE }.length
@@ -58,10 +58,14 @@ object Punctuation {
             return false
         }
 
+        val applied = "$NARROW_NO_BREAK_SPACE$punctuation"
+        PunctuationSpacing.recordFix(inputConnection, prefix, existingSpaceCount, applied, before.takeLast(existingSpaceCount) + punctuation)
+        inputConnection.beginBatchEdit()
         if (existingSpaceCount > 0) {
             inputConnection.deleteSurroundingText(existingSpaceCount, 0)
         }
-        inputConnection.commitText("$NARROW_NO_BREAK_SPACE$punctuation", 1)
+        inputConnection.commitText(applied, 1)
+        inputConnection.endBatchEdit()
         AutoSpaceTracker.clear()
         return true
     }
@@ -70,30 +74,27 @@ object Punctuation {
         inputConnection: android.view.inputmethod.InputConnection,
         punctuation: Char
     ): Boolean {
-        if (punctuation != COMMA_SPACE_PUNCTUATION) return false
+        if (punctuation != COMMA_SPACE_PUNCTUATION || !PunctuationSpacing.fieldAllowsAutoEdits()) return false
 
         val before = inputConnection.getTextBeforeCursor(16, 0)?.toString().orEmpty()
         if (before.endsWith("$punctuation ")) {
             AutoSpaceTracker.markAutoSpace()
             return true
         }
-        if (before.endsWith(punctuation)) {
-            val beforeComma = before.dropLast(1)
-            val preCommaSpaceCount = beforeComma.takeLastWhile { it == ' ' }.length
-            if (preCommaSpaceCount > 0) {
-                inputConnection.deleteSurroundingText(preCommaSpaceCount + 1, 0)
-                inputConnection.commitText("$punctuation ", 1)
-            } else {
-                inputConnection.commitText(" ", 1)
-            }
-            AutoSpaceTracker.markAutoSpace()
-            return true
+        val hasComma = before.endsWith(punctuation)
+        val beforeComma = if (hasComma) before.dropLast(1) else before
+        val spaces = beforeComma.takeLastWhile { it == ' ' }
+        val removed = spaces.length + if (hasComma) 1 else 0
+        val applied = "$punctuation "
+        PunctuationSpacing.recordFix(inputConnection, beforeComma.dropLast(spaces.length), removed, applied, spaces + punctuation)
+        inputConnection.beginBatchEdit()
+        if (hasComma && spaces.isEmpty()) {
+            inputConnection.commitText(" ", 1)
+        } else {
+            if (removed > 0) inputConnection.deleteSurroundingText(removed, 0)
+            inputConnection.commitText(applied, 1)
         }
-        val existingSpaceCount = before.takeLastWhile { it == ' ' }.length
-        if (existingSpaceCount > 0) {
-            inputConnection.deleteSurroundingText(existingSpaceCount, 0)
-        }
-        inputConnection.commitText("$punctuation ", 1)
+        inputConnection.endBatchEdit()
         AutoSpaceTracker.markAutoSpace()
         return true
     }

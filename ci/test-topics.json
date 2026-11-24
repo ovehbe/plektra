@@ -199,6 +199,7 @@
       "rocks.pkb.plektra.inputmethod.InputEventRouterModifierE2ETest",
       "rocks.pkb.plektra.inputmethod.LanguageSwitchServiceE2ETest",
       "rocks.pkb.plektra.inputmethod.PhysicalKeyboardInputMethodServiceDeviceBehaviorTest",
+      "rocks.pkb.plektra.inputmethod.PunctuationSpacingBackspaceRevertMatrixTest",
       "rocks.pkb.plektra.inputmethod.SoftwareKeypadPolicyTest",
       "rocks.pkb.plektra.inputmethod.SoftwareKeypadServiceIntegrationTest",
       "rocks.pkb.plektra.inputmethod.autofill.InlineAutofillTest",

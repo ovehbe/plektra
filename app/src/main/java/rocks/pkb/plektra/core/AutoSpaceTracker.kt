@@ -70,6 +70,7 @@ object AutoSpaceTracker {
             return false
         }
         autoSpacePending = false
+        PunctuationSpacing.recordFix(inputConnection, beforeTwo.dropLast(1), 1, "$punctuation ", " $punctuation")
         inputConnection.beginBatchEdit()
         inputConnection.deleteSurroundingText(1, 0)
         inputConnection.commitText("$punctuation ", 1)
