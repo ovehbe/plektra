@@ -1,5 +1,6 @@
 package rocks.pkb.plektra.inputmethod
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -65,6 +66,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -73,8 +75,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import rocks.pkb.plektra.AppListHelper
@@ -89,7 +94,11 @@ import rocks.pkb.plektra.commands.CommandRegistry
 import rocks.pkb.plektra.commands.CommandSourceId
 import rocks.pkb.plektra.commands.CommandSurface
 import rocks.pkb.plektra.commands.CommandTarget
+import rocks.pkb.plektra.BuildConfig
+import rocks.pkb.plektra.core.ModifierDebugLog
+import rocks.pkb.plektra.core.ModifierStateController
 import rocks.pkb.plektra.data.layout.JsonLayoutLoader
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import rocks.pkb.plektra.data.layout.LayoutMapping
 import rocks.pkb.plektra.data.layout.LayoutMappingRepository
 import rocks.pkb.plektra.inputmethod.subtype.AdditionalSubtypeUtils
@@ -102,9 +111,13 @@ import kotlinx.coroutines.withContext
 class QuickLauncherActivity : LocalizedComponentActivity() {
     private var commands: List<CommandTarget> = emptyList()
     private var query by mutableStateOf("")
+    /** Inclusive start / exclusive end of the search-field selection (collapsed = caret). */
+    private var querySelectionStart by mutableStateOf(0)
+    private var querySelectionEnd by mutableStateOf(0)
     private var autoStartSingle by mutableStateOf(false)
     private var limitResults by mutableStateOf(false)
     private var widthPercent by mutableStateOf(100)
+    private var cornerRadiusDp by mutableIntStateOf(SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
     private var pillMode by mutableStateOf(false)
     private var respectKeyboardLayout by mutableStateOf(true)
     private var typoTolerantRanking by mutableStateOf(false)
@@ -126,6 +139,11 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
     private var dismissRequestId by mutableStateOf(0)
     private var dismissInProgress = false
     private var quickLauncherPrefsListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
+    private var selectedIndex by mutableStateOf(-1) // -1 means no selection, 0+ is the index
+    private val fallbackModifierStateController = ModifierStateController(300L) { false }
+    private val modifierStateController: ModifierStateController
+        get() = PhysicalKeyboardInputMethodService.activeModifierStateController()
+            ?: fallbackModifierStateController
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -142,6 +160,7 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         autoStartSingle = SettingsManager.getQuickLauncherAutoStartSingle(this)
         limitResults = SettingsManager.getQuickLauncherLimitResults(this)
         widthPercent = SettingsManager.getQuickLauncherWidthPercent(this)
+        cornerRadiusDp = SettingsManager.getQuickLauncherCornerRadiusDp(this)
         pillMode = SettingsManager.getQuickLauncherPillMode(this)
         respectKeyboardLayout = SettingsManager.getQuickLauncherRespectKeyboardLayout(this)
         typoTolerantRanking = SettingsManager.getQuickLauncherTypoTolerantRanking(this)
@@ -169,10 +188,13 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                 ) {
                     QuickLauncherSheet(
                         query = query,
+                        querySelectionStart = querySelectionStart,
+                        querySelectionEnd = querySelectionEnd,
                         commands = filteredCommands,
                         loadingApps = loadingApps,
                         limitResults = limitResults,
                         widthPercent = widthPercent,
+                        cornerRadiusDp = cornerRadiusDp,
                         pillMode = pillMode,
                         customizations = commandCustomizations,
                         customizationRevision = commandCustomizationRevision,
@@ -184,12 +206,23 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
                         staticTopHighlightColor = staticTopHighlightColor,
                         animationDurationMs = animationDurationMs,
                         dismissRequestId = dismissRequestId,
+                        selectedIndex = selectedIndex,
                         onCommandSelected = { launchCommand(it) },
                         onCustomizationChanged = { updateCommandCustomization(it) },
                         onCustomizationsReloadRequested = { reloadCommandCustomizations() },
                         onMoveFavorite = { commandId, direction -> moveFavorite(commandId, direction) },
                         onDismiss = { requestAnimatedDismiss() },
-                        onDismissAnimationFinished = { finish() }
+                        onDismissAnimationFinished = { finish() },
+                        onSearchFieldKeyEvent = { nativeEvent ->
+                            logQuickLauncherKeyPath(
+                                entryPoint = "searchField.onPreviewKeyEvent",
+                                keyCode = nativeEvent.keyCode,
+                                event = nativeEvent,
+                                branch = "observe-only",
+                                consumed = false
+                            )
+                            false
+                        }
                     )
                 }
             }
@@ -214,92 +247,447 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
         super.onDestroy()
     }
 
+    // Remapped hardware keys must be swapped in before the focused search field sees them, so this
+    // has to stay a dispatchKeyEvent override. Lint flags it only because androidx.core's
+    // ComponentActivity redeclares the method @RestrictTo; from API 28 (minSdk is 29) that
+    // redeclaration forwards straight to the public Activity.dispatchKeyEvent.
+    @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        return when (event.action) {
+        val (keyCode, mappedEvent) = remapHardwareEvent(event.keyCode, event)
+        val effectiveEvent = mappedEvent ?: event
+        val actionLabel = when (effectiveEvent.action) {
+            KeyEvent.ACTION_DOWN -> "KEY_DOWN"
+            KeyEvent.ACTION_UP -> "KEY_UP"
+            else -> "KEY_OTHER_${effectiveEvent.action}"
+        }
+        return when (effectiveEvent.action) {
             KeyEvent.ACTION_DOWN -> {
-                if (handleQuickLauncherKeyDown(event.keyCode, event)) {
+                if (handleQuickLauncherKeyDown(keyCode, effectiveEvent, entryPoint = "dispatchKeyEvent")) {
                     true
                 } else {
-                    super.dispatchKeyEvent(event)
+                    super.dispatchKeyEvent(effectiveEvent)
                 }
             }
             KeyEvent.ACTION_UP -> {
-                if (handleQuickLauncherKeyUp(event.keyCode, event)) {
+                if (handleQuickLauncherKeyUp(keyCode, effectiveEvent, entryPoint = "dispatchKeyEvent")) {
                     true
                 } else {
-                    super.dispatchKeyEvent(event)
+                    super.dispatchKeyEvent(effectiveEvent)
                 }
             }
-            else -> super.dispatchKeyEvent(event)
+            else -> {
+                logQuickLauncherKeyPath(
+                    entryPoint = "dispatchKeyEvent",
+                    keyCode = keyCode,
+                    event = effectiveEvent,
+                    branch = "pass_to_super.dispatchKeyEvent_other",
+                    consumed = false,
+                    actionOverride = actionLabel
+                )
+                super.dispatchKeyEvent(effectiveEvent)
+            }
         }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        return handleQuickLauncherKeyDown(keyCode, event) || super.onKeyDown(keyCode, event)
+        val (mappedKeyCode, mappedEvent) = remapHardwareEvent(keyCode, event)
+        return handleQuickLauncherKeyDown(mappedKeyCode, mappedEvent, entryPoint = "onKeyDown") ||
+            super.onKeyDown(mappedKeyCode, mappedEvent)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        return handleQuickLauncherKeyUp(keyCode, event) || super.onKeyUp(keyCode, event)
+        val (mappedKeyCode, mappedEvent) = remapHardwareEvent(keyCode, event)
+        return handleQuickLauncherKeyUp(mappedKeyCode, mappedEvent, entryPoint = "onKeyUp") ||
+            super.onKeyUp(mappedKeyCode, mappedEvent)
     }
 
-    private fun handleQuickLauncherKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (isSymQuickLauncherToggle(keyCode, event)) {
-            return handleDismissKeyDown(keyCode, event)
+    private fun sharedControllerIsNull(): Boolean =
+        PhysicalKeyboardInputMethodService.activeModifierStateController() == null
+
+    private fun logQuickLauncherKeyPath(
+        entryPoint: String,
+        keyCode: Int,
+        event: KeyEvent?,
+        branch: String,
+        consumed: Boolean,
+        actionOverride: String? = null
+    ) {
+        if (!BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) return
+        val action = actionOverride ?: when (event?.action) {
+            KeyEvent.ACTION_DOWN -> "KEY_DOWN"
+            KeyEvent.ACTION_UP -> "KEY_UP"
+            null -> "KEY_NULL_EVENT"
+            else -> "KEY_OTHER_${event.action}"
+        }
+        val sharedNull = sharedControllerIsNull()
+        val ctrlState = if (sharedNull) {
+            "fallback:${fallbackModifierStateController.captureCtrlStateString()}"
+        } else {
+            modifierStateController.captureCtrlStateString()
+        }
+        ModifierDebugLog.logQuickLauncher(
+            entryPoint = entryPoint,
+            action = action,
+            keyCode = keyCode,
+            event = event,
+            sharedControllerNull = sharedNull,
+            ctrlState = ctrlState,
+            branch = branch,
+            consumed = consumed
+        )
+    }
+
+    private fun remapHardwareEvent(keyCode: Int, event: KeyEvent?): Pair<Int, KeyEvent?> {
+        val remapped = DeviceSpecific.remapHardwareKeyEvent(
+            keyCode,
+            event,
+            SettingsManager.getPhysicalKeyboardProfileOverride(this)
+        )
+        return remapped.keyCode to remapped.event
+    }
+
+    private fun handleQuickLauncherKeyDown(
+        keyCode: Int,
+        event: KeyEvent?,
+        entryPoint: String
+    ): Boolean {
+        fun finish(branch: String, consumed: Boolean): Boolean {
+            logQuickLauncherKeyPath(
+                entryPoint = entryPoint,
+                keyCode = keyCode,
+                event = event,
+                branch = branch,
+                consumed = consumed
+            )
+            return consumed
         }
 
+        if (isSymQuickLauncherToggle(keyCode, event)) {
+            val consumed = handleDismissKeyDown(keyCode, event)
+            return finish("sym_toggle_dismiss", consumed)
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
+            modifierStateController.handleCtrlKeyDown(keyCode, isInputViewActive = false)
+            return finish("ctrl_key_down_track", true)
+        }
+
+        // Handle D-pad navigation first (before other key handling)
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                if (filteredCommands.isNotEmpty()) {
+                    selectedIndex = when {
+                        selectedIndex < 0 -> filteredCommands.size - 1
+                        selectedIndex > 0 -> selectedIndex - 1
+                        else -> selectedIndex
+                    }
+                }
+                return finish("dpad_up", true)
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                if (filteredCommands.isNotEmpty()) {
+                    selectedIndex = when {
+                        selectedIndex < 0 -> 0
+                        selectedIndex < filteredCommands.size - 1 -> selectedIndex + 1
+                        else -> selectedIndex
+                    }
+                }
+                return finish("dpad_down", true)
+            }
+            KeyEvent.KEYCODE_DPAD_CENTER -> {
+                enterHandledOnKeyDown = true
+                if (selectedIndex >= 0 && selectedIndex < filteredCommands.size) {
+                    launchCommand(filteredCommands[selectedIndex])
+                } else {
+                    launchTopMatch()
+                }
+                return finish("dpad_center_launch", true)
+            }
+        }
+
+        // Hardware META_CTRL_ON or Plektra held/one-shot/latched Ctrl (shared with IME).
+        val hardwareCtrl = event?.isCtrlPressed == true
+        val plektraCtrl = isPlektraCtrlActive()
+        val isCtrl = hardwareCtrl || plektraCtrl
+        if (isCtrl) {
+            val shortcutName = when (keyCode) {
+                KeyEvent.KEYCODE_A -> "ctrl_a_select_all"
+                KeyEvent.KEYCODE_C -> "ctrl_c_copy"
+                KeyEvent.KEYCODE_X -> "ctrl_x_cut"
+                KeyEvent.KEYCODE_V -> "ctrl_v_paste"
+                KeyEvent.KEYCODE_Z -> "ctrl_z_undo_noop"
+                KeyEvent.KEYCODE_DEL -> "ctrl_del_delete_word"
+                else -> null
+            }
+            val handledShortcut = when (keyCode) {
+                KeyEvent.KEYCODE_A -> {
+                    selectAllQuery()
+                    true
+                }
+                KeyEvent.KEYCODE_C -> {
+                    copyQueryToClipboard()
+                    true
+                }
+                KeyEvent.KEYCODE_X -> {
+                    copyQueryToClipboard()
+                    query = ""
+                    collapseQuerySelectionToEnd()
+                    launchedAutomatically = false
+                    selectedIndex = -1
+                    refreshFilteredCommands()
+                    true
+                }
+                KeyEvent.KEYCODE_V -> {
+                    pasteFromClipboard()
+                    true
+                }
+                KeyEvent.KEYCODE_Z -> {
+                    // Ctrl+Z: undo (not supported in current implementation)
+                    true
+                }
+                KeyEvent.KEYCODE_DEL -> {
+                    if (hasQuerySelection()) {
+                        replaceQuerySelection("")
+                    } else {
+                        deletePreviousWord()
+                    }
+                    true
+                }
+                else -> false
+            }
+            if (handledShortcut) {
+                consumeCtrlOneShotAfterShortcut()
+                val branch = if (keyCode == KeyEvent.KEYCODE_A) {
+                    "ctrl_a_select_all(hardwareCtrl=$hardwareCtrl,plektraCtrl=$plektraCtrl,selection=$querySelectionStart..$querySelectionEnd)"
+                } else {
+                    "$shortcutName(hardwareCtrl=$hardwareCtrl,plektraCtrl=$plektraCtrl)"
+                }
+                return finish(branch, true)
+            }
+            return finish(
+                "ctrl_active_but_no_shortcut(key=${KeyEvent.keyCodeToString(keyCode)},hardwareCtrl=$hardwareCtrl,plektraCtrl=$plektraCtrl)",
+                false
+            )
+        }
+
+        // Original key handling (unchanged from before)
         when (keyCode) {
             KeyEvent.KEYCODE_ENTER -> {
                 enterHandledOnKeyDown = true
-                launchTopMatch()
-                return true
+                if (selectedIndex >= 0 && selectedIndex < filteredCommands.size) {
+                    launchCommand(filteredCommands[selectedIndex])
+                } else {
+                    launchTopMatch()
+                }
+                return finish("enter_launch", true)
             }
             KeyEvent.KEYCODE_BACK,
-            KeyEvent.KEYCODE_ESCAPE -> return handleDismissKeyDown(keyCode, event)
+            KeyEvent.KEYCODE_ESCAPE -> {
+                val consumed = handleDismissKeyDown(keyCode, event)
+                return finish("dismiss_key_down", consumed)
+            }
             KeyEvent.KEYCODE_DEL -> {
+                if (hasQuerySelection()) {
+                    replaceQuerySelection("")
+                    return finish("del_delete_selection", true)
+                }
                 if (query.isNotEmpty()) {
                     query = query.dropLast(1)
+                    collapseQuerySelectionToEnd()
                     launchedAutomatically = false
+                    selectedIndex = -1
                     refreshFilteredCommands()
                 }
-                return true
+                return finish("del_backspace", true)
             }
         }
 
-        if (event?.isCtrlPressed != true) {
+        if (event?.isCtrlPressed != true && !isPlektraCtrlActive()) {
             val text = resolveTypedText(keyCode, event)
             if (!text.isNullOrEmpty()) {
+                if (hasQuerySelection()) {
+                    replaceQuerySelection(text)
+                    return finish("typed_text_replace_selection('$text')", true)
+                }
                 query += text
+                collapseQuerySelectionToEnd()
                 launchedAutomatically = false
+                selectedIndex = -1
                 refreshFilteredCommands()
-                return true
+                return finish("typed_text('$text')", true)
             }
         }
 
-        return false
+        return finish(
+            "no_branch(hardwareCtrl=$hardwareCtrl,plektraCtrl=$plektraCtrl,key=${KeyEvent.keyCodeToString(keyCode)})",
+            false
+        )
     }
 
-    private fun handleQuickLauncherKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+    /** Test/debug access to the search query text. */
+    internal fun debugQueryText(): String = query
+
+    /** Test/debug access to selection start (inclusive). */
+    internal fun debugQuerySelectionStart(): Int = querySelectionStart
+
+    /** Test/debug access to selection end (exclusive). */
+    internal fun debugQuerySelectionEnd(): Int = querySelectionEnd
+
+    private fun hasQuerySelection(): Boolean =
+        querySelectionEnd > querySelectionStart
+
+    private fun collapseQuerySelectionToEnd() {
+        querySelectionStart = query.length
+        querySelectionEnd = query.length
+    }
+
+    private fun selectAllQuery() {
+        querySelectionStart = 0
+        querySelectionEnd = query.length
+        if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
+            ModifierDebugLog.logMessage(
+                "QuickLauncher selectAll queryLen=${query.length} selection=$querySelectionStart..$querySelectionEnd text=\"$query\""
+            )
+        }
+    }
+
+    private fun replaceQuerySelection(replacement: String) {
+        val start = querySelectionStart.coerceIn(0, query.length)
+        val end = querySelectionEnd.coerceIn(0, query.length)
+        if (end > start) {
+            query = query.substring(0, start) + replacement + query.substring(end)
+            querySelectionStart = start + replacement.length
+            querySelectionEnd = querySelectionStart
+        } else {
+            query += replacement
+            collapseQuerySelectionToEnd()
+        }
+        launchedAutomatically = false
+        selectedIndex = -1
+        refreshFilteredCommands()
+    }
+
+    private fun isPlektraCtrlActive(): Boolean {
+        val state = modifierStateController
+        return state.ctrlPressed ||
+            state.ctrlPhysicallyPressed ||
+            state.ctrlOneShot ||
+            state.ctrlLatchActive ||
+            state.ctrlLatchFromNavMode
+    }
+
+    private fun consumeCtrlOneShotAfterShortcut() {
+        val state = modifierStateController
+        if (state.ctrlOneShot && !state.ctrlLatchActive && !state.ctrlLatchFromNavMode) {
+            state.ctrlOneShot = false
+        }
+    }
+    
+    private fun copyQueryToClipboard() {
+        if (query.isEmpty()) return
+        try {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("query", query)
+            clipboard?.setPrimaryClip(clip)
+        } catch (e: Exception) {
+            // Clipboard not available (e.g., in tests)
+        }
+    }
+    
+    private fun pasteFromClipboard() {
+        try {
+            val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+            val clip = clipboard?.primaryClip
+            if (clip != null && clip.itemCount > 0) {
+                val text = clip.getItemAt(0).text
+                if (text != null) {
+                    if (hasQuerySelection()) {
+                        replaceQuerySelection(text.toString())
+                    } else {
+                        query += text.toString()
+                        collapseQuerySelectionToEnd()
+                        launchedAutomatically = false
+                        selectedIndex = -1
+                        refreshFilteredCommands()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Clipboard not available (e.g., in tests)
+        }
+    }
+    
+    private fun deletePreviousWord() {
+        if (query.isEmpty()) return
+        
+        // Find the last word boundary
+        var endIndex = query.length - 1
+        
+        // Skip trailing whitespace
+        while (endIndex >= 0 && query[endIndex].isWhitespace()) {
+            endIndex--
+        }
+        
+        // Find the start of the word
+        while (endIndex >= 0 && !query[endIndex].isWhitespace()) {
+            endIndex--
+        }
+        
+        query = query.substring(0, maxOf(0, endIndex + 1))
+        collapseQuerySelectionToEnd()
+        launchedAutomatically = false
+        selectedIndex = -1
+        refreshFilteredCommands()
+    }
+
+    private fun handleQuickLauncherKeyUp(
+        keyCode: Int,
+        event: KeyEvent?,
+        entryPoint: String
+    ): Boolean {
+        fun finish(branch: String, consumed: Boolean): Boolean {
+            logQuickLauncherKeyPath(
+                entryPoint = entryPoint,
+                keyCode = keyCode,
+                event = event,
+                branch = branch,
+                consumed = consumed
+            )
+            return consumed
+        }
+
         if (pendingDismissKeyCode == keyCode) {
-            return handleDismissKeyUp(keyCode, event)
+            val consumed = handleDismissKeyUp(keyCode, event)
+            return finish("pending_dismiss_key_up", consumed)
+        }
+
+        if (keyCode == KeyEvent.KEYCODE_CTRL_LEFT || keyCode == KeyEvent.KEYCODE_CTRL_RIGHT) {
+            modifierStateController.handleCtrlKeyUp(keyCode)
+            return finish("ctrl_key_up_track", true)
         }
 
         if (isSymQuickLauncherToggle(keyCode, event)) {
-            return true
+            return finish("sym_toggle_key_up", true)
         }
 
-        if (keyCode == KeyEvent.KEYCODE_ENTER) {
+        if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_DPAD_CENTER) {
             if (!enterHandledOnKeyDown && event?.isCanceled != true) {
-                launchTopMatch()
+                if (selectedIndex >= 0 && selectedIndex < filteredCommands.size) {
+                    launchCommand(filteredCommands[selectedIndex])
+                } else {
+                    launchTopMatch()
+                }
             }
             enterHandledOnKeyDown = false
-            return true
+            return finish("enter_or_dpad_center_key_up", true)
         }
 
         if (isDismissKey(keyCode)) {
-            return handleDismissKeyUp(keyCode, event)
+            val consumed = handleDismissKeyUp(keyCode, event)
+            return finish("dismiss_key_up", consumed)
         }
 
-        return false
+        return finish("no_branch_key_up", false)
     }
 
     override fun finish() {
@@ -513,10 +901,13 @@ class QuickLauncherActivity : LocalizedComponentActivity() {
 @Composable
 private fun QuickLauncherSheet(
     query: String,
+    querySelectionStart: Int = 0,
+    querySelectionEnd: Int = 0,
     commands: List<CommandTarget>,
     loadingApps: Boolean,
     limitResults: Boolean,
     widthPercent: Int,
+    cornerRadiusDp: Int,
     pillMode: Boolean,
     customizations: Map<String, SettingsManager.QuickLauncherCommandCustomization>,
     customizationRevision: Int,
@@ -528,12 +919,14 @@ private fun QuickLauncherSheet(
     staticTopHighlightColor: Int,
     animationDurationMs: Int,
     dismissRequestId: Int,
+    selectedIndex: Int,
     onCommandSelected: (CommandTarget) -> Unit,
     onCustomizationChanged: (SettingsManager.QuickLauncherCommandCustomization) -> Unit,
     onCustomizationsReloadRequested: () -> Unit,
     onMoveFavorite: (String, Int) -> Unit,
     onDismiss: () -> Unit,
-    onDismissAnimationFinished: () -> Unit
+    onDismissAnimationFinished: () -> Unit,
+    onSearchFieldKeyEvent: (KeyEvent) -> Boolean = { false }
 ) {
     val maxSheetHeight = LocalConfiguration.current.screenHeightDp.dp * 0.78f
     val visible = remember { MutableTransitionState(false) }
@@ -548,6 +941,8 @@ private fun QuickLauncherSheet(
         }
     }
     val isCollapsedPill = pillMode && query.isBlank()
+    // Preserve the original 28 dp shape in collapsed pill mode at the default setting.
+    val pillRadius = (28f * cornerRadiusDp / SettingsManager.DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP).dp
     val widthFraction = if (isCollapsedPill) 0.72f else widthPercent.coerceIn(50, 100) / 100f
     val entries = remember(commands, query, customizations, customizationRevision) {
         if (query.isNotBlank()) {
@@ -593,7 +988,7 @@ private fun QuickLauncherSheet(
             modifier = Modifier
                 .fillMaxWidth(widthFraction)
                 .heightIn(max = maxSheetHeight),
-            shape = if (isCollapsedPill) RoundedCornerShape(28.dp) else MaterialTheme.shapes.large,
+            shape = RoundedCornerShape(if (isCollapsedPill) pillRadius else cornerRadiusDp.dp),
             color = if (isCollapsedPill) Color.Transparent else MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 0.dp
@@ -626,8 +1021,12 @@ private fun QuickLauncherSheet(
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    shape = RoundedCornerShape(28.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(if (isCollapsedPill) pillRadius else 28.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent { composeEvent ->
+                            onSearchFieldKeyEvent(composeEvent.nativeKeyEvent)
+                        }
                 ) {
                     Row(
                         modifier = Modifier
@@ -665,17 +1064,43 @@ private fun QuickLauncherSheet(
                                     .padding(start = 10.dp)
                                     .weight(1f)
                             ) {
-                                Text(
-                                    text = query.ifBlank { stringResource(R.string.quick_launcher_search_placeholder) },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = if (query.isBlank()) {
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f)
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                                if (query.isBlank()) {
+                                    Text(
+                                        text = stringResource(R.string.quick_launcher_search_placeholder),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                } else {
+                                    val selectionHighlight = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    val start = querySelectionStart.coerceIn(0, query.length)
+                                    val end = querySelectionEnd.coerceIn(0, query.length)
+                                    val annotated = buildAnnotatedString {
+                                        if (end > start) {
+                                            append(query.substring(0, start))
+                                            withStyle(
+                                                SpanStyle(
+                                                    background = selectionHighlight,
+                                                    color = textColor
+                                                )
+                                            ) {
+                                                append(query.substring(start, end))
+                                            }
+                                            append(query.substring(end))
+                                        } else {
+                                            append(query)
+                                        }
+                                    }
+                                    Text(
+                                        text = annotated,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = textColor,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                             IconButton(onClick = onDismiss) {
                                 Icon(
@@ -731,22 +1156,27 @@ private fun QuickLauncherSheet(
                         }) { index, entry ->
                             when (entry) {
                                 is QuickLauncherEntry.Header -> QuickLauncherSectionHeader(entry.label)
-                                is QuickLauncherEntry.Command -> QuickLauncherCommandRow(
-                                    command = entry.command,
-                                    customization = customizations[entry.command.id],
-                                    isTopMatch = entries.take(index).none { it is QuickLauncherEntry.Command },
-                                    highlightFavorites = highlightFavorites,
-                                    favoriteColor = favoriteColor,
-                                    iconColors = iconColors,
-                                    showAliasFirst = showAliasFirst,
-                                    staticTopHighlight = staticTopHighlight,
-                                    staticTopHighlightColor = staticTopHighlightColor,
-                                    nextFavoriteOrder = nextFavoriteOrder(customizations),
-                                    onClick = { onCommandSelected(entry.command) },
-                                    onCustomizationChanged = onCustomizationChanged,
-                                    onCustomizationsReloadRequested = onCustomizationsReloadRequested,
-                                    onMoveFavorite = onMoveFavorite
-                                )
+                                is QuickLauncherEntry.Command -> {
+                                    // Calculate command index (excluding headers)
+                                    val commandIndex = entries.take(index).count { it is QuickLauncherEntry.Command }
+                                    QuickLauncherCommandRow(
+                                        command = entry.command,
+                                        customization = customizations[entry.command.id],
+                                        isTopMatch = commandIndex == 0,
+                                        isSelected = commandIndex == selectedIndex,
+                                        highlightFavorites = highlightFavorites,
+                                        favoriteColor = favoriteColor,
+                                        iconColors = iconColors,
+                                        showAliasFirst = showAliasFirst,
+                                        staticTopHighlight = staticTopHighlight,
+                                        staticTopHighlightColor = staticTopHighlightColor,
+                                        nextFavoriteOrder = nextFavoriteOrder(customizations),
+                                        onClick = { onCommandSelected(entry.command) },
+                                        onCustomizationChanged = onCustomizationChanged,
+                                        onCustomizationsReloadRequested = onCustomizationsReloadRequested,
+                                        onMoveFavorite = onMoveFavorite
+                                    )
+                                }
                             }
                         }
                     }
@@ -780,6 +1210,7 @@ private fun QuickLauncherCommandRow(
     command: CommandTarget,
     customization: SettingsManager.QuickLauncherCommandCustomization?,
     isTopMatch: Boolean,
+    isSelected: Boolean,
     highlightFavorites: Boolean,
     favoriteColor: Int,
     iconColors: Boolean,
@@ -804,7 +1235,10 @@ private fun QuickLauncherCommandRow(
     }
     Box {
         Surface(
-            color = if (isTopMatch) {
+            color = if (isSelected) {
+                // D-pad/trackpad selection highlight
+                MaterialTheme.colorScheme.primaryContainer
+            } else if (isTopMatch) {
                 if (staticTopHighlight) {
                     Color(staticTopHighlightColor)
                 } else {

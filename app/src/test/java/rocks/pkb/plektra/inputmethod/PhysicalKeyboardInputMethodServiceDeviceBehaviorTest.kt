@@ -1945,6 +1945,8 @@ class PhysicalKeyboardInputMethodServiceDeviceBehaviorTest {
         rocks.pkb.plektra.core.DeferredPunctuationSpaceTracker.clear()
         editorInfo.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         setField(service, "inputContextState", InputContextState.fromEditorInfo(editorInfo))
+        // The URI field keeps suggestions out of the long-press path; spacing still applies here.
+        rocks.pkb.plektra.core.PunctuationSpacing.fieldAllowsAutoEdits = { true }
         recorder.textBeforeCursor = "ب"
         val manager = getField<AlternateCharacterManager>(service, "alternateCharacterManager")
         manager.addAltKeyMapping(KeyEvent.KEYCODE_PERIOD, "(")

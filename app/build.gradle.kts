@@ -109,8 +109,8 @@ android {
     namespace = "rocks.pkb.plektra"
     compileSdk = 36
 
-    val defaultVersionCode = 26100601
-    val defaultVersionName = "26.10.6"
+    val defaultVersionCode = 26102901
+    val defaultVersionName = "26.10.29"
     val ciVersionCode = providers.gradleProperty("PLEKTRA_VERSION_CODE").orNull?.toIntOrNull()
     val ciVersionName = providers.gradleProperty("PLEKTRA_VERSION_NAME").orNull
     val nightlyVersionCode = providers.gradleProperty("PLEKTRA_NIGHTLY_VERSION_CODE").orNull?.toIntOrNull()
@@ -291,6 +291,7 @@ android {
             buildConfigField("String", "DISTRIBUTION_CHANNEL", "\"play\"")
             buildConfigField("boolean", "IS_FDROID_BUILD", "false")
             buildConfigField("boolean", "ENABLE_GITHUB_UPDATE_CHECKS", "false")
+            buildConfigField("boolean", "ENABLE_MODIFIER_DEBUG_LOG", "true")
         }
     }
 
@@ -530,6 +531,7 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.1")
     // RecyclerView per performance ottimali nella griglia emoji
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("androidx.autofill:autofill:1.1.0")
     // Emoji2 per supporto emoji future-proof
     implementation("androidx.emoji2:emoji2:1.4.0")
     implementation("androidx.emoji2:emoji2-views:1.4.0")

@@ -20,7 +20,7 @@ object DeferredPunctuationSpaceTracker {
         text: CharSequence
     ): Boolean {
         val first = text.firstOrNull() ?: return false
-        if (first.isWhitespace()) {
+        if (first.isWhitespace() || !PunctuationSpacing.fieldAllowsAutoEdits()) {
             pending = false
             return false
         }
@@ -48,7 +48,7 @@ object DeferredPunctuationSpaceTracker {
 
     fun onTextCommitted(context: Context, text: CharSequence) {
         val first = text.firstOrNull() ?: return
-        if (first in SettingsManager.getSpaceAfterPunctuation(context)) {
+        if (first in SettingsManager.getSpaceAfterPunctuation(context) && PunctuationSpacing.fieldAllowsAutoEdits()) {
             pending = true
         }
     }

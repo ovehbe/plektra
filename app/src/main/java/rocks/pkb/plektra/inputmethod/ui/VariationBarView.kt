@@ -49,6 +49,7 @@ import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonHost
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarAnimator
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonId
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonPosition
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarCallbacks
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonStyles
 import rocks.pkb.plektra.inputmethod.statusbar.KeyboardBarRowGeometry
@@ -67,6 +68,9 @@ class VariationBarView(
         private const val SWIPE_HINT_SHOW_DELAY_MS = 1000L
         private const val BASE_HEIGHT_DP = 55f
         private const val BASE_VERTICAL_PADDING_DP = 4f
+
+        /** Row height in dp for the theme's variations height scale. */
+        internal fun rowHeightDp(heightScale: Float): Float = BASE_HEIGHT_DP * heightScale.coerceIn(0.65f, 1.6f)
     }
 
     var onVariationSelectedListener: VariationButtonHandler.OnVariationSelectedListener? = null
@@ -278,7 +282,7 @@ class VariationBarView(
     private fun targetHeightPx(): Int =
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
-            BASE_HEIGHT_DP * (themeOverride?.variationsHeightScale ?: 1f).coerceIn(0.65f, 1.6f),
+            rowHeightDp(themeOverride?.variationsHeightScale ?: 1f),
             context.resources.displayMetrics
         ).toInt()
 
@@ -292,8 +296,34 @@ class VariationBarView(
             context.resources.displayMetrics
         ).toInt()
 
+    /** Autofill chips cover the row; it then takes the theme's autofill row height. */
+    var hostsInlineContent: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            applyHeight()
+        }
+
+    internal var inlineMinimumHeight = 0
+        set(value) {
+            if (field == value) return
+            field = value
+            if (hostsInlineContent) applyHeight()
+        }
+
+    private fun inlineContentHeightPx(): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            InlineAutofillRowHeight.rowHeightDp(
+                rowHeightDp(themeOverride?.variationsHeightScale ?: 1f),
+                themeOverride?.autofillRowHeightScale ?: InlineAutofillRowHeight.DEFAULT_SCALE
+            ),
+            context.resources.displayMetrics
+        ).toInt()
+
     private fun applyHeight() {
         val height = targetHeightPx()
+        val rowHeight = if (hostsInlineContent) maxOf(inlineContentHeightPx(), inlineMinimumHeight) else height
         val verticalPadding = verticalPaddingPx()
         var geometryChanged = false
         container?.let { view ->
@@ -312,10 +342,10 @@ class VariationBarView(
         }
         wrapper?.let { view ->
             val params = (view.layoutParams as? LinearLayout.LayoutParams)
-                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
-            if (params.height != height || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
+                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, rowHeight)
+            if (params.height != rowHeight || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
                 params.width = ViewGroup.LayoutParams.MATCH_PARENT
-                params.height = height
+                params.height = rowHeight
                 view.layoutParams = params
                 geometryChanged = true
             }

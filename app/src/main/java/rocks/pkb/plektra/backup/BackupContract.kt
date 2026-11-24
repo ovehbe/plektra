@@ -288,6 +288,10 @@ internal object BackupPreferenceContract {
             "user_dictionary_entries" to PreferenceValueType.STRING,
             "suggestions_bold" to PreferenceValueType.BOOLEAN,
             "always_show_suggestions_bar" to PreferenceValueType.BOOLEAN,
+            "always_show_suggestions_bar_hide_sensitive" to PreferenceValueType.BOOLEAN,
+            "always_show_suggestions_bar_hide_variations" to PreferenceValueType.BOOLEAN,
+            "keyboard_bar_height_animation" to PreferenceValueType.BOOLEAN,
+            "keyboard_bar_height_animation_ms" to PreferenceValueType.INT,
             "auto_correct_enabled" to PreferenceValueType.BOOLEAN,
             "auto_correct_enabled_languages" to PreferenceValueType.STRING,
             "suggestions_enabled" to PreferenceValueType.BOOLEAN,
@@ -353,6 +357,7 @@ internal object BackupPreferenceContract {
             "quick_launcher_respect_keyboard_layout" to PreferenceValueType.BOOLEAN,
             "quick_launcher_typo_tolerant_ranking" to PreferenceValueType.BOOLEAN,
             "quick_launcher_width_percent" to PreferenceValueType.INT,
+            "quick_launcher_corner_radius_dp" to PreferenceValueType.INT,
             "quick_launcher_pill_mode" to PreferenceValueType.BOOLEAN,
             "quick_launcher_behavior" to PreferenceValueType.STRING,
             "quick_launcher_animation_duration_ms" to PreferenceValueType.INT,
@@ -403,6 +408,8 @@ internal object BackupPreferenceContract {
             "ctrl_latch_stays_on_space" to PreferenceValueType.BOOLEAN,
             "use_keyboard_proximity" to PreferenceValueType.BOOLEAN,
             "use_edit_type_ranking" to PreferenceValueType.BOOLEAN,
+            "number_suggestions_enabled" to PreferenceValueType.BOOLEAN,
+            "number_suggestions_excluded_apps" to PreferenceValueType.STRING_SET,
             "custom_input_styles" to PreferenceValueType.STRING,
             "titan2_layout_enabled" to PreferenceValueType.BOOLEAN,
             "titan2_elite_rounded_corner_insets" to PreferenceValueType.BOOLEAN,
@@ -410,6 +417,7 @@ internal object BackupPreferenceContract {
             "titan2_elite_top_corner_multiplier" to PreferenceValueType.INT,
             "titan2_elite_max_icon_shrink" to PreferenceValueType.INT,
             "experimental_candidates_view_enabled" to PreferenceValueType.BOOLEAN,
+            "inline_autofill_enabled" to PreferenceValueType.BOOLEAN,
             "experimental_smooth_caret" to PreferenceValueType.BOOLEAN,
             "alt_shift_layout_switch" to PreferenceValueType.BOOLEAN,
             "ctrl_space_layout_switch" to PreferenceValueType.BOOLEAN,
@@ -493,7 +501,12 @@ internal object BackupPreferenceContract {
         "field_scoped_virtual_previous_override" to "runtime-derived state",
         "typing_sound_updated_at" to "runtime refresh marker",
         "clicks_bluetooth_permission_explained" to "permission UI state",
-        "clicks_manual_charging_until" to "transient runtime state"
+        "clicks_manual_charging_until" to "transient runtime state",
+        "clipboard_paste_suggestion" to "local opt-in to preview clipboard text",
+        "otp_enabled" to "local opt-in to receive one-time codes",
+        "otp_source_sms" to "local SMS access opt-in",
+        "otp_source_notification" to "local notification access opt-in",
+        "otp_source_helper" to "local opt-in to receive OTP Helper broadcasts"
     )
 
     fun expectedExportType(prefName: String, key: String): PreferenceValueType? {

@@ -36,7 +36,9 @@ internal data class KeyboardThemePreset(
     val keyPopupTailEnabled: Boolean = true,
     val keyPreviewAfterLongPress: Boolean = false,
     val keyAlternatesPopupEnabled: Boolean = true,
-    val textures: Map<String, KeyboardThemeTexture> = emptyMap()
+    val textures: Map<String, KeyboardThemeTexture> = emptyMap(),
+    val autofillRowHeightScale: Float = 1f,
+    val symPageScale: Float = 1f
 )
 
 internal data class KeyboardThemeOption(
@@ -124,6 +126,8 @@ internal fun KeyboardThemePreset.toKeyboardThemeColors(): KeyboardThemeColors =
             chromeCornerRadiusRatio = chromeCornerRadiusRatio,
             suggestionsHeightScale = suggestionsHeightScale,
             variationsHeightScale = variationsHeightScale,
+            autofillRowHeightScale = autofillRowHeightScale,
+            symPageScale = symPageScale,
             textures = shown
         )
     }
@@ -155,6 +159,8 @@ internal fun KeyboardThemePreset.toSettingsTheme(): SettingsManager.KeyboardThem
         showLeds = showLeds,
         suggestionsHeightScale = suggestionsHeightScale,
         variationsHeightScale = variationsHeightScale,
+        autofillRowHeightScale = autofillRowHeightScale,
+        symPageScale = symPageScale,
         keyPopupStyle = keyPopupStyle,
         keyPopupAttached = keyPopupAttached,
         keyPopupTailEnabled = keyPopupTailEnabled,
@@ -191,6 +197,8 @@ internal fun SettingsManager.KeyboardThemeSettings.toKeyboardThemePreset(name: S
         showLeds = showLeds,
         suggestionsHeightScale = suggestionsHeightScale,
         variationsHeightScale = variationsHeightScale,
+        autofillRowHeightScale = autofillRowHeightScale,
+        symPageScale = symPageScale,
         keyPopupStyle = keyPopupStyle,
         keyPopupAttached = keyPopupAttached,
         keyPopupTailEnabled = keyPopupTailEnabled,

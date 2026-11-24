@@ -296,7 +296,7 @@
     
     <!-- Launcher Shortcuts Section -->
     <string name="launcher_shortcuts_title">Scorciatoie</string>
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Avvio rapido, scorciatoie SYM e assegnazioni dei tasti app</string>
     <string name="starter_launcher_shortcuts_intro">Queste impostazioni condividono un unico elenco di assegnazioni app-tasto. Scegli dove Plektra deve ascoltare i tasti assegnati.</string>
     <string name="launcher_shortcuts_experimental">Experimental</string>
@@ -325,7 +325,7 @@
     <string name="launcher_shortcut_assignment_no_apps">Nessuna app trovata</string>
     <string name="launcher_shortcut_assignment_no_results">Nessun risultato per \"%1$s\"</string>
     <string name="launcher_shortcut_assignment_key_name">Tasto %1$d</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Digita per cercare. Invio apre il primo risultato.</string>
     <string name="quick_launcher_close">Chiudi</string>
     <string name="quick_launcher_no_entries_match">Nessuna voce corrisponde a \"%1$s\".</string>
@@ -355,6 +355,8 @@
     <string name="quick_launcher_cosmetic_title">Aspetto</string>
     <string name="quick_launcher_cosmetic_description">Larghezza, modalità pillola, fonti dei comandi, preferiti, alias e colori delle voci.</string>
     <string name="quick_launcher_width_title">Larghezza launcher</string>
+    <string name="quick_launcher_corner_radius_title">Raggio degli angoli del launcher</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_width_value">%1$d%% della larghezza schermo</string>
     <string name="quick_launcher_pill_mode_title">Modalità pillola</string>
     <string name="quick_launcher_pill_mode_description">Si apre come pillola di ricerca compatta e si espande solo dopo aver digitato.</string>
@@ -368,7 +370,6 @@
     <!-- Power Shortcuts Section -->
     <string name="power_shortcuts_title">Power Shortcuts</string>
     <string name="power_shortcuts_description">Premi SYM poi un tasto per lanciare scorciatoie quando non sei in un campo di testo</string>
-    <string name="power_shortcuts_press_key">Premi tasto scorciatoia per lanciare</string>
     
     <!-- Notification Helper -->
     <string name="notification_nav_mode_channel_name">Plektra Nav Mode</string>
@@ -750,7 +751,7 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="tutorial_nav_mode_bullet_selection">Le azioni di selezione estendono il testo selezionato a sinistra, a destra o parola per parola.</string>
     <string name="tutorial_nav_mode_bullet_words">Le azioni parola saltano parole intere per muovere più rapidamente il cursore nei campi di testo.</string>
     <string name="tutorial_nav_mode_bullet_media">Le mappature possono gestire anche scorciatoie app, controlli multimediali, Escape, Tab, Page Up/Down e Slim.</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Apri app dalla tastiera senza interrompere il flusso di scrittura.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Tieni premuto SYM e premi Spazio per aprire QuickLauncher da ovunque.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Funziona anche con il cursore in un campo di testo, così puoi cambiare app mentre scrivi.</string>
@@ -1083,6 +1084,10 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="alt_latch_stays_on_space_title">Mantieni Alt-Lock</string>
     <string name="alt_latch_stays_on_space_description">Spazio e Invio disattivano Alt singolo ma mantengono attivo Alt-Lock.</string>
     <string name="keyboard_bar_hidden_apps_title">Non mostrare mai la barra</string>
+    <string name="inline_autofill_title">Suggerimenti del gestore di password</string>
+    <string name="inline_autofill_description">Mostra nella barra i chip di compilazione automatica del tuo gestore di password</string>
+    <string name="inline_autofill_unsupported">Richiede Android 11 o versioni successive</string>
+    <string name="inline_autofill_candidates_view_note">I chip richiedono la barra standard; non vengono mostrati con la vista candidati sperimentale</string>
     <string name="keyboard_bar_hidden_apps_row_description">App in cui la barra resta nascosta, anche se aperta manualmente</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Nessuna app selezionata</string>
     <plurals name="keyboard_bar_hidden_apps_summary">
@@ -1109,4 +1114,37 @@ Ogni tasto può essere configurato come Keycode, Azione, Native Ctrl o Nessuno. 
     <string name="kaomoji_placement_emoji">Dopo le emoji</string>
     <string name="kaomoji_placement_off">Disattivato</string>
     <string name="emoji_picker_extras_title">Simboli di testo e kaomoji nel selettore emoji</string>
+    <string name="number_suggestions_title">Suggerimenti numerici</string>
+    <string name="number_suggestions_description">Le lettere sui tasti numerici Alt vengono proposte anche come numeri: w00 → 100, ed0.000 → 250.000. Le parole vere vengono prima</string>
+    <string name="number_suggestions_excluded_apps_title">Suggerimenti numerici: app escluse</string>
+    <string name="number_suggestions_excluded_apps_row_description">App in cui le lettere digitate non vengono mai proposte come numeri</string>
+    <string name="number_suggestions_excluded_apps_description">Nelle app scelte qui, Plektra non suggerisce né corregge mai automaticamente in numeri le lettere sui tasti numerici Alt (per esempio w00 in 100). I normali suggerimenti di parole e la correzione automatica restano invariati.</string>
+    <string name="number_suggestions_excluded_apps_webapk_note">Web app: scrive dentro %1$s, quindi anche %1$s è escluso</string>
+    <string name="kw_auto_correction_number_suggestions">numeri, cifre, alt, w00, 100, convertire, per app, escludere</string>
+    <string name="always_show_suggestions_bar_title">Mostra sempre la barra dei suggerimenti</string>
+    <string name="always_show_suggestions_bar_summary">Impedisce alla barra dei suggerimenti di nascondersi automaticamente (dopo simboli Alt, punteggiatura, ecc.) per mantenere costante la dimensione della finestra dell\'app.</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_title">Nascondi dove resta vuota</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Nessuna riga vuota nei campi URL, email, password, numero, telefono e data o sopra i chip di compilazione automatica. Nessuna previsione di parole nei campi password, numero, telefono e data.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Nascondi anche la riga delle varianti</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Nasconde anche la riga di varianti e menu dove viene nascosta la riga dei suggerimenti vuota. I suggerimenti di compilazione automatica restano visibili.</string>
+    <string name="keyboard_bar_height_animation_title">Anima i cambi di altezza</string>
+    <string name="keyboard_bar_height_animation_summary">La barra scorre alla nuova altezza quando una riga appare o scompare</string>
+    <string name="keyboard_bar_height_animation_duration_title">Durata animazione</string>
+    <string name="keyboard_bar_height_animation_duration_value">%1$d ms</string>
+    <string name="keyboard_bar_row_heights_title">Altezza delle righe</string>
+    <string name="keyboard_bar_row_heights_summary">Imposta l’altezza delle righe di suggerimenti e varianti nel tema della tastiera</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
+    <string name="clicks_button_mode_quick_launcher_description">Apre direttamente Plektra Quick Launcher senza passare l\'evento del tasto all\'app.</string>
+    <string name="clicks_recommended_settings_description">Ripristina le uscite native di Tab e Alt; assegna il pulsante del microfono alla dettatura di Plektra; assegna il pulsante rosso Clicks e il pulsante Launcher direttamente a Quick Launcher; e disattiva Caps Lock e Cursor Mode.</string>
+    <string name="emoji_picker_invalid_unicode">Codice Unicode non valido</string>
+    <string name="emoji_picker_use_code">Usa</string>
+    <string name="quick_launcher_alt_space_text_fields_description">Apre Quick Launcher con Alt+Spazio. Attivandolo si disattiva Alt+Spazio per la lingua di input precedente.</string>
+    <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>
+    <string name="quick_launcher_provider_title">Comportamento di Quick Launcher</string>
+    <string name="setting_link_quick_launcher_customize_entries">Personalizza le voci di Quick Launcher</string>
+    <string name="setting_link_quick_launcher_entries">Voci di Quick Launcher</string>
+    <string name="setting_link_quick_launcher_favorite_color">Colore di evidenziazione dei preferiti di Quick Launcher</string>
+    <string name="setting_link_quick_launcher_top_match_color">Colore di evidenziazione del miglior risultato di Quick Launcher</string>
+    <string name="auto_space_punctuation_dialog_instruction">Scegli se Plektra rimuove lo spazio prima di ogni carattere mentre lo digiti e inserisce uno spazio differito prima del testo successivo.</string>
+    <string name="auto_space_punctuation_help_text">“Remove before” rimuove gli spazi prima del carattere mentre lo digiti, che li abbia digitati tu o li abbia aggiunti Plektra: “Come stai ?” diventa “Come stai?”. Backspace subito dopo li ripristina. Uno spazio a inizio riga resta.\n\n“Before next text” rimanda lo spazio finché non viene digitato altro testo. Così Invio o Invia non lasciano uno spazio finale.\n\nI campi URL, email, password e numerici non vengono mai modificati.</string>
 </resources>

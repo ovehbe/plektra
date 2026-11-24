@@ -1,0 +1,52 @@
+package rocks.pkb.plektra.backup
+
+import android.net.Uri
+import java.io.File
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
+import rocks.pkb.plektra.SettingsManager
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
+class KeyboardBarHeightAnimationBackupTest {
+    private val context = RuntimeEnvironment.getApplication()
+
+    @Test fun onByDefaultAtAShortDuration_offMeansSnap_durationIsClamped() {
+        SettingsManager.getPreferences(context).edit().clear().commit()
+        assertTrue(SettingsManager.getKeyboardBarHeightAnimation(context))
+        assertEquals(120, SettingsManager.getKeyboardBarHeightAnimationMs(context))
+        assertEquals(120L, SettingsManager.keyboardBarHeightAnimationDurationMs(context))
+        SettingsManager.setKeyboardBarHeightAnimationMs(context, 5)
+        assertEquals(SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, SettingsManager.getKeyboardBarHeightAnimationMs(context))
+        SettingsManager.setKeyboardBarHeightAnimationMs(context, 5000)
+        assertEquals(SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, SettingsManager.getKeyboardBarHeightAnimationMs(context))
+        assertEquals("stored clamped", SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS,
+            SettingsManager.getPreferences(context).getInt("keyboard_bar_height_animation_ms", -1))
+        // A restored or hand-edited value outside the range is clamped when read.
+        SettingsManager.getPreferences(context).edit().putInt("keyboard_bar_height_animation_ms", 1).commit()
+        assertEquals(SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, SettingsManager.getKeyboardBarHeightAnimationMs(context))
+        SettingsManager.setKeyboardBarHeightAnimation(context, false)
+        assertEquals(0L, SettingsManager.keyboardBarHeightAnimationDurationMs(context))
+    }
+
+    @Test fun zipRestoresBothSettingsAfterPreferencesAreCleared() = runBlocking {
+        val prefs = SettingsManager.getPreferences(context)
+        prefs.edit().clear().commit()
+        SettingsManager.setKeyboardBarHeightAnimation(context, false)
+        SettingsManager.setKeyboardBarHeightAnimationMs(context, 200)
+        val archive = File(context.cacheDir, "keyboard-bar-height-animation.zip")
+        assertTrue(BackupManager.createBackup(context, Uri.fromFile(archive)) is BackupResult.Success)
+        prefs.edit().clear().commit()
+        assertTrue(SettingsManager.getKeyboardBarHeightAnimation(context))
+        assertTrue(RestoreManager.restore(context, Uri.fromFile(archive)) is RestoreResult.Success)
+        assertFalse(SettingsManager.getKeyboardBarHeightAnimation(context))
+        assertEquals(200, SettingsManager.getKeyboardBarHeightAnimationMs(context))
+    }
+}

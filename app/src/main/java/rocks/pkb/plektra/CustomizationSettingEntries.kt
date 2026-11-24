@@ -8,6 +8,25 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
     SettingEntry("keyboard_bar.suggestions_bold", R.string.suggestions_bold_title,
         summaryRes = R.string.suggestions_bold_summary, route = SettingRoute(
             destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.always_show_suggestions_hide_sensitive", R.string.always_show_suggestions_bar_hide_sensitive_title,
+        summaryRes = R.string.always_show_suggestions_bar_hide_sensitive_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.always_show_suggestions_hide_variations", R.string.always_show_suggestions_bar_hide_variations_title,
+        summaryRes = R.string.always_show_suggestions_bar_hide_variations_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.height_animation", R.string.keyboard_bar_height_animation_title,
+        summaryRes = R.string.keyboard_bar_height_animation_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.height_animation_duration", R.string.keyboard_bar_height_animation_duration_title,
+        route = SettingRoute(destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons"),
+        unavailableFallbackId = "keyboard_bar.height_animation",
+        availabilityCheck = { SettingsManager.getKeyboardBarHeightAnimation(it) }),
+    SettingEntry("keyboard_bar.row_heights", R.string.keyboard_bar_row_heights_title,
+        summaryRes = R.string.keyboard_bar_row_heights_summary, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
+    SettingEntry("keyboard_bar.inline_autofill", R.string.inline_autofill_title,
+        summaryRes = R.string.inline_autofill_description, route = SettingRoute(
+            destination = SettingsDestination.Customization, customizationDestination = "status_bar_buttons")),
     SettingEntry(id = "keyboard_bar.system_controls", titleRes = R.string.keyboard_bar_system_controls,
         route = SettingRoute(destination = SettingsDestination.Customization,
             customizationDestination = "status_bar_buttons")),
@@ -204,6 +223,14 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
     SettingEntry(
         id = "quick_launcher.width",
         titleRes = R.string.quick_launcher_width_title,
+        route = SettingRoute(
+            destination = SettingsDestination.Customization,
+            customizationDestination = "launcher_shortcut_cosmetic"
+        )
+    ),
+    SettingEntry(
+        id = "quick_launcher.corner_radius",
+        titleRes = R.string.quick_launcher_corner_radius_title,
         route = SettingRoute(
             destination = SettingsDestination.Customization,
             customizationDestination = "launcher_shortcut_cosmetic"
@@ -564,6 +591,36 @@ internal fun customizationSettingEntries(): List<SettingEntry> = listOf(
     SettingEntry(
         id = "keyboard_theme.software.variations_height",
         titleRes = R.string.setting_link_theme_software_variations_height,
+        route = SettingRoute(
+            destination = SettingsDestination.Customization,
+            customizationDestination = "keyboard_theme",
+            keyboardThemeTarget = SettingsManager.KeyboardThemeTarget.SOFTWARE,
+            keyboardThemeTab = KeyboardThemeEditorTab.Keys
+        )
+    ),
+    SettingEntry(
+        id = "keyboard_theme.hardware.autofill_row_height",
+        titleRes = R.string.setting_link_theme_hardware_autofill_row_height,
+        route = SettingRoute(
+            destination = SettingsDestination.Customization,
+            customizationDestination = "keyboard_theme",
+            keyboardThemeTarget = SettingsManager.KeyboardThemeTarget.HARDWARE,
+            keyboardThemeTab = KeyboardThemeEditorTab.Keys
+        )
+    ),
+    SettingEntry(
+        id = "keyboard_theme.hardware.sym_page_size",
+        titleRes = R.string.setting_link_theme_hardware_sym_page_size,
+        route = SettingRoute(
+            destination = SettingsDestination.Customization,
+            customizationDestination = "keyboard_theme",
+            keyboardThemeTarget = SettingsManager.KeyboardThemeTarget.HARDWARE,
+            keyboardThemeTab = KeyboardThemeEditorTab.Keys
+        )
+    ),
+    SettingEntry(
+        id = "keyboard_theme.software.autofill_row_height",
+        titleRes = R.string.setting_link_theme_software_autofill_row_height,
         route = SettingRoute(
             destination = SettingsDestination.Customization,
             customizationDestination = "keyboard_theme",

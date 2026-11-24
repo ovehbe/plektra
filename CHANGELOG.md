@@ -8,6 +8,9 @@
 - Prepared geometry, content placement, LED paths and touch regions replace repeated pixel searches.
 - Effective system-theme selection and previews, dynamic snippet visibility, safer accent-aware autocorrection and 250px Titan 2 Elite flick defaults.
 - Optional keyboard-bar visibility on the Niagara home screen.
+- Optional number suggestions (26.10.11): letters on the Alt digit keys are offered as numbers (w00 → 100, ed0.000 → 250.000), below real words, with per-app exclusions.
+- Number suggestions fix (26.10.12): the option now actually turns on in real text fields (it was switched off in every field, e.g. WhatsApp); the number is never hidden behind the add-word button, and distant words like "each" no longer outrank "200" for e00.
+- Shift fix (26.10.13): holding Shift over punctuation, Space, Backspace or an Alt symbol no longer leaves the Shift indicator lit and capitalizes the next letter.
 
 
 ## New Features Pastiera 0.2

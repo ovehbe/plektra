@@ -40,6 +40,7 @@ import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonRegistry
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarCallbacks
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonPosition
 import rocks.pkb.plektra.inputmethod.statusbar.StatusBarButtonStyles
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 
 /**
  * Renders up to three suggestions with configurable menu buttons on the left/right edges.
@@ -56,6 +57,26 @@ class FullSuggestionsBar(
         private val DEFAULT_SUGGESTION_COLOR = Color.argb(100, 17, 17, 17)
         private const val FLASH_DURATION_MS = 160L
         private const val BASE_HEIGHT_DP = 36f
+
+        internal fun rowHeightDp(heightScale: Float): Float = BASE_HEIGHT_DP * heightScale.coerceIn(0.65f, 1.6f)
+
+        /** Left, center and right slots; an add-word candidate takes the left slot from the third suggestion. */
+        internal fun buildSlots(suggestions: List<String>, addWordCandidate: String?): List<String?> {
+            val s0 = suggestions.getOrNull(0)
+            val s1 = suggestions.getOrNull(1)
+            val addCandidate = addWordCandidate?.takeUnless { candidate ->
+                suggestions.any { it.equals(candidate, ignoreCase = true) }
+            }
+            val s2 = addCandidate ?: suggestions.getOrNull(2)
+            return listOf(
+                // left
+                s2,
+                // center
+                s0,
+                // right
+                if (suggestions.size >= 2) s1 else null
+            )
+        }
     }
 
     private var container: LinearLayout? = null
@@ -90,6 +111,33 @@ class FullSuggestionsBar(
     private var actionCandidate: String? = null
     private var actionSlots: List<String?> = emptyList()
     private var currentInputConnection: android.view.inputmethod.InputConnection? = null
+
+    /** Private actions are never word candidates: no casing, learning, logging, or auto-space. */
+    internal class CenterAction(val label: String, val dismiss: () -> Unit, val insert: () -> Unit)
+    internal var centerAction: CenterAction? = null
+        set(value) {
+            if (field === value) return
+            if (field != null) {
+                // A touch that began on an old code/editor must not activate its replacement.
+                (container?.getChildAt(1) as? TextView)?.let { old ->
+                    old.setOnClickListener(null)
+                    old.setOnLongClickListener(null)
+                    old.text = null
+                    container?.removeView(old)
+                }
+            }
+            field = value
+            resetActionMode()
+        }
+
+    /** Shown instead of the suggestion slots, never among them, and keeps the row visible. */
+    var inlineContent: View? = null
+        set(value) {
+            if (field === value) return
+            field?.let { old -> if (old.parent === frameContainer) frameContainer?.removeView(old) }
+            field = value
+            applyHeight()
+        }
     var onCursorMovedListener: (() -> Unit)? = null
     var themeOverride: KeyboardThemeColors? = null
         set(value) {
@@ -120,7 +168,14 @@ class FullSuggestionsBar(
     }
 
     private val targetHeightPx: Int
-        get() = dpToPx(BASE_HEIGHT_DP * (themeOverride?.suggestionsHeightScale ?: 1f).coerceIn(0.65f, 1.6f))
+        get() = dpToPx(rowHeightDp(themeOverride?.suggestionsHeightScale ?: 1f))
+
+    /** The row's height while [inlineContent] replaces the slots: the theme's autofill row height. */
+    private val inlineContentHeightPx: Int
+        get() = dpToPx(InlineAutofillRowHeight.rowHeightDp(
+            rowHeightDp(themeOverride?.suggestionsHeightScale ?: 1f),
+            themeOverride?.autofillRowHeightScale ?: InlineAutofillRowHeight.DEFAULT_SCALE
+        )).coerceAtLeast(inlineContent?.minimumHeight ?: 0)
 
     /**
      * Sets the assets and IME service class needed for subtype cycling.
@@ -217,15 +272,16 @@ class FullSuggestionsBar(
 
     private fun applyHeight() {
         val height = targetHeightPx
+        val frameHeight = if (inlineContent != null) inlineContentHeightPx else height
         frameContainer?.let { frame ->
             val params = (frame.layoutParams as? LinearLayout.LayoutParams)
-                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height)
-            if (params.height != height || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
+                ?: LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, frameHeight)
+            if (params.height != frameHeight || params.width != ViewGroup.LayoutParams.MATCH_PARENT) {
                 params.width = ViewGroup.LayoutParams.MATCH_PARENT
-                params.height = height
+                params.height = frameHeight
                 frame.layoutParams = params
             }
-            frame.minimumHeight = height
+            frame.minimumHeight = frameHeight
         }
         container?.let { bar ->
             val params = (bar.layoutParams as? FrameLayout.LayoutParams)
@@ -388,9 +444,13 @@ class FullSuggestionsBar(
             lastSuggestionsBold = suggestionsBold
             lastSlots = emptyList()
         }
+        inlineContent?.let { content ->
+            showInlineContent(content, frame, bar)
+            return
+        }
         val canShowSuggestions = contentEnabled && shouldShow && !shouldDisableSuggestions &&
             (suggestions.isNotEmpty() || !addWordCandidate.isNullOrBlank())
-        val shouldKeepBarVisible = reserveEmptyRow || alwaysShowSuggestionsBar
+        val shouldKeepBarVisible = centerAction != null || reserveEmptyRow || alwaysShowSuggestionsBar
         if (!canShowSuggestions && !hasMenuButtons && !shouldKeepBarVisible) {
             cancelPendingSuggestionsAccessibilityEnable()
             suggestionButtons.clear()
@@ -432,7 +492,7 @@ class FullSuggestionsBar(
             previewOnly -> List(3) { suggestions.getOrNull(it) }
             else -> buildSlots(suggestions, addWordCandidate)
         }
-        applySuggestionsAccessibilityThrottle(slots)
+        applySuggestionsAccessibilityThrottle(if (centerAction == null) slots else slots.mapIndexed { i, word -> word.takeUnless { i == 1 } })
         if (actionCandidate != null && slots != actionSlots) {
             actionCandidate = null
             actionSlots = emptyList()
@@ -464,6 +524,34 @@ class FullSuggestionsBar(
             onSuggestionSelectedOverride
         )
         lastSlots = slots
+    }
+
+    private fun showInlineContent(content: View, frame: FrameLayout, bar: LinearLayout) {
+        // The same host can gain or lose a local touch target without changing parent.
+        applyHeight()
+        cancelPendingSuggestionsAccessibilityEnable()
+        suggestionButtons.clear()
+        bar.visibility = View.GONE
+        bar.removeAllViews()
+        lastSlots = emptyList()
+        lastAnnouncedSlots = emptyList()
+        actionCandidate = null
+        actionSlots = emptyList()
+        frame.visibility = View.VISIBLE
+        frame.alpha = 1f
+        renderMinimalUiButtons()
+        val slotsParams = bar.layoutParams as FrameLayout.LayoutParams
+        val params = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, inlineContentHeightPx).apply {
+            marginStart = slotsParams.marginStart
+            marginEnd = slotsParams.marginEnd
+        }
+        if (content.parent !== frame) {
+            (content.parent as? ViewGroup)?.removeView(content)
+            frame.addView(content, frame.indexOfChild(bar) + 1, params)
+        } else {
+            content.layoutParams = params
+        }
+        content.visibility = View.VISIBLE
     }
 
     fun showPreview(suggestions: List<String>, showStatusButton: Boolean = false) {
@@ -665,7 +753,7 @@ class FullSuggestionsBar(
         val padV = dpToPx(3f * heightScale)
         val padH = dpToPx(12f)
 
-        val addOnly = addWordCandidate != null &&
+        val addOnly = centerAction == null && addWordCandidate != null &&
             slots[0]?.equals(addWordCandidate, ignoreCase = true) == true &&
             slots[1] == null &&
             slots[2] == null
@@ -691,7 +779,8 @@ class FullSuggestionsBar(
                     marginEnd = chromeSpacingPx()
                 }
             }
-            if (suggestion != null && actionCandidate?.equals(suggestion, ignoreCase = true) == true) {
+            val action = centerAction.takeIf { index == 1 }
+            if (action == null && suggestion != null && actionCandidate?.equals(suggestion, ignoreCase = true) == true) {
                 val actionSlot = buildSuggestionActionSlot(
                     candidate = suggestion,
                     weightLayoutParams = weightLayoutParams,
@@ -710,7 +799,7 @@ class FullSuggestionsBar(
                 setCompoundDrawables(null, null, null, null)
                 contentDescription = null
                 alpha = 1f
-                text = (suggestion ?: "")
+                text = action?.label ?: suggestion.orEmpty()
                 gravity = if (continuousSpeechPreview) Gravity.CENTER_VERTICAL or Gravity.END else Gravity.CENTER
                 KeyboardBarTypography.applyAutoSize(this, minTextSp, maxTextSp)
                 if (continuousSpeechPreview) {
@@ -721,21 +810,28 @@ class FullSuggestionsBar(
                 includeFontPadding = false
                 minHeight = 0
                 setTextColor(themeOverride?.textAndIcons ?: Color.WHITE)
-                setTypeface(null, if (SettingsManager.getSuggestionsBold(context))
+                setTypeface(null, if (action != null || SettingsManager.getSuggestionsBold(context))
                     android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
                 maxLines = 1
                 ellipsize = if (continuousSpeechPreview) TextUtils.TruncateAt.START else TextUtils.TruncateAt.END
                 setPadding(padH, padV, padH, padV)
                 styleSuggestionSurface(this)
                 layoutParams = weightLayoutParams
-                isClickable = suggestion != null && !previewOnly
-                isFocusable = suggestion != null && !previewOnly
-                importantForAccessibility = if (suggestion.isNullOrBlank()) {
+                isClickable = action != null || (suggestion != null && !previewOnly)
+                isFocusable = isClickable
+                importantForAccessibility = if (action == null && suggestion.isNullOrBlank()) {
                     View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 } else {
                     View.IMPORTANT_FOR_ACCESSIBILITY_YES
                 }
-                if (suggestion != null && !previewOnly) {
+                if (action != null) {
+                    setOnClickListener { action.insert() }
+                    setOnLongClickListener {
+                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        action.dismiss()
+                        true
+                    }
+                } else if (suggestion != null && !previewOnly) {
                     if (onSuggestionSelectedOverride != null) {
                         setOnClickListener { view ->
                             resetActionMode()
@@ -887,23 +983,6 @@ class FullSuggestionsBar(
         val iconColor: Int,
         val onClick: () -> Unit
     )
-
-    private fun buildSlots(suggestions: List<String>, addWordCandidate: String?): List<String?> {
-        val s0 = suggestions.getOrNull(0)
-        val s1 = suggestions.getOrNull(1)
-        val addCandidate = addWordCandidate?.takeUnless { candidate ->
-            suggestions.any { it.equals(candidate, ignoreCase = true) }
-        }
-        val s2 = addCandidate ?: suggestions.getOrNull(2)
-        return listOf(
-            // left
-            s2,
-            // center
-            s0,
-            // right
-            if (suggestions.size >= 2) s1 else null
-        )
-    }
 
     private fun applySuggestionsAccessibilityThrottle(slots: List<String?>) {
         val bar = container ?: return

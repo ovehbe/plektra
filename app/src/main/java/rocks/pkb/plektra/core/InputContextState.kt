@@ -15,7 +15,8 @@ data class InputContextState(
     val inputVariation: Int,
     val inputType: Int,
     val restrictedReason: RestrictedReason?,
-    val isAppRawMode: Boolean = false
+    val isAppRawMode: Boolean = false,
+    val containsInsertedOtp: Boolean = false
 ) {
 
     val isPhoneField: Boolean
@@ -39,7 +40,7 @@ data class InputContextState(
      * Disabled for: PASSWORD, URI, EMAIL, FILTER, LITERAL_ENTRY
      */
     val shouldDisableAutoCorrect: Boolean
-        get() = isAppRawMode || restrictedReason != null
+        get() = containsInsertedOtp || isAppRawMode || restrictedReason != null
     
     /**
      * Disable auto-capitalization (automatic capitalization after period/enter).
@@ -91,6 +92,15 @@ data class InputContextState(
 
     val isPasswordField: Boolean
         get() = restrictedReason == RestrictedReason.PASSWORD
+
+    /** Secrets and digit or date entry, where a forced-visible suggestions row only takes space. */
+    val isSuggestionsRowSensitive: Boolean
+        get() = isPasswordField || inputClass == InputType.TYPE_CLASS_NUMBER ||
+            inputClass == InputType.TYPE_CLASS_PHONE || inputClass == InputType.TYPE_CLASS_DATETIME
+
+    /** Prose, where Plektra may adjust the spacing around punctuation; never URLs, addresses, secrets, numbers or code. */
+    val allowsPunctuationSpacing: Boolean
+        get() = inputClass == InputType.TYPE_CLASS_TEXT && !shouldDisableAutoCorrect
 
     val isUriField: Boolean
         get() = restrictedReason == RestrictedReason.URI

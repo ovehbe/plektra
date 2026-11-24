@@ -8,6 +8,8 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
+import androidx.core.content.edit
+import rocks.pkb.plektra.inputmethod.otp.OtpSource
 import rocks.pkb.plektra.commands.CommandJson
 import rocks.pkb.plektra.commands.CommandLaunchSpec
 import rocks.pkb.plektra.commands.CommandSourceId
@@ -78,6 +80,10 @@ object SettingsManager {
     private const val KEY_SUGGESTIONS_ENABLED = "suggestions_enabled"
     private const val KEY_SUGGESTIONS_BOLD = "suggestions_bold"
     private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR = "always_show_suggestions_bar"
+    private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = "always_show_suggestions_bar_hide_sensitive"
+    private const val KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS = "always_show_suggestions_bar_hide_variations"
+    private const val KEY_KEYBOARD_BAR_HEIGHT_ANIMATION = "keyboard_bar_height_animation"
+    private const val KEY_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = "keyboard_bar_height_animation_ms"
     private const val KEY_SNIPPETS_ENABLED = "snippets_enabled"
     private const val KEY_SNIPPETS_PREFIX = "snippets_prefix"
     private const val KEY_SNIPPETS = "snippets_v1"
@@ -356,6 +362,12 @@ object SettingsManager {
     private const val DEFAULT_AUTO_CORRECT_ENABLED = true
     private const val DEFAULT_SUGGESTIONS_ENABLED = true
     private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR = false
+    private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE = true
+    private const val DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS = false
+    private const val DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION = true
+    const val DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 120
+    const val MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 50
+    const val MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS = 300
     private const val DEFAULT_SNIPPETS_ENABLED = false
     private const val DEFAULT_SNIPPETS_PREFIX = "!"
     private const val DEFAULT_ACCENT_MATCHING_ENABLED = true
@@ -405,11 +417,20 @@ object SettingsManager {
     private const val KEY_SUGGESTION_DEBUG_LOGGING = "suggestion_debug_logging"
     private const val KEY_IME_OVERLAY_DEBUG_LOGGING = "ime_overlay_debug_logging"
     private const val KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED = "experimental_candidates_view_enabled"
+    private const val KEY_INLINE_AUTOFILL_ENABLED = "inline_autofill_enabled"
+    internal const val KEY_CLIPBOARD_PASTE_SUGGESTION = "clipboard_paste_suggestion"
+    private const val KEY_OTP_ENABLED = "otp_enabled"
+    private const val KEY_OTP_SMS = "otp_source_sms"
+    private const val KEY_OTP_NOTIFICATION = "otp_source_notification"
+    private const val KEY_OTP_HELPER = "otp_source_helper"
     private const val KEY_USE_KEYBOARD_PROXIMITY = "use_keyboard_proximity"
     private const val KEY_USE_EDIT_TYPE_RANKING = "use_edit_type_ranking"
+    private const val KEY_NUMBER_SUGGESTIONS_ENABLED = "number_suggestions_enabled"
+    private const val KEY_NUMBER_SUGGESTIONS_EXCLUDED_APPS = "number_suggestions_excluded_apps"
 
     private const val DEFAULT_USE_KEYBOARD_PROXIMITY = false
     private const val DEFAULT_USE_EDIT_TYPE_RANKING = false
+    private const val DEFAULT_NUMBER_SUGGESTIONS_ENABLED = false
     private const val DEFAULT_IME_OVERLAY_DEBUG_LOGGING = false
     private const val DEFAULT_CLIPBOARD_HISTORY_ENABLED = true
     private const val DEFAULT_CLIPBOARD_RETENTION_TIME = 0L // Keep normal entries until deleted
@@ -512,7 +533,9 @@ object SettingsManager {
         val keyPopupTailEnabled: Boolean = true,
         val keyPreviewAfterLongPress: Boolean = false,
         val keyAlternatesPopupEnabled: Boolean = true,
-        val textures: Map<String, KeyboardThemeTexture> = emptyMap()
+        val textures: Map<String, KeyboardThemeTexture> = emptyMap(),
+        val autofillRowHeightScale: Float = 1f,
+        val symPageScale: Float = 1f
     ) {
         fun toKeyboardThemeColors(): KeyboardThemeColors =
             textures.renderable().let { shown ->
@@ -535,6 +558,8 @@ object SettingsManager {
                     chromeCornerRadiusRatio = chromeCornerRadiusRatio,
                     suggestionsHeightScale = suggestionsHeightScale,
                     variationsHeightScale = variationsHeightScale,
+                    autofillRowHeightScale = autofillRowHeightScale,
+                    symPageScale = symPageScale,
                     textures = shown
                 )
             }
@@ -990,6 +1015,8 @@ object SettingsManager {
                 showLeds = json.optBoolean("show_leds", defaults.showLeds),
                 suggestionsHeightScale = json.optDouble("suggestions_height_scale", defaults.suggestionsHeightScale.toDouble()).toFloat(),
                 variationsHeightScale = json.optDouble("variations_height_scale", defaults.variationsHeightScale.toDouble()).toFloat(),
+                autofillRowHeightScale = json.optDouble("autofill_row_height_scale", defaults.autofillRowHeightScale.toDouble()).toFloat(),
+                symPageScale = json.optDouble("sym_page_scale", defaults.symPageScale.toDouble()).toFloat(),
                 keyPopupStyle = normalizeKeyboardThemePopupStyle(json.optString("key_popup_style", defaults.keyPopupStyle)),
                 keyPopupAttached = json.optBoolean("key_popup_attached", defaults.keyPopupAttached),
                 keyPopupTailEnabled = json.optBoolean("key_popup_tail_enabled", defaults.keyPopupTailEnabled),
@@ -1269,7 +1296,9 @@ object SettingsManager {
         val optionalFloatKeys = listOf(
             "number_row_height_scale",
             "suggestions_height_scale",
-            "variations_height_scale"
+            "variations_height_scale",
+            "autofill_row_height_scale",
+            "sym_page_scale"
         )
         val requiredBooleanKeys = listOf(
             "distribute_horizontal_spacing",
@@ -1459,6 +1488,8 @@ object SettingsManager {
             showLeds = json.optBoolean("show_leds", defaults.showLeds),
             suggestionsHeightScale = json.optDouble("suggestions_height_scale", defaults.suggestionsHeightScale.toDouble()).toFloat(),
             variationsHeightScale = json.optDouble("variations_height_scale", defaults.variationsHeightScale.toDouble()).toFloat(),
+            autofillRowHeightScale = json.optDouble("autofill_row_height_scale", defaults.autofillRowHeightScale.toDouble()).toFloat(),
+            symPageScale = json.optDouble("sym_page_scale", defaults.symPageScale.toDouble()).toFloat(),
             keyPopupStyle = normalizeKeyboardThemePopupStyle(json.optString("key_popup_style", defaults.keyPopupStyle)),
             keyPopupAttached = json.optBoolean("key_popup_attached", defaults.keyPopupAttached),
             keyPopupTailEnabled = json.optBoolean("key_popup_tail_enabled", defaults.keyPopupTailEnabled),
@@ -1494,6 +1525,8 @@ object SettingsManager {
             put("show_leds", theme.showLeds)
             put("suggestions_height_scale", theme.suggestionsHeightScale.toDouble())
             put("variations_height_scale", theme.variationsHeightScale.toDouble())
+            put("autofill_row_height_scale", theme.autofillRowHeightScale.toDouble())
+            put("sym_page_scale", theme.symPageScale.toDouble())
             put("key_popup_style", normalizeKeyboardThemePopupStyle(theme.keyPopupStyle))
             put("key_popup_attached", theme.keyPopupAttached)
             put("key_popup_tail_enabled", theme.keyPopupTailEnabled)
@@ -3210,6 +3243,44 @@ object SettingsManager {
         getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR, enabled).apply()
     }
 
+    fun getAlwaysShowSuggestionsBarHideSensitive(context: Context): Boolean =
+        getPreferences(context).getBoolean(
+            KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE, DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE
+        )
+
+    fun setAlwaysShowSuggestionsBarHideSensitive(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_SENSITIVE, enabled).apply()
+    }
+
+    fun getAlwaysShowSuggestionsBarHideVariations(context: Context): Boolean =
+        getPreferences(context).getBoolean(
+            KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS, DEFAULT_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS
+        )
+
+    fun setAlwaysShowSuggestionsBarHideVariations(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_ALWAYS_SHOW_SUGGESTIONS_BAR_HIDE_VARIATIONS, enabled).apply()
+    }
+
+    fun getKeyboardBarHeightAnimation(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION, DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION)
+
+    fun setKeyboardBarHeightAnimation(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION, enabled).apply()
+    }
+
+    fun getKeyboardBarHeightAnimationMs(context: Context): Int =
+        getPreferences(context).getInt(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, DEFAULT_KEYBOARD_BAR_HEIGHT_ANIMATION_MS)
+            .coerceIn(MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS)
+
+    fun setKeyboardBarHeightAnimationMs(context: Context, durationMs: Int) {
+        getPreferences(context).edit().putInt(KEY_KEYBOARD_BAR_HEIGHT_ANIMATION_MS,
+            durationMs.coerceIn(MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS, MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS)).apply()
+    }
+
+    /** 0 when bar height changes should snap. */
+    fun keyboardBarHeightAnimationDurationMs(context: Context): Long =
+        if (getKeyboardBarHeightAnimation(context)) getKeyboardBarHeightAnimationMs(context).toLong() else 0L
+
     /**
      * Returns whether accent matching should be applied to suggestions and auto-replace.
      */
@@ -3249,6 +3320,46 @@ object SettingsManager {
         getPreferences(context).edit()
             .putBoolean(KEY_EXPERIMENTAL_CANDIDATES_VIEW_ENABLED, enabled)
             .apply()
+    }
+
+    internal fun getClipboardPasteSuggestion(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_CLIPBOARD_PASTE_SUGGESTION, false)
+
+    internal fun setClipboardPasteSuggestion(context: Context, enabled: Boolean) {
+        getPreferences(context).edit { putBoolean(KEY_CLIPBOARD_PASTE_SUGGESTION, enabled) }
+    }
+
+    internal fun getOtpEnabled(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_OTP_ENABLED, false)
+
+    internal fun setOtpEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit { putBoolean(KEY_OTP_ENABLED, enabled) }
+    }
+
+    internal fun getOtpSourceEnabled(context: Context, source: OtpSource): Boolean =
+        getPreferences(context).getBoolean(otpSourceKey(source), false)
+
+    internal fun setOtpSourceEnabled(context: Context, source: OtpSource, enabled: Boolean) {
+        getPreferences(context).edit { putBoolean(otpSourceKey(source), enabled) }
+    }
+
+    private fun otpSourceKey(source: OtpSource) = when (source) {
+        OtpSource.SMS -> KEY_OTP_SMS
+        OtpSource.NOTIFICATION -> KEY_OTP_NOTIFICATION
+        OtpSource.HELPER -> KEY_OTP_HELPER
+    }
+
+    internal fun isOtpPreference(key: String) = when (key) {
+        KEY_OTP_ENABLED, KEY_OTP_SMS, KEY_OTP_NOTIFICATION, KEY_OTP_HELPER -> true
+        else -> false
+    }
+
+    /** Password-manager suggestions shown in the keyboard bar through Android's inline autofill. */
+    fun getInlineAutofillEnabled(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_INLINE_AUTOFILL_ENABLED, true)
+
+    fun setInlineAutofillEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit().putBoolean(KEY_INLINE_AUTOFILL_ENABLED, enabled).apply()
     }
 
     /**
@@ -3344,6 +3455,47 @@ object SettingsManager {
         getPreferences(context).edit()
             .putBoolean(KEY_USE_EDIT_TYPE_RANKING, enabled)
             .apply()
+    }
+
+    /** Letters typed on digit keys (e.g. "w00") are also offered as the number ("100"). */
+    fun getNumberSuggestionsEnabled(context: Context): Boolean =
+        getPreferences(context).getBoolean(KEY_NUMBER_SUGGESTIONS_ENABLED, DEFAULT_NUMBER_SUGGESTIONS_ENABLED)
+
+    fun setNumberSuggestionsEnabled(context: Context, enabled: Boolean) {
+        getPreferences(context).edit()
+            .putBoolean(KEY_NUMBER_SUGGESTIONS_ENABLED, enabled)
+            .apply()
+    }
+
+    fun getNumberSuggestionsExcludedPackages(context: Context): Set<String> =
+        getPreferences(context).getStringSet(KEY_NUMBER_SUGGESTIONS_EXCLUDED_APPS, emptySet()) ?: emptySet()
+
+    fun isNumberSuggestionsExcludedApp(context: Context, packageName: String?): Boolean {
+        if (packageName.isNullOrEmpty()) return false
+        val packages = getNumberSuggestionsExcludedPackages(context)
+        if (packageName in packages) return true
+        return packageName in rocks.pkb.plektra.inputmethod.WebApkHost.expandWithHosts(context, packages)
+    }
+
+    fun setNumberSuggestionsExcludedApp(context: Context, packageName: String, excluded: Boolean) {
+        val current = getNumberSuggestionsExcludedPackages(context).toMutableSet()
+        if (excluded) current.add(packageName) else current.remove(packageName)
+        getPreferences(context).edit()
+            .putStringSet(KEY_NUMBER_SUGGESTIONS_EXCLUDED_APPS, current)
+            .apply()
+    }
+
+    fun isNumberSuggestionsActive(context: Context, editorInfo: android.view.inputmethod.EditorInfo?): Boolean {
+        if (editorInfo == null || !getNumberSuggestionsEnabled(context)) return false
+        val packageName = editorInfo.packageName
+        if (isNumberSuggestionsExcludedApp(context, packageName)) return false
+        // NO_SUGGESTIONS is not a signal here: the IME adds it to every editable field in onStartInput
+        // (to silence the app's own spell checker) before onStartInputView re-reads the same EditorInfo.
+        val state = rocks.pkb.plektra.core.InputContextState.fromEditorInfo(
+            editorInfo,
+            isRawModeApp = isRawModeApp(context, packageName)
+        )
+        return !state.shouldDisableSuggestions
     }
 
     /**
@@ -3749,6 +3901,10 @@ object SettingsManager {
     private const val DEFAULT_QUICK_LAUNCHER_RESPECT_KEYBOARD_LAYOUT = true
     private const val DEFAULT_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING = true
     private const val DEFAULT_QUICK_LAUNCHER_WIDTH_PERCENT = 100
+    internal const val KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP = "quick_launcher_corner_radius_dp"
+    // The panel previously used the default Material 3 large shape (16 dp).
+    internal const val DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP = 16
+    internal val QUICK_LAUNCHER_CORNER_RADIUS_RANGE = 0..40
     private const val DEFAULT_QUICK_LAUNCHER_PILL_MODE = false
     private const val DEFAULT_QUICK_LAUNCHER_ANIMATION_DURATION_MS = 120
     const val QUICK_LAUNCHER_DYNAMIC_FAVORITE_COLOR = Int.MIN_VALUE
@@ -3792,7 +3948,7 @@ object SettingsManager {
             commandId = PlektraCommandSource.COMMAND_QUICK_LAUNCHER,
             source = CommandSourceId.Plektra.storageValue,
             kind = "PlektraAction",
-            title = "Plektra QuickLauncher",
+            title = "Plektra Quick Launcher",
             subtitle = "Open Plektra search",
             launch = CommandLaunchSpec.InternalAction(PlektraCommandSource.ACTION_OPEN_QUICK_LAUNCHER)
         )
@@ -4362,6 +4518,16 @@ object SettingsManager {
         getPreferences(context).edit()
             .putBoolean(KEY_QUICK_LAUNCHER_TYPO_TOLERANT_RANKING, enabled)
             .apply()
+    }
+
+    fun getQuickLauncherCornerRadiusDp(context: Context): Int = getPreferences(context)
+        .getInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, DEFAULT_QUICK_LAUNCHER_CORNER_RADIUS_DP)
+        .coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_RANGE)
+
+    fun setQuickLauncherCornerRadiusDp(context: Context, radiusDp: Int) {
+        getPreferences(context).edit {
+            putInt(KEY_QUICK_LAUNCHER_CORNER_RADIUS_DP, radiusDp.coerceIn(QUICK_LAUNCHER_CORNER_RADIUS_RANGE))
+        }
     }
 
     fun getQuickLauncherWidthPercent(context: Context): Int {

@@ -37,7 +37,9 @@ class SuggestionController(
         Boolean
     ) -> DictionaryRepository)? = null,
     nextWordPredictorOverride: NextWordPredictor? = null,
-    private val activeSuggestionLocalesProvider: (() -> List<Locale>)? = null
+    private val activeSuggestionLocalesProvider: (() -> List<Locale>)? = null,
+    private val numberDigitMapProvider: () -> Map<Char, Char> = { emptyMap() },
+    private val privateEditorText: () -> ((String) -> Boolean)? = { null }
 ) {
 
     private val appContext = context.applicationContext
@@ -107,8 +109,72 @@ class SuggestionController(
                 )?.takeIf { (original, replacement) ->
                     original == word && replacement != word
                 }?.second
-            }
+            },
+            numberReplacementProvider = { textBeforeCursor -> numberAutoCorrectToken(textBeforeCursor) }
         )
+    }
+
+    private fun numberRealWordFilter(typedSegment: String, settings: SuggestionSettings): (SuggestionResult) -> Boolean {
+        val maxDistance = maxOf(1, settings.maxAutoReplaceDistance)
+        return { result -> NumberSuggestions.isRealWordCandidate(result, typedSegment, maxDistance) }
+    }
+
+    private fun numberToken(textBeforeCursor: String, allowTrailingSeparator: Boolean): NumberSuggestions.Token? {
+        val digitMap = numberDigitMapProvider()
+        if (digitMap.isEmpty()) return null
+        return NumberSuggestions.tokenAtEnd(
+            textBeforeCursor.takeLast(NumberSuggestions.CONTEXT_CHARS),
+            digitMap,
+            isKnownWord = { segment -> isKnownWordInActiveDictionaries(segment) },
+            allowTrailingSeparator = allowTrailingSeparator
+        )
+    }
+
+    private fun numberTokenForSuggestions(word: String, settings: SuggestionSettings): NumberSuggestions.Token? {
+        if (!settings.numberSuggestionsEnabled || privateEditorText() != null) return null
+        val before = try {
+            numberContextConnection?.getTextBeforeCursor(NumberSuggestions.CONTEXT_CHARS, 0)?.toString()
+        } catch (_: Exception) {
+            null
+        }
+        // The editor may lag the tracker (e.g. right before a backspace lands); the word alone is still a token.
+        val context = before?.takeIf { it.endsWith(word) } ?: word
+        return numberToken(context, allowTrailingSeparator = false)
+    }
+
+    /** The token Space may turn into a number: only when the number would be the top suggestion. */
+    private fun numberAutoCorrectToken(textBeforeCursor: String): NumberSuggestions.Token? {
+        val settings = settingsProvider()
+        if (!isEnabled() || !settings.suggestionsEnabled || !settings.numberSuggestionsEnabled) return null
+        if (!dictionaryRepository.isReady) return null
+        val token = numberToken(textBeforeCursor, allowTrailingSeparator = true) ?: return null
+        if (!token.autoCorrectEligible || isKnownWordInActiveDictionaries(token.currentSegment)) return null
+        val primary = suggestionEngine.suggest(
+            token.currentSegment,
+            settings.maxSuggestions,
+            settings.accentMatching,
+            settings.useKeyboardProximity,
+            settings.useEditTypeRanking
+        )
+        val extras = activeExtraSuggestionEngines()
+            .filter { it.repository.isReady }
+            .flatMap { extra ->
+                extra.engine.suggest(
+                    token.currentSegment,
+                    settings.maxSuggestions,
+                    settings.accentMatching,
+                    settings.useKeyboardProximity,
+                    settings.useEditTypeRanking
+                )
+            }
+        val words = mergeSuggestionResults(primary, extras, settings.maxSuggestions)
+        val bar = NumberSuggestions.insert(
+            words,
+            token.number,
+            settings.maxSuggestions,
+            numberRealWordFilter(token.currentSegment, settings)
+        )
+        return token.takeIf { bar.firstOrNull()?.kind == SuggestionKind.NUMBER }
     }
     
     /**
@@ -169,6 +235,7 @@ class SuggestionController(
     private var pendingAddUserWord: String? = null
     private var previousCompletedWord: String? = null
     private var pendingInitialContextConnection: InputConnection? = null
+    private var numberContextConnection: InputConnection? = null
     @Volatile private var pendingPrimaryRefreshAfterLoad: Boolean = false
     @Volatile private var pendingExtraRefreshAfterLoad: Boolean = false
     @Volatile private var suggestionGeneration: Int = 0
@@ -204,6 +271,7 @@ class SuggestionController(
         // This is a bounded hash lookup, independent of expensive suggestion ranking.
         // Publish the new label immediately rather than hiding the add button until results arrive.
         pendingAddUserWord = addWordCandidateFor(wordSnapshot, primaryRepository)
+        val numberSnapshot = numberTokenForSuggestions(wordSnapshot, settings)?.number
         suggestionsListener?.invoke(latestSuggestions.get())
         val extraRepositories = activeExtraSuggestionEngines().mapNotNull { extra ->
             if (!extra.repository.isReady) {
@@ -246,8 +314,20 @@ class SuggestionController(
             }
 
             coroutineContext.ensureActive()
-            val next = mergeSuggestionResults(primary, extraSuggestions, settings.maxSuggestions, localeSnapshot)
+            val words = mergeSuggestionResults(primary, extraSuggestions, settings.maxSuggestions, localeSnapshot)
             val pendingCandidate = addWordCandidateFor(wordSnapshot, primaryRepository)
+            // The bar shows the add-word button in place of the last suggestion.
+            val addButtonShown = pendingCandidate != null &&
+                words.none { it.candidate.equals(pendingCandidate, ignoreCase = true) }
+            val next = numberSnapshot?.let {
+                NumberSuggestions.insert(
+                    words,
+                    it,
+                    settings.maxSuggestions,
+                    numberRealWordFilter(wordSnapshot, settings),
+                    visibleSlots = if (addButtonShown) settings.maxSuggestions - 1 else settings.maxSuggestions
+                )
+            } ?: words
 
             cursorHandler.post {
                 if (!isEnabled() || generation != suggestionGeneration || tracker.currentWord != wordSnapshot) {
@@ -270,6 +350,11 @@ class SuggestionController(
 
     fun onCharacterCommitted(text: CharSequence, inputConnection: InputConnection?) {
         if (!isEnabled()) return
+        // Typing a suffix doesn't make the enclosing private editor word safe to suggest.
+        if (privateEditorText() != null && extractWordAtCursor(inputConnection) == "") {
+            onContextReset()
+            return
+        }
         if (debugLogging) {
             val caller = Throwable().stackTrace.getOrNull(1)?.let { "${it.className}#${it.methodName}:${it.lineNumber}" }
             Log.d("PlektraIME", "SuggestionController.onCharacterCommitted('$text') caller=$caller")
@@ -292,6 +377,7 @@ class SuggestionController(
             pendingAddUserWord = null
         }
         
+        numberContextConnection = inputConnection
         tracker.onCharacterCommitted(normalizedText)
     }
 
@@ -306,6 +392,13 @@ class SuggestionController(
         inputConnection: InputConnection?,
         boundaryCharOverride: Char? = null
     ): AutoReplaceController.ReplaceResult {
+        // A pasted code bypasses the tracker. Never sync the editor token back into
+        // correction, debug output or next-word learning, even after refocusing it.
+        if (privateEditorText() != null) {
+            val boundary = boundaryCharOverride ?: boundaryCharFor(keyCode, event)
+            tracker.onBoundaryReached(boundary, inputConnection)
+            return AutoReplaceController.ReplaceResult(false, boundary != null && inputConnection != null)
+        }
         if (debugLogging) {
             Log.d(
                 "PlektraIME",
@@ -338,7 +431,7 @@ class SuggestionController(
         )
         val completedWord = result.replacement ?: wordBeforeBoundary
         if (result.replaced) {
-            pendingAddUserWord = addWordCandidateFor(result.replacement)
+            pendingAddUserWord = if (result.isNumber) null else addWordCandidateFor(result.replacement)
             NotificationHelper.triggerHapticFeedback(appContext)
         } else {
             pendingAddUserWord = null
@@ -361,8 +454,9 @@ class SuggestionController(
             return
         }
         
+        numberContextConnection = inputConnection
         val word = extractWordAtCursor(inputConnection)
-        if (!word.isNullOrBlank()) {
+        if (word != null) {
             tracker.setWord(word)
         } else if (previousCompletedWord == null) {
             publishSentenceStartPredictionsOrStarter()
@@ -374,12 +468,14 @@ class SuggestionController(
         ensureDictionaryLoaded()
         cursorRunnable?.let { cursorHandler.removeCallbacks(it) }
         if (inputConnection == null) {
+            numberContextConnection = null
             tracker.reset()
             previousCompletedWord = null
             sentenceStartPending = true
             suggestionsListener?.invoke(emptyList())
             return
         }
+        numberContextConnection = inputConnection
         cursorRunnable = Runnable {
             if (!isEnabled()) return@Runnable
             if (!dictionaryRepository.isReady) {
@@ -389,7 +485,7 @@ class SuggestionController(
                 return@Runnable
             }
             val word = extractWordAtCursor(inputConnection)
-            if (!word.isNullOrBlank()) {
+            if (word != null) {
                 tracker.setWord(word)
             } else {
                 tracker.reset()
@@ -411,6 +507,7 @@ class SuggestionController(
         cursorRunnable?.let { cursorHandler.removeCallbacks(it) }
         cursorRunnable = null
         pendingInitialContextConnection = null
+        numberContextConnection = null
         cancelPendingWordSuggestions()
         latestSuggestions.set(emptyList())
         tracker.onContextChanged()
@@ -558,6 +655,10 @@ class SuggestionController(
 
     internal fun flushNextWordLearningForTests() {
         nextWordPredictor.flushLearningForTests()
+    }
+
+    internal fun awaitSuggestionJobForTests() {
+        kotlinx.coroutines.runBlocking { suggestionJob?.join() }
     }
 
     fun destroy() {
@@ -876,7 +977,13 @@ class SuggestionController(
                 }
             }
             val word = before.substring(start) + after.substring(0, end)
-            if (word.isBlank()) null else word
+            // Null is a real word boundary (starter predictions). A protected token resets
+            // the tracker without ever handing its text to the engine, debug output or UI.
+            when {
+                word.isBlank() -> null
+                privateEditorText()?.invoke(word) == true -> ""
+                else -> word
+            }
         } catch (_: Exception) {
             null
         }
@@ -933,7 +1040,7 @@ class SuggestionController(
         pendingInitialContextConnection?.let { inputConnection ->
             pendingInitialContextConnection = null
             val word = extractWordAtCursor(inputConnection)
-            if (!word.isNullOrBlank()) {
+            if (word != null) {
                 tracker.setWord(word)
                 return
             }

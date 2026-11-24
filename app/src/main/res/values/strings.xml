@@ -72,13 +72,13 @@
     <string name="auto_space_punctuation_title">Punctuation spacing</string>
     <string name="auto_space_punctuation_selected">Selected:</string>
     <string name="auto_space_punctuation_none_selected">none</string>
-    <string name="auto_space_punctuation_dialog_instruction">Choose whether Plektra removes its own auto-space before each character and inserts a deferred space before following text.</string>
+    <string name="auto_space_punctuation_dialog_instruction">Choose whether Plektra removes the space before each character as you type it and inserts a deferred space before following text.</string>
     <string name="auto_space_punctuation_character_column">Character</string>
     <string name="auto_space_punctuation_before_column">Remove before</string>
     <string name="auto_space_punctuation_after_column">Before next text</string>
     <string name="auto_space_punctuation_help_action">Explain punctuation spacing</string>
     <string name="auto_space_punctuation_help_title">How punctuation spacing works</string>
-    <string name="auto_space_punctuation_help_text">“Remove before” removes only a space automatically inserted by Plektra, not one you typed manually.\n\n“Before next text” defers the space until more text is typed. Enter or Send therefore leaves no trailing space.</string>
+    <string name="auto_space_punctuation_help_text">“Remove before” removes the spaces before the character as you type it, whether you typed them or Plektra added them: “How are you ?” becomes “How are you?”. Backspace right after puts them back. A space at the start of a line stays.\n\n“Before next text” defers the space until more text is typed. Enter or Send therefore leaves no trailing space.\n\nURL, email, password and number fields are never changed.</string>
     <string name="auto_space_punctuation_choose">Selected:</string>
     <string name="auto_space_punctuation_choose_off">Off</string>
     <string name="auto_space_punctuation_reset">Reset</string>
@@ -270,6 +270,13 @@
     <string name="auto_correct_keyboard_proximity_description">Filter unlikely typos based on key distance (QWERTY/AZERTY/QWERTZ)</string>
     <string name="auto_correct_edit_type_ranking_title">Edit Type Ranking</string>
     <string name="auto_correct_edit_type_ranking_description">Rank suggestions by edit type (insert > substitute > delete)</string>
+    <string name="number_suggestions_title">Number suggestions</string>
+    <string name="number_suggestions_description">Letters on the Alt digit keys are also offered as numbers: w00 → 100, ed0.000 → 250.000. Real words come first</string>
+    <string name="number_suggestions_excluded_apps_title">Number suggestions: excluded apps</string>
+    <string name="number_suggestions_excluded_apps_row_description">Apps where typed letters are never offered as numbers</string>
+    <string name="number_suggestions_excluded_apps_description">In the apps you pick here, Plektra never suggests or auto-corrects letters typed on the Alt digit keys into numbers (for example w00 into 100). Normal word suggestions and auto-correction are unchanged.</string>
+    <string name="number_suggestions_excluded_apps_webapk_note">Web app — types inside %1$s, so %1$s is excluded too</string>
+    <string name="kw_auto_correction_number_suggestions">numbers, digits, alt, w00, 100, convert, per app, exclude</string>
     <string name="clear">Clear</string>
     <string name="experimental_suggestions_title">Experimental suggestions</string>
     <string name="experimental_suggestions_subtitle">Enable the new dictionary/suggestion engine (beta)</string>
@@ -489,7 +496,7 @@
     <string name="clicks_cursor_mode_title">Cursor Mode</string>
     <string name="clicks_cursor_mode_description">Enable the keyboard firmware’s cursor navigation mode.</string>
     <string name="clicks_recommended_settings_title">Apply recommended settings</string>
-    <string name="clicks_recommended_settings_description">Restore native Tab and Alt outputs; assign the microphone button to Plektra dictation; assign the red Clicks button and Launcher button directly to QuickLauncher; and disable Caps Lock and Cursor Mode.</string>
+    <string name="clicks_recommended_settings_description">Restore native Tab and Alt outputs; assign the microphone button to Plektra dictation; assign the red Clicks button and Launcher button directly to Quick Launcher; and disable Caps Lock and Cursor Mode.</string>
     <string name="clicks_recommended_settings_success">Recommended Clicks settings applied.</string>
     <string name="clicks_recommended_settings_failure">Recommended settings could not be applied completely.</string>
     <string name="clicks_sticky_alt_help">Controls the Clicks firmware’s SYM Lock behaviour. Plektra’s separate Sticky Alt behaviour remains configured under Modifiers.</string>
@@ -558,8 +565,8 @@
     <string name="clicks_launcher_interception_disabled">Required for software-assigned Clicks buttons. Tap to enable it in Android Accessibility settings.</string>
     <string name="clicks_button_mode_native">Native</string>
     <string name="clicks_button_mode_native_description">Keep the button’s original Android key event.</string>
-    <string name="clicks_button_mode_quick_launcher">QuickLauncher</string>
-    <string name="clicks_button_mode_quick_launcher_description">Open Plektra QuickLauncher directly and do not pass the key event to the app.</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
+    <string name="clicks_button_mode_quick_launcher_description">Open Plektra Quick Launcher directly and do not pass the key event to the app.</string>
     <string name="clicks_button_mode_open_plektra">Open Plektra</string>
     <string name="clicks_button_mode_open_plektra_description">Open the Plektra settings directly and do not pass the key event to the app.</string>
     <string name="clicks_button_mode_toggle_keyboard_mode">Toggle keyboard mode</string>
@@ -701,7 +708,7 @@
     <string name="about_sbom_export">Export software bill of materials (CycloneDX JSON)</string>
     
     <!-- Launcher Shortcuts Section -->
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Quick launching, SYM shortcuts, and launcher key assignments</string>
     <string name="starter_launcher_shortcuts_intro">These settings share one launcher-key assignment list. Choose where Plektra should listen for those assigned keys.</string>
     <string name="launcher_shortcuts_title">Homescreen shortcuts</string>
@@ -713,7 +720,7 @@
     <string name="quick_launcher_default_blocked_hint">New: SYM can open the quick launcher. Plektra would normally assign it to Space, but Space already has a shortcut. Open the assignments page and choose “Open quick launcher” on any key to try it.</string>
     
     <!-- Launcher Shortcuts Screen -->
-    <string name="launcher_shortcuts_screen_title">Plektra-QuickLauncher</string>
+    <string name="launcher_shortcuts_screen_title">Plektra Quick Launcher</string>
     <string name="launcher_shortcuts_not_assigned">Not assigned</string>
     <string name="launcher_shortcuts_remove">Remove</string>
     <string name="launcher_shortcuts_app_name_unavailable">App (name unavailable)</string>
@@ -731,7 +738,7 @@
     <string name="launcher_shortcut_assignment_no_apps">No commands found</string>
     <string name="launcher_shortcut_assignment_no_results">No results for \"%1$s\"</string>
     <string name="launcher_shortcut_assignment_key_name">Key %1$d</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Type to search. Enter opens the top result.</string>
     <string name="quick_launcher_close">Close</string>
     <string name="quick_launcher_no_entries_match">No entries match \"%1$s\".</string>
@@ -747,22 +754,22 @@
     <string name="quick_launcher_limit_results_title">Show only top search results</string>
     <string name="quick_launcher_limit_results_description">Do not render the full alphabetical app list. The quick launcher stays empty until you type and then shows only the top three matches.</string>
     <string name="quick_launcher_text_field_shortcuts_title">Allow SYM+Space in text fields</string>
-    <string name="quick_launcher_text_field_shortcuts_description">When enabled, the QuickLauncher can also open while the cursor is inside an app text field.</string>
+    <string name="quick_launcher_text_field_shortcuts_description">When enabled, the Quick Launcher can also open while the cursor is inside an app text field.</string>
     <string name="quick_launcher_text_field_shortcuts_hint">In text fields, hold SYM and press Space. SYM latch cannot trigger this because tapping SYM cycles the SYM pages.</string>
     <string name="quick_launcher_alt_space_text_fields_title">Allow Alt+Space in text fields</string>
-    <string name="quick_launcher_alt_space_text_fields_description">Open QuickLauncher with Alt+Space. Enabling this disables Alt+Space for the previous input language.</string>
+    <string name="quick_launcher_alt_space_text_fields_description">Open Quick Launcher with Alt+Space. Enabling this disables Alt+Space for the previous input language.</string>
     <string name="quick_launcher_alt_shortcuts_outside_fields_title">Allow Alt shortcuts outside text fields</string>
     <string name="quick_launcher_alt_shortcuts_outside_fields_description">Use Alt with an assigned key to launch the same app or action as its SYM key shortcut.</string>
     <string name="quick_launcher_respect_keyboard_layout_title">Use active keyboard layout</string>
     <string name="quick_launcher_respect_keyboard_layout_description">When enabled, search input follows the current Plektra layout instead of Android’s raw QWERTY key output.</string>
     <string name="quick_launcher_typo_tolerant_ranking_title">Typo-tolerant search</string>
     <string name="quick_launcher_typo_tolerant_ranking_description">Also match app names with small typing mistakes. Existing prefix and abbreviation matches still rank higher.</string>
-    <string name="quick_launcher_provider_title">QuickLauncher behaviour</string>
+    <string name="quick_launcher_provider_title">Quick Launcher behaviour</string>
     <string name="quick_launcher_provider_description">Choose whether the shortcut opens Plektra search or Niagara Launcher search. Niagara falls back to Plektra if unavailable.</string>
-    <string name="quick_launcher_provider_plektra">Plektra QuickLauncher</string>
+    <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>
     <string name="quick_launcher_provider_niagara">Niagara Launcher Search</string>
     <string name="quick_launcher_ranking_info_button">How ranking works</string>
-    <string name="quick_launcher_ranking_info_title">QuickLauncher ranking</string>
+    <string name="quick_launcher_ranking_info_title">Quick Launcher ranking</string>
     <string name="quick_launcher_ranking_info_body">Results are ranked in this order: exact app name, app name prefix, word prefix, abbreviation/subsequence match, typo-tolerant app name match, then package-name match. Typo tolerance is ignored for very short queries.</string>
     <string name="quick_launcher_behaviour_title">Behaviour</string>
     <string name="quick_launcher_behaviour_description">Launcher provider, search/ranking rules, and SYM+Space from text fields.</string>
@@ -855,6 +862,8 @@
     <string name="keyboard_theme_row_spacing">Row spacing</string>
     <string name="keyboard_theme_suggestions_height">Suggestions height</string>
     <string name="keyboard_theme_variations_height">Variations height</string>
+    <string name="keyboard_theme_autofill_row_height">Autofill row height</string>
+    <string name="keyboard_theme_sym_page_size">SYM page size</string>
     <string name="keyboard_theme_show_leds">Show LEDs</string>
     <string name="keyboard_theme_distribute_spacing">Distribute spacing</string>
     <string name="keyboard_theme_ortholinear">Ortholinear</string>
@@ -872,6 +881,8 @@
     <string name="keyboard_theme_led_active">LED active</string>
     <string name="keyboard_theme_led_locked">LED locked</string>
     <string name="quick_launcher_width_title">Launcher width</string>
+    <string name="quick_launcher_corner_radius_title">Launcher corner radius</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_width_value">%1$d%% screen width</string>
     <string name="quick_launcher_pill_mode_title">Pill mode</string>
     <string name="quick_launcher_pill_mode_description">Open as a compact search pill and expand only after typing.</string>
@@ -894,7 +905,6 @@
     <string name="sym_shortcuts_compatibility_info">About SYM key compatibility</string>
     <string name="sym_shortcuts_compatibility_title">SYM key compatibility</string>
     <string name="sym_shortcuts_compatibility_description">SYM key shortcuts require a keyboard that exposes SYM as a modifier to Android. They cannot currently work with keyboards whose firmware converts SYM combinations into final characters or navigation events before Plektra receives them. This includes the Clicks Power Keyboard’s current SYM behaviour.</string>
-    <string name="power_shortcuts_press_key">Press shortcut key to launch</string>
     
     <!-- Notification Helper -->
     <string name="notification_nav_mode_channel_name">Plektra Nav Mode</string>
@@ -1066,8 +1076,8 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="app_enter_behaviour_additional_send_shortcut_description">Apply an extra send shortcut to the rendered app list below.</string>
     <string name="app_enter_behaviour_additional_send_shortcut_none">None</string>
     <string name="app_enter_behaviour_additional_send_shortcut_sym_enter">SYM + Enter</string>
-    <string name="app_enter_behaviour_sym_enter_conflict_title">SYM + Enter is already used by QuickLauncher</string>
-    <string name="app_enter_behaviour_sym_enter_conflict_description">Move the QuickLauncher trigger to another key before using SYM + Enter as an additional send shortcut.</string>
+    <string name="app_enter_behaviour_sym_enter_conflict_title">SYM + Enter is already used by Quick Launcher</string>
+    <string name="app_enter_behaviour_sym_enter_conflict_description">Move the Quick Launcher trigger to another key before using SYM + Enter as an additional send shortcut.</string>
     <string name="app_enter_behaviour_sym_enter_conflict_action">Change trigger</string>
     <string name="variation_instructions_title">Instructions</string>
     <string name="variation_instructions_description">Tap on any variation box to select a character. Each letter can have up to 7 variation characters.</string>
@@ -1356,16 +1366,16 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="tutorial_nav_mode_bullet_media">Mappings can also handle app shortcuts, media controls, Escape, Tab, Page Up/Down, and Slim.</string>
     <string name="tutorial_page_customization_title">Customization</string>
     <string name="tutorial_page_customization_description">Plektra offers many customization options:\n• Customizable keyboard layouts\n• Launcher shortcuts &amp; Power Shortcuts\n• IME bar can act as a swipe bar to move the cursor\n• Custom mappings for Nav Mode\nExplore the settings to find the perfect configuration for you!</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Open apps from the keyboard without leaving your typing flow.</string>
-    <string name="tutorial_quick_launcher_bullet_sym_space">Hold SYM and press Space to open QuickLauncher from anywhere.</string>
+    <string name="tutorial_quick_launcher_bullet_sym_space">Hold SYM and press Space to open Quick Launcher from anywhere.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">It also works while the cursor is inside a text field, so you can switch apps from typing context.</string>
     <string name="tutorial_quick_launcher_bullet_search">Type a few letters, abbreviations, or small typos to find the app you want.</string>
     <string name="tutorial_quick_launcher_bullet_layout">Search can respect your active Plektra layout, such as QWERTZ.</string>
-    <string name="tutorial_quick_launcher_button">Open QuickLauncher settings</string>
+    <string name="tutorial_quick_launcher_button">Open Quick Launcher settings</string>
     <string name="tutorial_quick_launcher_mapping_conflict_title">SYM + Space is assigned to something else</string>
-    <string name="tutorial_quick_launcher_mapping_conflict_description">Space currently opens “%1$s”. Replace that mapping with QuickLauncher and enable it in text fields to try the new feature.</string>
-    <string name="tutorial_quick_launcher_mapping_conflict_button">Use SYM + Space for QuickLauncher</string>
+    <string name="tutorial_quick_launcher_mapping_conflict_description">Space currently opens “%1$s”. Replace that mapping with Quick Launcher and enable it in text fields to try the new feature.</string>
+    <string name="tutorial_quick_launcher_mapping_conflict_button">Use SYM + Space for Quick Launcher</string>
     <string name="tutorial_messenger_presets_title">Messenger presets</string>
     <string name="tutorial_messenger_presets_description">Choose how Enter should behave in chat apps, where newline and send often differ by app.</string>
     <string name="tutorial_messenger_presets_bullet_enter">Use tested presets for common messenger apps instead of tuning each key manually.</string>
@@ -1654,6 +1664,10 @@ Each key can be configured as Keycode, Action, Native Ctrl, or None. Use overrid
     <string name="keyboard_bar_show_on_launcher">Show bar on the launcher home screen</string>
     <string name="keyboard_bar_show_on_launcher_description">Also show the bar when Niagara uses an invisible input field on its home screen.</string>
     <string name="keyboard_bar_hidden_apps_title">Never show the bar</string>
+    <string name="inline_autofill_title">Password manager suggestions</string>
+    <string name="inline_autofill_description">Show autofill chips from your password manager in the bar</string>
+    <string name="inline_autofill_unsupported">Needs Android 11 or newer</string>
+    <string name="inline_autofill_candidates_view_note">Chips need the standard bar; they are not shown with the experimental candidates view</string>
     <string name="keyboard_bar_hidden_apps_row_description">Apps in which the bar stays hidden, even when opened manually</string>
     <string name="keyboard_bar_hidden_apps_summary_none">No apps selected</string>
     <plurals name="keyboard_bar_hidden_apps_summary">

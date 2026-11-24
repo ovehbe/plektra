@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import rocks.pkb.plektra.R
+import kotlin.math.roundToInt
 
 private enum class KeyboardBarEditorMode { Normal, Slim }
 
@@ -67,7 +68,17 @@ internal fun KeyboardBarSettingsScreen(
     var suggestionsEnabled by remember { mutableStateOf(SettingsManager.getSuggestionsEnabled(context)) }
     var suggestionsBold by remember { mutableStateOf(SettingsManager.getSuggestionsBold(context)) }
     var alwaysShowSuggestionsBar by remember { mutableStateOf(SettingsManager.getAlwaysShowSuggestionsBar(context)) }
+    var alwaysShowHideSensitive by remember {
+        mutableStateOf(SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context))
+    }
+    var alwaysShowHideVariations by remember {
+        mutableStateOf(SettingsManager.getAlwaysShowSuggestionsBarHideVariations(context))
+    }
+    var heightAnimation by remember { mutableStateOf(SettingsManager.getKeyboardBarHeightAnimation(context)) }
+    var heightAnimationMs by remember { mutableStateOf(SettingsManager.getKeyboardBarHeightAnimationMs(context)) }
     var showOnLauncher by remember { mutableStateOf(SettingsManager.getShowKeyboardBarOnLauncher(context)) }
+    var inlineAutofill by remember { mutableStateOf(SettingsManager.getInlineAutofillEnabled(context)) }
+    var candidatesView by remember { mutableStateOf(SettingsManager.getExperimentalCandidatesViewEnabled(context)) }
     var hiddenAppCount by remember { mutableStateOf(SettingsManager.getKeyboardBarHiddenPackages(context).size) }
     var indicators by remember { mutableStateOf(SettingsManager.getModifierIndicators(context)) }
     var variationsVisible by remember {
@@ -108,6 +119,13 @@ internal fun KeyboardBarSettingsScreen(
             leftSlots = SettingsManager.getStatusBarSlotsLeft(context)
             rightSlots = SettingsManager.getStatusBarSlotsRight(context)
             showOnLauncher = SettingsManager.getShowKeyboardBarOnLauncher(context)
+            alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context)
+            alwaysShowHideSensitive = SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context)
+            alwaysShowHideVariations = SettingsManager.getAlwaysShowSuggestionsBarHideVariations(context)
+            heightAnimation = SettingsManager.getKeyboardBarHeightAnimation(context)
+            heightAnimationMs = SettingsManager.getKeyboardBarHeightAnimationMs(context)
+            inlineAutofill = SettingsManager.getInlineAutofillEnabled(context)
+            candidatesView = SettingsManager.getExperimentalCandidatesViewEnabled(context)
             hiddenAppCount = SettingsManager.getKeyboardBarHiddenPackages(context).size
             dynamicVariationSlotCount = SettingsManager.getDynamicVariationBarSlotCount(context)
             dynamicVariationsResizeToContent = SettingsManager.getDynamicVariationBarResizeToContent(context)
@@ -222,6 +240,21 @@ internal fun KeyboardBarSettingsScreen(
                 alwaysShowSuggestionsBar = it
                 SettingsManager.setAlwaysShowSuggestionsBar(context, it)
             }
+            if (alwaysShowSuggestionsBar) {
+                KeyboardBarCheckRow(stringResource(R.string.always_show_suggestions_bar_hide_sensitive_title),
+                    alwaysShowHideSensitive, "keyboard_bar.always_show_suggestions_hide_sensitive",
+                    stringResource(R.string.always_show_suggestions_bar_hide_sensitive_summary)) {
+                    alwaysShowHideSensitive = it
+                    SettingsManager.setAlwaysShowSuggestionsBarHideSensitive(context, it)
+                }
+                KeyboardBarCheckRow(stringResource(R.string.always_show_suggestions_bar_hide_variations_title),
+                    alwaysShowHideVariations, "keyboard_bar.always_show_suggestions_hide_variations",
+                    stringResource(R.string.always_show_suggestions_bar_hide_variations_summary),
+                    enabled = alwaysShowHideSensitive) {
+                    alwaysShowHideVariations = it
+                    SettingsManager.setAlwaysShowSuggestionsBarHideVariations(context, it)
+                }
+            }
             KeyboardBarCheckRow(stringResource(R.string.keyboard_bar_actions), displayedActions,
                 "status_bar.variations_visible") {
                 if (editingSlim) saveSlim(slimProfile.copy(actions = it))
@@ -232,11 +265,46 @@ internal fun KeyboardBarSettingsScreen(
                 SettingLinkIds.MODIFIERS_INDICATOR_BOTTOM_STRIP) { enabled ->
                 setIndicator(SettingsManager.MODIFIER_INDICATOR_BOTTOM_STRIP, enabled)
             }
+            InlineAutofillRow(inlineAutofill, candidatesView) {
+                inlineAutofill = it
+                SettingsManager.setInlineAutofillEnabled(context, it)
+            }
+            OtpSettingsRows()
             KeyboardTextScaleSettingsCard()
             SettingsSectionDivider(stringResource(R.string.keyboard_bar_layout_section))
             KeyboardBarArrangementField(arrangement, displayedSuggestions && displayedActions) {
                 arrangement = it
                 KeyboardBarConfiguration.setArrangement(context, it)
+            }
+            KeyboardBarCheckRow(stringResource(R.string.keyboard_bar_height_animation_title), heightAnimation,
+                "keyboard_bar.height_animation", stringResource(R.string.keyboard_bar_height_animation_summary)) {
+                heightAnimation = it
+                SettingsManager.setKeyboardBarHeightAnimation(context, it)
+            }
+            if (heightAnimation) {
+                Column(Modifier.fillMaxWidth().settingRow("keyboard_bar.height_animation_duration")
+                    .padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.keyboard_bar_height_animation_duration_title),
+                            style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.keyboard_bar_height_animation_duration_value, heightAnimationMs),
+                            style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Slider(
+                        value = heightAnimationMs.toFloat(),
+                        onValueChange = { heightAnimationMs = (it / 10f).roundToInt() * 10 },
+                        onValueChangeFinished = { SettingsManager.setKeyboardBarHeightAnimationMs(context, heightAnimationMs) },
+                        valueRange = SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS.toFloat()..
+                            SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS.toFloat(),
+                        steps = (SettingsManager.MAX_KEYBOARD_BAR_HEIGHT_ANIMATION_MS -
+                            SettingsManager.MIN_KEYBOARD_BAR_HEIGHT_ANIMATION_MS) / 10 - 1
+                    )
+                }
+            }
+            KeyboardBarNavigationRow(Icons.Filled.Tune, stringResource(R.string.keyboard_bar_row_heights_title),
+                stringResource(R.string.keyboard_bar_row_heights_summary), "keyboard_bar.row_heights") {
+                context.startActivity(android.content.Intent(context, SettingsActivity::class.java)
+                    .setData(android.net.Uri.parse("plektra://setting/keyboard_theme.hardware.suggestions_height")))
             }
             KeyboardBarNavigationRow(Icons.Filled.SmartButton, stringResource(R.string.status_bar_buttons_section),
                 stringResource(R.string.keyboard_bar_buttons_summary,
@@ -426,6 +494,21 @@ internal fun KeyboardBarSettingsScreen(
     }
 
 }
+
+/** IME inline autofill exists from Android 11; the candidates view never starts the input view chips need. */
+@Composable
+private fun InlineAutofillRow(enabled: Boolean, candidatesView: Boolean, onChange: (Boolean) -> Unit) {
+    val supported = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R
+    val description = when {
+        !supported -> stringResource(R.string.inline_autofill_unsupported)
+        candidatesView -> stringResource(R.string.inline_autofill_description) + "\n" +
+            stringResource(R.string.inline_autofill_candidates_view_note)
+        else -> stringResource(R.string.inline_autofill_description)
+    }
+    KeyboardBarCheckRow(stringResource(R.string.inline_autofill_title), enabled && supported,
+        "keyboard_bar.inline_autofill", description, enabled = supported, onChange = onChange)
+}
+
 @Composable
 private fun KeyboardBarArrangementField(value: KeyboardBarArrangement, enabled: Boolean, onChange: (KeyboardBarArrangement) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

@@ -149,9 +149,8 @@ class InputEventRouter(
 
         // Gestisci SYM per Power Shortcuts (toggle: attiva/disattiva)
         if (keyCode == KeyEvent.KEYCODE_SYM && powerShortcutsEnabled) {
-            val message = context.getString(R.string.power_shortcuts_press_key)
             val isNavModeActive = navModeController.isNavModeActive()
-            callbacks.togglePowerShortcutMode(message, isNavModeActive)
+            callbacks.togglePowerShortcutMode("", isNavModeActive)
             return true // Consumiamo l'evento
         }
 
@@ -375,8 +374,9 @@ class InputEventRouter(
         }
         
         // Save original Shift one-shot state before clearing controller state
-        // The local variable will be used later to apply shift to letters
-        if (!isShiftKey && shiftOneShotActive) {
+        // The local variable will be used later to apply shift to letters.
+        // Pressing Alt should not consume Shift one-shot.
+        if (!isShiftKey && !isAltKey && shiftOneShotActive) {
             callbacks.disableShiftOneShot()
             callbacks.refreshStatusBar()
             // Don't set shiftOneShotActive = false here - keep it true so letter
@@ -994,6 +994,15 @@ class InputEventRouter(
             AutoSpaceTracker.clear()
         }
 
+        if (
+            keyCode == KeyEvent.KEYCODE_DEL && inputConnection != null &&
+            rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)
+        ) {
+            suggestionController?.onContextReset()
+            updateStatusBar()
+            return true
+        }
+
         // Try new dictionary-based auto-replace undo first (if experimental suggestions enabled)
         if (keyCode == KeyEvent.KEYCODE_DEL && 
             SettingsManager.isExperimentalSuggestionsEnabled(context) &&
@@ -1181,6 +1190,14 @@ class InputEventRouter(
         }
 
         if (
+            isPunctuation && inputConnection != null &&
+            rocks.pkb.plektra.core.PunctuationSpacing.beforeMark(context, inputConnection, typedChar!!)
+        ) {
+            suggestionController?.onContextReset()
+            updateStatusBar()
+            return true
+        }
+        if (
             (isBoundaryKey || isPunctuation) &&
             (shouldDisableSuggestions || suggestionController == null) &&
             autoCorrectionManager.handleBoundaryKey(
@@ -1240,6 +1257,11 @@ class InputEventRouter(
         val boundaryChar = rocks.pkb.plektra.core.Punctuation.normalizeApostrophe(text[0])
         if (boundaryChar == '\'' || boundaryChar !in rocks.pkb.plektra.core.Punctuation.BOUNDARY) {
             return false
+        }
+        if (rocks.pkb.plektra.core.PunctuationSpacing.beforeMark(context, input, boundaryChar)) {
+            suggestionController?.onContextReset()
+            updateStatusBar()
+            return true
         }
 
         if (

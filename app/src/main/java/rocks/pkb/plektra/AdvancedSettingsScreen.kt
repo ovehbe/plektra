@@ -1,10 +1,14 @@
 package rocks.pkb.plektra
 
+import android.content.ClipData
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -28,9 +32,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -712,34 +718,29 @@ fun AdvancedSettingsScreen(
                             }
                         }
 
-                        // Modifier Debug Log Export (nightly and sideload builds only)
+                        // Modifier Debug Log (nightly and sideload / Test builds only)
                         if (BuildConfig.ENABLE_MODIFIER_DEBUG_LOG) {
-                            val exportLauncher = rememberLauncherForActivityResult(
-                                ActivityResultContracts.CreateDocument("text/plain")
-                            ) { uri ->
-                                if (uri != null) {
-                                    scope.launch {
-                                        try {
-                                            val text = rocks.pkb.plektra.core.ModifierDebugLog.exportAsText()
-                                            context.contentResolver.openOutputStream(uri)?.use { output ->
-                                                output.write(text.toByteArray())
-                                            }
-                                            snackbarHostState.showSnackbar("Debug log exported successfully")
-                                        } catch (e: Exception) {
-                                            snackbarHostState.showSnackbar("Failed to export debug log: ${e.message}")
-                                        }
-                                    }
-                                }
-                            }
-
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp)
                                     .clickable {
-                                        val formatter = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US)
-                                        val filename = "modifier-debug-log-${formatter.format(Date())}.txt"
-                                        exportLauncher.launch(filename)
+                                        scope.launch {
+                                            try {
+                                                val text = rocks.pkb.plektra.core.ModifierDebugLog.exportAsText()
+                                                val shareIntent = createModifierDebugLogShareIntent(context, text)
+                                                context.startActivity(
+                                                    Intent.createChooser(
+                                                        shareIntent,
+                                                        context.getString(R.string.debug_recorder_share_chooser)
+                                                    )
+                                                )
+                                            } catch (e: Exception) {
+                                                snackbarHostState.showSnackbar(
+                                                    "Failed to share debug log: ${e.message}"
+                                                )
+                                            }
+                                        }
                                     },
                                 shape = MaterialTheme.shapes.medium,
                                 tonalElevation = 1.dp
@@ -752,20 +753,68 @@ fun AdvancedSettingsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Backup,
+                                        imageVector = Icons.Default.Share,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(24.dp)
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = "Export Modifier Debug Log",
+                                            text = "Share debug log",
                                             style = MaterialTheme.typography.titleMedium,
                                             fontWeight = FontWeight.Medium,
                                             maxLines = 1
                                         )
                                         Text(
-                                            text = "Export last 500 modifier key events for debugging",
+                                            text = "Share IME + Quick Launcher key diagnostics as a text file",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 2
+                                        )
+                                    }
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp)
+                                    .clickable {
+                                        rocks.pkb.plektra.core.ModifierDebugLog.clear()
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("Debug log cleared")
+                                        }
+                                    },
+                                shape = MaterialTheme.shapes.medium,
+                                tonalElevation = 1.dp
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Clear log",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "Clear the in-memory modifier debug log",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1
@@ -845,5 +894,27 @@ private fun ClipboardRetentionSetting(
                 }
             }
         }
+    }
+}
+
+private fun createModifierDebugLogShareIntent(context: Context, report: String): Intent {
+    val reportDir = File(context.cacheDir, "debug-reports").apply {
+        deleteRecursively()
+        mkdirs()
+    }
+    val timestamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+    val reportFile = File(reportDir, "plektra-modifier-debug-$timestamp.txt")
+    reportFile.writeText(report, Charsets.UTF_8)
+    val uri = FileProvider.getUriForFile(
+        context,
+        "${BuildConfig.APPLICATION_ID}.fileprovider",
+        reportFile
+    )
+    return Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "Plektra Modifier Debug Log")
+        putExtra(Intent.EXTRA_STREAM, uri)
+        clipData = ClipData.newUri(context.contentResolver, "Plektra Modifier Debug Log", uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 }

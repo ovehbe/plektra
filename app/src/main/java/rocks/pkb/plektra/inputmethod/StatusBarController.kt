@@ -39,6 +39,7 @@ import rocks.pkb.plektra.data.mappings.KeyMappingLoader
 import rocks.pkb.plektra.data.mappings.AltModifierMappingResolver
 import rocks.pkb.plektra.data.variation.VariationRepository
 import kotlin.math.max
+import kotlin.math.roundToInt
 import android.view.KeyEvent
 import android.view.inputmethod.InputMethodManager
 import rocks.pkb.plektra.inputmethod.ui.ClipboardHistoryView
@@ -59,9 +60,14 @@ import rocks.pkb.plektra.inputmethod.NotificationHelper
 import rocks.pkb.plektra.inputmethod.aospkeyboard.AospKeyboardView
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardLayoutTemplates
 import rocks.pkb.plektra.inputmethod.aospkeyboard.SoftwareKeyboardSymLabels
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillChipHost
+import rocks.pkb.plektra.inputmethod.autofill.InlineAutofillRowHeight
 import android.content.res.AssetManager
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.children
+import androidx.core.view.isGone
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import rocks.pkb.plektra.SettingsActivity
 
@@ -300,6 +306,9 @@ class StatusBarController(
         private val DEFAULT_BACKGROUND = Color.parseColor("#000000")
         private const val TITAN_2_ELITE_CORNER_FALLBACK_RADIUS_DP = 50f
         private const val HARDWARE_SYM_KEY_HEIGHT_DP = 56f
+        private const val SYM_KEY_HINT_TEXT_SIZE_SP = 12f
+        private const val GLYPH_REFERENCE_SIZE_SP = 100f
+        private const val INLINE_AUTOFILL_CHIP_INSET_DP = 4f
     }
 
     data class StatusSnapshot(
@@ -329,6 +338,8 @@ class StatusBarController(
         val shouldDisableDoubleSpaceToPeriod: Boolean = false,
         val shouldDisableVariations: Boolean = false,
         val isEmailField: Boolean = false,
+        /** Password, number, phone or date field: Always show may leave the suggestions row out. */
+        val suggestionsRowSensitiveField: Boolean = false,
         // UI latch flags for static variation bar layers.
         val shiftLayerLatched: Boolean = false,
         val altModifierLayerLatched: Boolean = false,
@@ -413,10 +424,20 @@ class StatusBarController(
         get() = slimModeActive && buttonRegistry.getEnabledSlimButtons(context).isNotEmpty()
     private var hasTransientSurface: Boolean = false
     val hasTransientContent: Boolean
-        get() = hasTransientSurface || expansionSuggestions.isNotEmpty()
+        get() = hasTransientSurface || expansionSuggestions.isNotEmpty() || centerSuggestion != null
     private var fullSuggestionsBar: FullSuggestionsBar? = null
     private var expansionSuggestions: List<String> = emptyList()
     private var onExpansionSuggestionSelected: ((String) -> Unit)? = null
+    private var inlineAutofillHost: InlineAutofillChipHost? = null
+    private var inlineAutofillActive = false
+    internal var centerSuggestion: FullSuggestionsBar.CenterAction? = null
+        set(value) {
+            field = value
+            // Clear stale labels/listeners on the inactive surface too, before its next render.
+            fullSuggestionsBar?.centerAction = null
+        }
+    private var rerenderLastUpdate: (() -> Unit)? = null
+    private var lastClipboardOverlay = false
     private var baseLeftPadding: Int = 0
     private var baseRightPadding: Int = 0
     private var baseBottomPadding: Int = 0
@@ -535,6 +556,7 @@ class StatusBarController(
         hamburgerMenuView?.themeOverride = activeColors
         clipboardHistoryView?.themeOverride = activeColors
         emojiPickerView?.themeOverride = activeColors
+        inlineAutofillHost?.theme = activeColors
         applySurfaceCloseButtonTheme(activeColors)
     }
 
@@ -927,6 +949,129 @@ class StatusBarController(
         expansionSuggestions = emptyList()
         onExpansionSuggestionSelected = null
     }
+
+    /**
+     * Hosts autofill chips in the actions row when it is shown, otherwise in the suggestions row,
+     * which then appears even without word suggestions. False when they are not on screen yet.
+     * Android sends a response once per input-view start, so chips stay until cleared and appear
+     * when a row can show them again (SYM page or nav mode closed, first render done).
+     */
+    fun showInlineAutofill(views: List<View>, pinnedFlags: List<Boolean>): Boolean {
+        if (views.isEmpty()) {
+            clearInlineAutofill()
+            return false
+        }
+        val host = inlineAutofillHost ?: InlineAutofillChipHost(context).also { inlineAutofillHost = it }
+        host.setChips(views, pinnedFlags)
+        inlineAutofillActive = true
+        rerenderLastUpdate?.invoke()
+        return isInlineAutofillShown()
+    }
+
+    fun clearInlineAutofill() {
+        if (!inlineAutofillActive) return
+        inlineAutofillActive = false
+        inlineAutofillHost?.clearChips()
+        placeInlineAutofillHost(null)
+        rerenderLastUpdate?.invoke()
+    }
+
+    fun inlineAutofillTheme(): KeyboardThemeColors = activeThemeColors()
+
+    /**
+     * Chip height for the row that would host chips now, or null when none would be on screen.
+     * [symPage] and [navModeActive] are live state; everything else follows the last render.
+     */
+    fun inlineAutofillChipHeightPx(symPage: Int, navModeActive: Boolean): Int? {
+        if (rerenderLastUpdate == null) return null
+        val isFullSoftwareKeyboardMode = mode == Mode.INPUT_VIEW &&
+            SettingsManager.resolveEffectiveSoftwareKeyboardMode(context) == SettingsManager.SoftwareKeyboardMode.FORCE_VIRTUAL
+        val barPresentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
+        val target = inlineAutofillTarget(
+            barPresentation, isFullSoftwareKeyboardMode, symPage, navModeActive, lastClipboardOverlay
+        ) ?: return null
+        return inlineChipHeightPx(target, activeThemeColors(isFullSoftwareKeyboardMode))
+    }
+
+    private fun inlineChipHeightPx(target: InlineAutofillTarget, theme: KeyboardThemeColors): Int {
+        val hostRowHeightDp = when (target) {
+            InlineAutofillTarget.ACTIONS -> VariationBarView.rowHeightDp(theme.variationsHeightScale)
+            InlineAutofillTarget.SUGGESTIONS -> FullSuggestionsBar.rowHeightDp(theme.suggestionsHeightScale)
+        }
+        val rowHeightDp = InlineAutofillRowHeight.rowHeightDp(hostRowHeightDp, theme.autofillRowHeightScale)
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            rowHeightDp - 2 * INLINE_AUTOFILL_CHIP_INSET_DP,
+            context.resources.displayMetrics
+        ).toInt()
+    }
+
+    private fun isInlineAutofillShown(): Boolean {
+        val layout = statusBarLayout ?: return false
+        if (layout.layoutParams?.height == 0) return false
+        var view: View? = inlineAutofillHost?.takeIf { it.parent != null } ?: return false
+        while (view != null) {
+            if (view.visibility != View.VISIBLE) return false
+            if (view === layout) return true
+            view = view.parent as? View
+        }
+        return false
+    }
+
+    /** Rows move as whole views in [ensureMainChildOrder], so a host inside a row follows it. */
+    private fun placeInlineAutofillHost(target: InlineAutofillTarget?) {
+        val host = inlineAutofillHost ?: return
+        fullSuggestionsBar?.inlineContent = if (target == InlineAutofillTarget.SUGGESTIONS) host else null
+        val wrapper = variationsWrapper as? ViewGroup
+        variationBarView?.inlineMinimumHeight = host.minimumHeight
+        variationBarView?.hostsInlineContent = target == InlineAutofillTarget.ACTIONS && wrapper != null
+        if (target == InlineAutofillTarget.ACTIONS && wrapper != null) {
+            if (host.parent !== wrapper) {
+                (host.parent as? ViewGroup)?.removeView(host)
+                wrapper.addView(host, FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            }
+        } else if (host.parent === wrapper) {
+            wrapper?.removeView(host)
+        }
+    }
+
+    /** Chips count as content wherever a configured bar row can be on screen. */
+    private fun inlineAutofillTarget(
+        barPresentation: rocks.pkb.plektra.KeyboardBarPresentation,
+        isFullSoftwareKeyboardMode: Boolean,
+        symPage: Int,
+        navModeActive: Boolean,
+        clipboardOverlay: Boolean
+    ): InlineAutofillTarget? {
+        val softwareOverlayPage = isFullSoftwareKeyboardMode && symPage in 1..5
+        val sharedRow = barPresentation.arrangement == rocks.pkb.plektra.KeyboardBarArrangement.SHARED &&
+            !isFullSoftwareKeyboardMode && symPage == 0 && !clipboardOverlay
+        return when {
+            navModeActive || clipboardOverlay || (symPage != 0 && !softwareOverlayPage) ||
+                !(barPresentation.hasPersistentContent || hasConfiguredMenuButtons || isFullSoftwareKeyboardMode) -> null
+            barPresentation.actions && !sharedRow -> InlineAutofillTarget.ACTIONS
+            else -> InlineAutofillTarget.SUGGESTIONS
+        }
+    }
+
+    private enum class InlineAutofillTarget { ACTIONS, SUGGESTIONS }
+
+    /**
+     * Fields where Always show's reserved row could never get predictions: sensitive fields,
+     * fields that disable suggestions (URL, email, password, raw mode), and fields where
+     * autofill chips pause them. Ordinary text fields keep the row so it doesn't come and go
+     * between keystrokes.
+     */
+    private fun alwaysShowRowStaysEmpty(snapshot: StatusSnapshot, inlineChipsShowing: Boolean): Boolean =
+        snapshot.suggestionsRowSensitiveField || snapshot.shouldDisableSuggestions || inlineChipsShowing
+
+    /** "Also hide the variations row": where Always show's row is dropped, the variations row goes with it. */
+    private fun alwaysShowHidesVariationsRow(snapshot: StatusSnapshot): Boolean =
+        SettingsManager.getAlwaysShowSuggestionsBar(context) &&
+            SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context) &&
+            SettingsManager.getAlwaysShowSuggestionsBarHideVariations(context) &&
+            alwaysShowRowStaysEmpty(snapshot, inlineChipsShowing = false)
 
     fun cancelSoftwareKeyboardTouchState() {
         // The software keyboard can also sit below the emoji picker while its search is
@@ -1555,7 +1700,11 @@ class StatusBarController(
         val totalSpacing = keySpacing * (maxKeysInRow - 1)
         val fixedKeyWidth = (availableWidth - totalSpacing) / maxKeysInRow
         
-        val keyHeight = hardwareSymKeyHeightPx()
+        val keyHeight = symPageKeyHeightPx(theme)
+        val pagedKind = rocks.pkb.plektra.core.SymLayoutController.shownPagedKind
+        val glyphTextSize = symPageGlyphTextSizeSp(
+            keyboardRows.flatten().mapNotNull { symMappings[it] }, page, fixedKeyWidth, keyHeight, pagedKind)
+        val hintTextSize = SYM_KEY_HINT_TEXT_SIZE_SP * keyHeight / hardwareSymKeyHeightPx(theme)
         
         // Crea ogni riga della tastiera
         for ((rowIndex, row) in keyboardRows.withIndex()) {
@@ -1576,7 +1725,7 @@ class StatusBarController(
                 rowLayout.gravity = Gravity.START
                 row.forEachIndexed { index, code ->
                     addKeyToRow(rowLayout, code, symMappings, fixedKeyWidth, keyHeight, keySpacing, page,
-                        inputConnection, rowIndex == 0 && index == row.lastIndex)
+                        inputConnection, rowIndex == 0 && index == row.lastIndex, glyphTextSize, hintTextSize)
                 }
                 if (rowIndex == 1) {
                     val picker = createKeyboardSelectionButton(keyHeight, fixedKeyWidth)
@@ -1594,19 +1743,19 @@ class StatusBarController(
                 when (rowIndex) {
                     0 -> { // Row 1: Q W E R T Y U I O P (10 keys)
                         for ((index, keyCode) in row.withIndex()) {
-                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, index == row.size - 1)
+                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, index == row.size - 1, glyphTextSize, hintTextSize)
                         }
                     }
                     1 -> { // Row 2: A S D F G H J K L (9 keys) -> Add placeholder at the end to make it 10
                         for ((index, keyCode) in row.withIndex()) {
-                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false)
+                            addKeyToRow(rowLayout, keyCode, symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false, glyphTextSize, hintTextSize)
                         }
                         rowLayout.addView(View(context), LinearLayout.LayoutParams(fixedKeyWidth, keyHeight))
                     }
                     2 -> { // Row 3: Z X C V [Editor] [Globe] B N M [Close]
                         // Z X C V (4 keys)
                         for (i in 0..3) {
-                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false)
+                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false, glyphTextSize, hintTextSize)
                         }
                         
                         // Editor button (left part of spacebar area)
@@ -1621,7 +1770,7 @@ class StatusBarController(
                         
                         // B N M (3 keys)
                         for (i in 4..6) {
-                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false)
+                            addKeyToRow(rowLayout, row[i], symMappings, fixedKeyWidth, keyHeight, keySpacing, page, inputConnection, false, glyphTextSize, hintTextSize)
                         }
 
                         rowLayout.addView(createSurfaceCloseSlot(), LinearLayout.LayoutParams(fixedKeyWidth, keyHeight))
@@ -1646,7 +1795,7 @@ class StatusBarController(
                 val label = keyLabels[keyCode] ?: ""
                 val content = symMappings[keyCode] ?: ""
                 
-                val keyButton = createEmojiKeyButton(label, content, keyHeight, page, rocks.pkb.plektra.core.SymLayoutController.shownPagedKind)
+                val keyButton = createEmojiKeyButton(label, content, keyHeight, page, pagedKind, glyphTextSize, hintTextSize)
                 emojiKeyButtons.add(keyButton)
                 keyButton.isLongClickable = true
                 keyButton.setOnLongClickListener {
@@ -1807,6 +1956,9 @@ class StatusBarController(
                 onSoftwareKeyboardNonShiftInteraction?.invoke()
                 val searchTarget = softwareKeyboardSearchTarget(snapshot)
                 if (searchTarget != null && searchTarget.handleSearchBackspace()) {
+                    return
+                }
+                if (inputConnection != null && rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)) {
                     return
                 }
                 inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
@@ -2189,6 +2341,9 @@ class StatusBarController(
             }
             if (rowIndex == 2) {
                 rowLayout.addView(createSoftwareSymbolControl("", keyHeight, fixedKeyWidth, iconRes = R.drawable.backspace_24) {
+                    if (inputConnection != null && rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)) {
+                        return@createSoftwareSymbolControl
+                    }
                     inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
                     inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
                 }, LinearLayout.LayoutParams(fixedKeyWidth, keyHeight).apply { marginStart = keySpacing })
@@ -2573,12 +2728,62 @@ class StatusBarController(
      * @param height L'altezza del tasto
      * @param page La pagina attiva (1=emoji, 2=caratteri)
      */
+    /** Emoji and characters fill most of the key's height. */
+    private fun heightFilledGlyphTextSizeSp(keyHeightPx: Int, page: Int): Float {
+        val heightInDp = keyHeightPx / context.resources.displayMetrics.density
+        val roundedCorners = SettingsManager.getTitan2EliteRoundedCornerInsetsEnabled(context)
+        return heightInDp * if (page == 2 || roundedCorners) 0.5f else 0.75f
+    }
+
+    private fun isTextLikeSymContent(content: String, pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind?): Boolean =
+        pagedKind == rocks.pkb.plektra.core.SymPagedLayer.Kind.KAOMOJI ||
+            content.codePointCount(0, content.length) > 3 && !content.any { Character.isSurrogate(it) }
+
+    /**
+     * One glyph size for the whole page, so keys look alike: the height-filling size, shrunk until
+     * the widest and tallest glyph fit a key. Narrow keys (720 px wide screens) would otherwise
+     * clip each emoji differently. Text-like content shrinks itself to fit.
+     */
+    private fun symPageGlyphTextSizeSp(
+        contents: Collection<String>,
+        page: Int,
+        keyWidthPx: Int,
+        keyHeightPx: Int,
+        pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind?
+    ): Float {
+        val glyphs = contents.filter { it.isNotEmpty() && !isTextLikeSymContent(it, pagedKind) }
+            .distinct()
+            .map { rocks.pkb.plektra.data.emoji.EmojiRendering.forDisplay(context, it) }
+        val probe = TextView(context).apply { if (page == 2) setTypeface(null, android.graphics.Typeface.BOLD) }
+        fun widest(sizeSp: Float): Float {
+            probe.textSize = sizeSp
+            return glyphs.maxOfOrNull { android.text.Layout.getDesiredWidth(it, probe.paint) } ?: 0f
+        }
+        fun tallest(sizeSp: Float): Float {
+            probe.textSize = sizeSp
+            return probe.paint.fontMetricsInt.let { (it.descent - it.ascent).toFloat() }
+        }
+        fun largestFitting(extent: (Float) -> Float, limitPx: Int): Float {
+            val reference = extent(GLYPH_REFERENCE_SIZE_SP).takeIf { it > 0f } ?: return Float.MAX_VALUE
+            var size = GLYPH_REFERENCE_SIZE_SP * limitPx / reference
+            while (size > 1f && extent(size) > limitPx) size *= 0.99f
+            return size
+        }
+        return minOf(
+            heightFilledGlyphTextSizeSp(keyHeightPx, page),
+            largestFitting(::widest, keyWidthPx),
+            largestFitting(::tallest, keyHeightPx)
+        )
+    }
+
     private fun createEmojiKeyButton(
         label: String,
         content: String,
         height: Int,
         page: Int,
-        pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind? = null
+        pagedKind: rocks.pkb.plektra.core.SymPagedLayer.Kind? = null,
+        glyphTextSizeSp: Float? = null,
+        hintTextSizeSp: Float = SYM_KEY_HINT_TEXT_SIZE_SP
     ): View {
         val theme = activeThemeColors()
         val keyLayout = FrameLayout(context).apply {
@@ -2602,20 +2807,9 @@ class StatusBarController(
             setStroke(dpToPx(1f), theme.divider)
         }
         
-        // Emoji/carattere deve occupare tutto il tasto, centrata
-        // Calcola textSize in base all'altezza disponibile (convertendo da pixel a sp)
-        val heightInDp = height / context.resources.displayMetrics.density
         val roundedCorners = SettingsManager.getTitan2EliteRoundedCornerInsetsEnabled(context)
-        val contentTextSize = if (page == 2 || roundedCorners) {
-            // Per caratteri unicode, usa una dimensione più piccola
-            (heightInDp * 0.5f)
-        } else {
-            // Per emoji, usa la dimensione normale
-            (heightInDp * 0.75f)
-        }
-        
-        val textLike = pagedKind == rocks.pkb.plektra.core.SymPagedLayer.Kind.KAOMOJI ||
-            content.codePointCount(0, content.length) > 3 && !content.any { Character.isSurrogate(it) }
+        val contentTextSize = glyphTextSizeSp ?: heightFilledGlyphTextSizeSp(height, page)
+        val textLike = isTextLikeSymContent(content, pagedKind)
         val contentText = TextView(context).apply {
             text = rocks.pkb.plektra.data.emoji.EmojiRendering.forDisplay(context, content)
             textSize = contentTextSize // textSize è in sp
@@ -2653,7 +2847,7 @@ class StatusBarController(
         
         val labelText = TextView(context).apply {
             text = label
-            textSize = 12f
+            textSize = hintTextSizeSp
             setTextColor(theme.textAndIcons)
             gravity = Gravity.END or Gravity.BOTTOM
             layoutParams = FrameLayout.LayoutParams(
@@ -2889,7 +3083,9 @@ class StatusBarController(
         spacing: Int,
         page: Int,
         inputConnection: android.view.inputmethod.InputConnection?,
-        isLast: Boolean
+        isLast: Boolean,
+        glyphTextSizeSp: Float,
+        hintTextSizeSp: Float
     ) {
         val keyLabels = mapOf(
             android.view.KeyEvent.KEYCODE_Q to "Q", android.view.KeyEvent.KEYCODE_W to "W", android.view.KeyEvent.KEYCODE_E to "E",
@@ -2904,7 +3100,8 @@ class StatusBarController(
         )
         val label = keyLabels[keyCode] ?: ""
         val content = symMappings[keyCode] ?: ""
-        val keyButton = createEmojiKeyButton(label, content, height, page, rocks.pkb.plektra.core.SymLayoutController.shownPagedKind)
+        val keyButton = createEmojiKeyButton(label, content, height, page,
+            rocks.pkb.plektra.core.SymLayoutController.shownPagedKind, glyphTextSizeSp, hintTextSizeSp)
         keyButton.isLongClickable = true
         keyButton.setOnLongClickListener {
             if (onSymPageKeyLongPressed?.invoke(keyCode) != true) {
@@ -3268,6 +3465,7 @@ class StatusBarController(
     
 
     fun update(snapshot: StatusSnapshot, emojiMapText: String = "", inputConnection: android.view.inputmethod.InputConnection? = null, symMappings: Map<Int, String>? = null) {
+        rerenderLastUpdate = { update(snapshot, emojiMapText, inputConnection, symMappings) }
         isTitan2Layout = SettingsManager.isTitan2LayoutEnabled(context)
         buttonRegistry.keypadAccessAvailable = snapshot.keypadAccessAvailable
         val isFullSoftwareKeyboardMode =
@@ -3288,13 +3486,27 @@ class StatusBarController(
         variationBarView?.onVariationSelectedListener = onVariationSelectedListener
         variationBarView?.onCursorMovedListener = onCursorMovedListener
         variationBarView?.updateInputConnection(inputConnection)
-        val barPresentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
-        val sharedRow = barPresentation.arrangement == rocks.pkb.plektra.KeyboardBarArrangement.SHARED &&
+        val configuredBarPresentation = rocks.pkb.plektra.KeyboardBarConfiguration.read(context).presentation(slimModeActive)
+        val sharedRow = configuredBarPresentation.arrangement == rocks.pkb.plektra.KeyboardBarArrangement.SHARED &&
             !isFullSoftwareKeyboardMode && snapshot.symPage == 0 && !snapshot.clipboardOverlay
         val showSlimMenuButtons = hasConfiguredMenuButtons && !isFullSoftwareKeyboardMode &&
             snapshot.symPage == 0 && !snapshot.clipboardOverlay
         val expansionActive = expansionSuggestions.isNotEmpty()
-        val suggestionsAvailable = barPresentation.suggestions && !snapshot.shouldDisableSuggestions &&
+        lastClipboardOverlay = snapshot.clipboardOverlay
+        // Word suggestions pause while chips show.
+        val inlineAutofillTarget = if (inlineAutofillActive) {
+            inlineAutofillTarget(
+                configuredBarPresentation, isFullSoftwareKeyboardMode, snapshot.symPage, snapshot.navModeActive, snapshot.clipboardOverlay
+            )
+        } else {
+            null
+        }
+        val hideEmptyActionsRow = configuredBarPresentation.actions && inlineAutofillTarget == null &&
+            !isFullSoftwareKeyboardMode && alwaysShowHidesVariationsRow(snapshot)
+        val barPresentation =
+            if (hideEmptyActionsRow) configuredBarPresentation.copy(actions = false) else configuredBarPresentation
+        val suggestionsAvailable = inlineAutofillTarget == null &&
+            barPresentation.suggestions && !snapshot.shouldDisableSuggestions &&
             (SettingsManager.isExperimentalSuggestionsEnabled(context) || isFullSoftwareKeyboardMode || snapshot.speechPreviewActive) &&
             (snapshot.suggestions.isNotEmpty() || !snapshot.addWordCandidate.isNullOrBlank())
         val hasSuggestionRow = expansionActive || suggestionsAvailable
@@ -3315,12 +3527,25 @@ class StatusBarController(
         }
         
         val layout = ensureLayoutCreated(emojiMapText) ?: return
+        // A bar only the hidden variations row kept open eases down to nothing like any other
+        // row change, instead of disappearing at once, and eases back from there.
+        val keepEmptyBarForAnimation = hideEmptyActionsRow &&
+            SettingsManager.keyboardBarHeightAnimationDurationMs(context) > 0
+        placeInlineAutofillHost(inlineAutofillTarget)
+        // Opaque inline autofill and speech previews keep ownership of the strip if using it.
+        val slot = centerSuggestion.takeIf { !snapshot.navModeActive && !snapshot.clipboardOverlay &&
+            (snapshot.symPage == 0 || isSoftwareKeyboardOverlayPage) && !snapshot.speechPreviewActive &&
+            inlineAutofillTarget != InlineAutofillTarget.SUGGESTIONS }
+        fullSuggestionsBar?.centerAction = slot
+        if (slot != null && layout.isGone) (layout as? ImeChromeLayout)?.revealFromCollapsedHeight()
         if ((!hasSuggestionRow && !showSlimMenuButtons && !barPresentation.actions && !barPresentation.bottomIndicators && !isFullSoftwareKeyboardMode &&
-                snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty()) || snapshot.navModeActive) {
+                snapshot.symPage == 0 && !snapshot.clipboardOverlay && expansionSuggestions.isEmpty() &&
+                inlineAutofillTarget == null && slot == null && !keepEmptyBarForAnimation) || snapshot.navModeActive) {
             collapseLayout()
             return
         }
         restoreLayoutHeight(layout)
+        (layout as? ImeChromeLayout)?.rowChangeAnimationMs = SettingsManager.keyboardBarHeightAnimationDurationMs(context)
         ensureMainChildOrder()
         applyChromeZOrder()
         applyKeyboardThemeOverrides(activeColors)
@@ -3404,7 +3629,8 @@ class StatusBarController(
             inputConnection,
             onVariationSelectedListener,
             if (expansionActive || sharedVariations.isNotEmpty()) false else snapshot.shouldDisableSuggestions,
-            if (expansionActive || sharedVariations.isNotEmpty() || snapshot.shouldDisableSuggestions) null else snapshot.addWordCandidate,
+            if (expansionActive || sharedVariations.isNotEmpty() || snapshot.shouldDisableSuggestions ||
+                inlineAutofillTarget != null) null else snapshot.addWordCandidate,
             onAddUserWord,
             onAddUserWordSubstitutionRequested,
             onSuggestionCommitted,
@@ -3425,7 +3651,9 @@ class StatusBarController(
             displayOnly = snapshot.speechPreviewActive && !expansionActive && sharedVariations.isEmpty(),
             continuousPreview = snapshot.speechPreviewActive && !expansionActive && sharedVariations.isEmpty() &&
                 rocks.pkb.plektra.inputmethod.speech.SpeechSettings.continuousPreview(context),
-            alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context)
+            alwaysShowSuggestionsBar = SettingsManager.getAlwaysShowSuggestionsBar(context) &&
+                !(SettingsManager.getAlwaysShowSuggestionsBarHideSensitive(context) &&
+                    alwaysShowRowStaysEmpty(snapshot, inlineAutofillTarget != null))
         )
         ledStatusView.compactOnly = fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE && !barPresentation.actions && !hasTransientSurface
         val ledOnly = ledStatusView.compactOnly && showLedStrip
@@ -3621,6 +3849,8 @@ class StatusBarController(
                 variationsBar?.showVariations(snapshotForVariations, inputConnection)
                 setSurfaceCloseVisible(false)
                 resetSymSurfaceToLedOnly(symSurfaceView)
+                // The row only returns now, after the empty-bar check below collapsed the layout.
+                if (layout.visibility != View.VISIBLE) rerenderLastUpdate?.invoke()
             }
             symShown = false
             wasSymActive = false
@@ -3644,7 +3874,7 @@ class StatusBarController(
             lastSymPageRendered = 0 // Reset when closing SYM page
         }
         if (fullSuggestionsBar?.ensureView()?.visibility != View.VISIBLE &&
-            variationsWrapper?.visibility != View.VISIBLE && !showLedStrip) collapseLayout()
+            variationsWrapper?.visibility != View.VISIBLE && !showLedStrip && !keepEmptyBarForAnimation) collapseLayout()
     }
 
     private fun updateAccessibilityStateDescription(view: View) {
@@ -3677,8 +3907,18 @@ class StatusBarController(
         }
 
         variationsWrapper?.let { wrapper ->
-            if (wrapper.importantForAccessibility != importance) {
-                wrapper.importantForAccessibility = importance
+            val chips = inlineAutofillHost?.takeIf { it.parent === wrapper }
+            val wrapperImportance = if (chips != null) View.IMPORTANT_FOR_ACCESSIBILITY_YES else importance
+            if (wrapper.importantForAccessibility != wrapperImportance) {
+                wrapper.importantForAccessibility = wrapperImportance
+            }
+            // Chips cover the actions row; the buttons underneath must not be read either.
+            (wrapper as? ViewGroup)?.children?.filter { it !== inlineAutofillHost }?.forEach { covered ->
+                covered.importantForAccessibility = if (chips != null) {
+                    View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+                } else {
+                    View.IMPORTANT_FOR_ACCESSIBILITY_AUTO
+                }
             }
         }
         modifiersContainer?.let { container ->
@@ -3913,8 +4153,7 @@ class StatusBarController(
         if (!isFullSoftwareKeyboardMode && snapshot.symPage in listOf(1, 2, 5)) {
             // All hardware SYM pages use the same three key rows. Do not let
             // measurement under the previous page's weighted layout resize them.
-            val gap = dpToPx(4f)
-            return 3 * hardwareSymKeyHeightPx() + 2 * gap
+            return SymPageSize.gridHeightPx(symPageKeyHeightPx(), dpToPx(4f))
         }
         if (snapshot.symPage == 4 && measuredHeight > 0) {
             // Measured height floors at the configured size under UNSPECIFIED measure
@@ -3934,6 +4173,11 @@ class StatusBarController(
             context.resources.displayMetrics
         ).toInt()
     }
+
+    /** Keys of the SYM grid pages (1, 2 and 5), sized by the theme's SYM page size. */
+    private fun symPageKeyHeightPx(theme: KeyboardThemeColors = activeThemeColors()): Int =
+        SymPageSize.keyHeightPx(hardwareSymKeyHeightPx(theme), theme.symPageScale, dpToPx(4f),
+            context.resources.displayMetrics.heightPixels)
 
     private fun hardwareSymKeyHeightPx(theme: KeyboardThemeColors = activeThemeColors()): Int {
         if (!SettingsManager.getTitan2EliteRoundedCornerInsetsEnabled(context)) return dpToPx(HARDWARE_SYM_KEY_HEIGHT_DP)

@@ -64,13 +64,13 @@
     <string name="auto_space_punctuation_title">Διαστήματα στίξης</string>
     <string name="auto_space_punctuation_selected">Επιλεγμένα:</string>
     <string name="auto_space_punctuation_none_selected">κανένα</string>
-    <string name="auto_space_punctuation_dialog_instruction">Επιλέξτε αν το Plektra αφαιρεί το δικό του αυτόματο διάστημα πριν από κάθε χαρακτήρα και εισάγει αναβλημένο διάστημα πριν από το επόμενο κείμενο.</string>
+    <string name="auto_space_punctuation_dialog_instruction">Επιλέξτε αν το Plektra αφαιρεί το διάστημα πριν από κάθε χαρακτήρα καθώς τον πληκτρολογείτε και εισάγει αναβλημένο διάστημα πριν από το επόμενο κείμενο.</string>
     <string name="auto_space_punctuation_character_column">Χαρακτήρας</string>
     <string name="auto_space_punctuation_before_column">Αφαίρεση πριν</string>
     <string name="auto_space_punctuation_after_column">Πριν το επόμενο κείμενο</string>
     <string name="auto_space_punctuation_help_action">Εξήγηση διαστημάτων στίξης</string>
     <string name="auto_space_punctuation_help_title">Πώς λειτουργούν τα διαστήματα στίξης</string>
-    <string name="auto_space_punctuation_help_text">Το “Αφαίρεση πριν” αφαιρεί μόνο διάστημα που εισήγαγε αυτόματα το Plektra, όχι κάποιο που πληκτρολογήσατε χειροκίνητα.\n\nΤο “Πριν το επόμενο κείμενο” αναβάλλει το διάστημα μέχρι να πληκτρολογηθεί περισσότερο κείμενο. Έτσι το Enter ή η Αποστολή δεν αφήνει τελικό διάστημα.</string>
+    <string name="auto_space_punctuation_help_text">Το “Αφαίρεση πριν” αφαιρεί τα διαστήματα πριν από τον χαρακτήρα καθώς τον πληκτρολογείτε, είτε τα πληκτρολογήσατε εσείς είτε τα πρόσθεσε το Plektra: το “Τι κάνεις ;” γίνεται “Τι κάνεις;”. Το Backspace αμέσως μετά τα επαναφέρει. Ένα διάστημα στην αρχή της γραμμής παραμένει.\n\nΤο “Πριν το επόμενο κείμενο” αναβάλλει το διάστημα μέχρι να πληκτρολογηθεί περισσότερο κείμενο. Έτσι το Enter ή η Αποστολή δεν αφήνει τελικό διάστημα.\n\nΤα πεδία URL, email, κωδικού και αριθμών δεν αλλάζουν ποτέ.</string>
     <string name="auto_space_punctuation_choose">Επιλεγμένα:</string>
     <string name="auto_space_punctuation_choose_off">Ανενεργό</string>
     <string name="auto_space_punctuation_reset">Επαναφορά</string>
@@ -543,8 +543,8 @@
     <string name="clicks_launcher_interception_disabled">Απαιτείται για κουμπιά Clicks που αντιστοιχίζονται από το λογισμικό. Πατήστε για ενεργοποίηση στις ρυθμίσεις Προσβασιμότητας Android.</string>
     <string name="clicks_button_mode_native">Εγγενές</string>
     <string name="clicks_button_mode_native_description">Διατηρεί το αρχικό συμβάν πλήκτρου Android του κουμπιού.</string>
-    <string name="clicks_button_mode_quick_launcher">QuickLauncher</string>
-    <string name="clicks_button_mode_quick_launcher_description">Ανοίγει απευθείας το Plektra QuickLauncher και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
+    <string name="clicks_button_mode_quick_launcher">Quick Launcher</string>
+    <string name="clicks_button_mode_quick_launcher_description">Ανοίγει απευθείας το Plektra Quick Launcher και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
     <string name="clicks_button_mode_open_plektra">Άνοιγμα Plektra</string>
     <string name="clicks_button_mode_open_plektra_description">Ανοίγει απευθείας τις ρυθμίσεις Plektra και δεν περνά το συμβάν πλήκτρου στην εφαρμογή.</string>
     <string name="clicks_button_mode_toggle_keyboard_mode">Εναλλαγή λειτουργίας πληκτρολογίου</string>
@@ -675,7 +675,7 @@
     <string name="about_credits_error">Δεν είναι δυνατή η φόρτωση πληροφοριών συντελεστών.</string>
 
     <!-- Launcher Shortcuts Section -->
-    <string name="starter_launcher_shortcuts_title">Plektra-QuickLauncher</string>
+    <string name="starter_launcher_shortcuts_title">Plektra Quick Launcher</string>
     <string name="starter_launcher_shortcuts_description">Γρήγορη εκκίνηση, συντομεύσεις SYM και αντιστοιχίσεις πλήκτρων launcher</string>
     <string name="starter_launcher_shortcuts_intro">Αυτές οι ρυθμίσεις μοιράζονται μία λίστα αντιστοίχισης πλήκτρων launcher. Επιλέξτε πού θα ακούει το Plektra για αυτά τα αντιστοιχισμένα πλήκτρα.</string>
     <string name="launcher_shortcuts_title">Συντομεύσεις αρχικής οθόνης</string>
@@ -687,7 +687,7 @@
     <string name="quick_launcher_default_blocked_hint">Νέο: Το SYM μπορεί να ανοίγει τον quick launcher. Το Plektra κανονικά θα το αντιστοιχούσε στο Space, αλλά το Space έχει ήδη συντόμευση. Ανοίξτε τη σελίδα αντιστοιχίσεων και επιλέξτε “Άνοιγμα quick launcher” σε οποιοδήποτε πλήκτρο για να το δοκιμάσετε.</string>
 
     <!-- Launcher Shortcuts Screen -->
-    <string name="launcher_shortcuts_screen_title">Plektra-QuickLauncher</string>
+    <string name="launcher_shortcuts_screen_title">Plektra Quick Launcher</string>
     <string name="launcher_shortcuts_not_assigned">Δεν έχει αντιστοιχιστεί</string>
     <string name="launcher_shortcuts_remove">Αφαίρεση</string>
     <string name="launcher_shortcuts_app_name_unavailable">Εφαρμογή (όνομα μη διαθέσιμο)</string>
@@ -705,7 +705,7 @@
     <string name="launcher_shortcut_assignment_no_apps">Δεν βρέθηκαν εντολές</string>
     <string name="launcher_shortcut_assignment_no_results">Δεν υπάρχουν αποτελέσματα για \"%1$s\"</string>
     <string name="launcher_shortcut_assignment_key_name">Πλήκτρο %1$d</string>
-    <string name="quick_launcher_title">Plektra-QuickLauncher</string>
+    <string name="quick_launcher_title">Plektra Quick Launcher</string>
     <string name="quick_launcher_subtitle">Πληκτρολογήστε για αναζήτηση. Το Enter ανοίγει το πρώτο αποτέλεσμα.</string>
     <string name="quick_launcher_close">Κλείσιμο</string>
     <string name="quick_launcher_no_entries_match">Καμία καταχώριση δεν ταιριάζει με “%1$s”.</string>
@@ -733,7 +733,7 @@
     <string name="quick_launcher_typo_tolerant_ranking_description">Ταιριάζει επίσης ονόματα εφαρμογών με μικρά λάθη πληκτρολόγησης. Οι υπάρχουσες αντιστοιχίσεις προθέματος και συντομογραφίας εξακολουθούν να κατατάσσονται ψηλότερα.</string>
     <string name="quick_launcher_provider_title">Συμπεριφορά QuickLauncher</string>
     <string name="quick_launcher_provider_description">Επιλέξτε αν η συντόμευση ανοίγει την αναζήτηση Plektra ή την αναζήτηση Niagara Launcher. Το Niagara επιστρέφει στο Plektra αν δεν είναι διαθέσιμο.</string>
-    <string name="quick_launcher_provider_plektra">Plektra QuickLauncher</string>
+    <string name="quick_launcher_provider_plektra">Plektra Quick Launcher</string>
     <string name="quick_launcher_provider_niagara">Αναζήτηση Niagara Launcher</string>
     <string name="quick_launcher_ranking_info_button">Πώς λειτουργεί η κατάταξη</string>
     <string name="quick_launcher_ranking_info_title">Κατάταξη QuickLauncher</string>
@@ -829,6 +829,7 @@
     <string name="keyboard_theme_row_spacing">Απόσταση γραμμών</string>
     <string name="keyboard_theme_suggestions_height">Ύψος προτάσεων</string>
     <string name="keyboard_theme_variations_height">Ύψος παραλλαγών</string>
+    <string name="keyboard_theme_autofill_row_height">Ύψος γραμμής αυτόματης συμπλήρωσης</string>
     <string name="keyboard_theme_show_leds">Εμφάνιση LED</string>
     <string name="keyboard_theme_distribute_spacing">Κατανομή αποστάσεων</string>
     <string name="keyboard_theme_ortholinear">Ορθογώνια διάταξη</string>
@@ -846,6 +847,8 @@
     <string name="keyboard_theme_led_active">LED ενεργό</string>
     <string name="keyboard_theme_led_locked">LED κλειδωμένο</string>
     <string name="quick_launcher_width_title">Πλάτος launcher</string>
+    <string name="quick_launcher_corner_radius_title">Ακτίνα γωνιών του launcher</string>
+    <string name="quick_launcher_corner_radius_value">%1$d dp</string>
     <string name="quick_launcher_width_value">%1$d%% πλάτος οθόνης</string>
     <string name="quick_launcher_pill_mode_title">Λειτουργία pill</string>
     <string name="quick_launcher_pill_mode_description">Ανοίγει ως συμπαγές pill αναζήτησης και επεκτείνεται μόνο μετά την πληκτρολόγηση.</string>
@@ -868,7 +871,6 @@
     <string name="sym_shortcuts_compatibility_info">Σχετικά με τη συμβατότητα πλήκτρου SYM</string>
     <string name="sym_shortcuts_compatibility_title">Συμβατότητα πλήκτρου SYM</string>
     <string name="sym_shortcuts_compatibility_description">Οι συντομεύσεις πλήκτρου SYM απαιτούν πληκτρολόγιο που εκθέτει το SYM ως τροποποιητή στο Android. Προς το παρόν δεν μπορούν να λειτουργήσουν με πληκτρολόγια των οποίων το firmware μετατρέπει τους συνδυασμούς SYM σε τελικούς χαρακτήρες ή συμβάντα πλοήγησης πριν τους λάβει το Plektra. Αυτό περιλαμβάνει την τρέχουσα συμπεριφορά SYM του Clicks Power Keyboard.</string>
-    <string name="power_shortcuts_press_key">Πατήστε πλήκτρο συντόμευσης για εκκίνηση</string>
 
     <!-- Notification Helper -->
     <string name="notification_nav_mode_channel_name">Plektra Nav Mode</string>
@@ -1285,7 +1287,7 @@ QWERTZ σε φυσικό QWERTY
     <string name="tutorial_nav_mode_bullet_media">Οι αντιστοιχίσεις μπορούν επίσης να χειρίζονται συντομεύσεις εφαρμογών, στοιχεία ελέγχου media, Escape, Tab, Page Up/Down και Slim.</string>
     <string name="tutorial_page_customization_title">Προσαρμογή</string>
     <string name="tutorial_page_customization_description">Το Plektra προσφέρει πολλές επιλογές προσαρμογής:\n• Προσαρμόσιμες διατάξεις πληκτρολογίου\n• Συντομεύσεις launcher &amp; Power Shortcuts\n• Η γραμμή IME μπορεί να λειτουργεί ως γραμμή σάρωσης για μετακίνηση του δρομέα\n• Προσαρμοσμένες αντιστοιχίσεις για Nav Mode\nΕξερευνήστε τις ρυθμίσεις για να βρείτε την ιδανική διαμόρφωση για εσάς!</string>
-    <string name="tutorial_quick_launcher_title">QuickLauncher</string>
+    <string name="tutorial_quick_launcher_title">Quick Launcher</string>
     <string name="tutorial_quick_launcher_description">Ανοίξτε εφαρμογές από το πληκτρολόγιο χωρίς να βγείτε από τη ροή πληκτρολόγησης.</string>
     <string name="tutorial_quick_launcher_bullet_sym_space">Κρατήστε SYM και πατήστε Space για να ανοίξετε το QuickLauncher από οπουδήποτε.</string>
     <string name="tutorial_quick_launcher_bullet_text_fields">Λειτουργεί επίσης ενώ ο δρομέας βρίσκεται μέσα σε πεδίο κειμένου, ώστε να αλλάζετε εφαρμογές από το περιβάλλον πληκτρολόγησης.</string>
@@ -1748,6 +1750,10 @@ QWERTZ σε φυσικό QWERTY
     <string name="caret_badge_custom_colors_title">Χρήση προσαρμοσμένων χρωμάτων</string>
     <string name="caret_badge_custom_colors_description">Αντικατάσταση των χρωμάτων του θέματος πληκτρολογίου.</string>
     <string name="keyboard_bar_hidden_apps_title">Να μην εμφανίζεται ποτέ η γραμμή</string>
+    <string name="inline_autofill_title">Προτάσεις διαχειριστή κωδικών πρόσβασης</string>
+    <string name="inline_autofill_description">Εμφάνιση στοιχείων αυτόματης συμπλήρωσης από τον διαχειριστή κωδικών πρόσβασης στη γραμμή</string>
+    <string name="inline_autofill_unsupported">Απαιτεί Android 11 ή νεότερο</string>
+    <string name="inline_autofill_candidates_view_note">Τα στοιχεία χρειάζονται την κανονική γραμμή· δεν εμφανίζονται με την πειραματική προβολή υποψηφίων</string>
     <string name="keyboard_bar_hidden_apps_row_description">Εφαρμογές όπου η γραμμή παραμένει κρυφή, ακόμη και με χειροκίνητο άνοιγμα</string>
     <string name="keyboard_bar_hidden_apps_summary_none">Δεν επιλέχθηκαν εφαρμογές</string>
     <plurals name="keyboard_bar_hidden_apps_summary">
@@ -1773,4 +1779,29 @@ QWERTZ σε φυσικό QWERTY
     <string name="kaomoji_placement_emoji">Μετά τα emoji</string>
     <string name="kaomoji_placement_off">Ανενεργό</string>
     <string name="emoji_picker_extras_title">Σύμβολα κειμένου και καομότζι στον επιλογέα emoji</string>
+    <string name="number_suggestions_title">Προτάσεις αριθμών</string>
+    <string name="number_suggestions_description">Τα γράμματα στα πλήκτρα ψηφίων του Alt προτείνονται και ως αριθμοί: w00 → 100, ed0.000 → 250.000. Οι πραγματικές λέξεις έχουν προτεραιότητα</string>
+    <string name="number_suggestions_excluded_apps_title">Προτάσεις αριθμών: εξαιρούμενες εφαρμογές</string>
+    <string name="number_suggestions_excluded_apps_row_description">Εφαρμογές όπου τα γράμματα δεν προτείνονται ποτέ ως αριθμοί</string>
+    <string name="number_suggestions_excluded_apps_description">Στις εφαρμογές που επιλέγετε εδώ, το Plektra δεν προτείνει ούτε διορθώνει αυτόματα ποτέ σε αριθμούς τα γράμματα των πλήκτρων ψηφίων του Alt (για παράδειγμα w00 σε 100). Οι κανονικές προτάσεις λέξεων και η αυτόματη διόρθωση δεν αλλάζουν.</string>
+    <string name="number_suggestions_excluded_apps_webapk_note">Εφαρμογή ιστού — πληκτρολογεί μέσα στο %1$s, οπότε εξαιρείται και το %1$s</string>
+    <string name="kw_auto_correction_number_suggestions">αριθμοί, ψηφία, alt, w00, 100, μετατροπή, ανά εφαρμογή, εξαίρεση</string>
+    <string name="always_show_suggestions_bar_title">Να εμφανίζεται πάντα η γραμμή προτάσεων</string>
+    <string name="always_show_suggestions_bar_summary">Αποτρέπει την αυτόματη απόκρυψη της γραμμής προτάσεων (μετά από σύμβολα Alt, σημεία στίξης κ.λπ.) ώστε το μέγεθος του παραθύρου της εφαρμογής να μένει σταθερό.</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_title">Απόκρυψη όπου μένει κενή</string>
+    <string name="always_show_suggestions_bar_hide_sensitive_summary">Χωρίς κενή γραμμή σε πεδία URL, email, κωδικών πρόσβασης, αριθμών, τηλεφώνου και ημερομηνίας ή πάνω από τα στοιχεία αυτόματης συμπλήρωσης. Χωρίς προβλέψεις λέξεων σε πεδία κωδικών πρόσβασης, αριθμών, τηλεφώνου και ημερομηνίας.</string>
+    <string name="always_show_suggestions_bar_hide_variations_title">Απόκρυψη και της γραμμής παραλλαγών</string>
+    <string name="always_show_suggestions_bar_hide_variations_summary">Κρύβει και τη γραμμή παραλλαγών και μενού όπου κρύβεται η κενή γραμμή προτάσεων. Οι προτάσεις αυτόματης συμπλήρωσης εμφανίζονται κανονικά.</string>
+    <string name="keyboard_bar_height_animation_title">Κίνηση αλλαγών ύψους</string>
+    <string name="keyboard_bar_height_animation_summary">Η γραμμή μεταβαίνει ομαλά στο νέο ύψος όταν εμφανίζεται ή εξαφανίζεται μια σειρά</string>
+    <string name="keyboard_bar_height_animation_duration_title">Διάρκεια κίνησης</string>
+    <string name="keyboard_bar_height_animation_duration_value">%1$d ms</string>
+    <string name="keyboard_bar_row_heights_title">Ύψη σειρών</string>
+    <string name="keyboard_bar_row_heights_summary">Ορίστε τα ύψη των σειρών προτάσεων και παραλλαγών στο θέμα πληκτρολογίου</string>
+    <string name="emoji_picker_invalid_unicode">Μη έγκυρος κωδικός Unicode</string>
+    <string name="emoji_picker_use_code">Χρήση</string>
+    <string name="setting_link_quick_launcher_customize_entries">Προσαρμογή καταχωρίσεων Quick Launcher</string>
+    <string name="setting_link_quick_launcher_entries">Καταχωρίσεις Quick Launcher</string>
+    <string name="setting_link_quick_launcher_favorite_color">Χρώμα επισήμανσης αγαπημένων Quick Launcher</string>
+    <string name="setting_link_quick_launcher_top_match_color">Χρώμα επισήμανσης κορυφαίου αποτελέσματος Quick Launcher</string>
 </resources>
