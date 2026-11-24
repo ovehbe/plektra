@@ -182,6 +182,15 @@ internal object KeyboardBarRowGeometry {
 
     fun bottomRowTop(chrome: rocks.pkb.plektra.inputmethod.ImeChromeLayout): Int? = bottomRow(chrome)?.top
 
+    private fun View.isDescendantOf(ancestor: ViewGroup): Boolean {
+        var current = parent
+        while (current != null) {
+            if (current === ancestor) return true
+            current = current.parent
+        }
+        return false
+    }
+
     fun bottomRow(chrome: rocks.pkb.plektra.inputmethod.ImeChromeLayout): VisibleRow? {
         var lowest: VisibleRow? = null
         val trailing = ArrayList<View>()
@@ -198,6 +207,7 @@ internal object KeyboardBarRowGeometry {
                     RectF(rect).apply { offset(bounds.left.toFloat(), bounds.top.toFloat()) }, canvasRow!!.radius)
                 val surfaces = row?.surfaces.orEmpty().filter { it.visibility == View.VISIBLE && it.width > 0 }.mapNotNull {
                     val style = (it.getTag(R.id.keyboard_bar_surface_geometry) as? Surface)?.style ?: return@mapNotNull null
+                    if (!it.isDescendantOf(chrome)) return@mapNotNull null
                     val rect = Rect(0, 0, it.width, it.height).also { rect -> chrome.offsetDescendantRectToMyCoords(it, rect) }
                     rocks.pkb.plektra.inputmethod.KeyboardBarGeometry.OuterSurface(RectF(rect), style.radius, style.borderWidth / 2f)
                 }.sortedBy { it.bounds.left }
@@ -215,6 +225,7 @@ internal object KeyboardBarRowGeometry {
         for (index in 0 until chrome.childCount) visit(chrome.getChildAt(index))
         for (control in trailing) {
             val style = (control.getTag(R.id.keyboard_bar_surface_geometry) as? Surface)?.style ?: continue
+            if (!control.isDescendantOf(chrome)) continue
             val bounds = Rect(0, 0, control.width, control.height).also { chrome.offsetDescendantRectToMyCoords(control, it) }
             if (bounds.right < chrome.width - chrome.paddingRight - 3f * chrome.resources.displayMetrics.density ||
                 lowest != null && kotlin.math.abs(bounds.bottom - lowest!!.bottom) > 1) continue

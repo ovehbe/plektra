@@ -124,6 +124,7 @@ class FullSuggestionsBar(
                     old.setOnLongClickListener(null)
                     old.text = null
                     container?.removeView(old)
+                    bindRowGeometry()
                 }
             }
             field = value
