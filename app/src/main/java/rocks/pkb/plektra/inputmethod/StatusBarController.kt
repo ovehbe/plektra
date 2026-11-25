@@ -41,7 +41,9 @@ import rocks.pkb.plektra.data.variation.VariationRepository
 import kotlin.math.max
 import kotlin.math.roundToInt
 import android.view.KeyEvent
+import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import rocks.pkb.plektra.core.PunctuationSpacing
 import rocks.pkb.plektra.inputmethod.ui.ClipboardHistoryView
 import rocks.pkb.plektra.inputmethod.ui.EmojiPickerView
 import rocks.pkb.plektra.inputmethod.ui.HamburgerMenuView
@@ -195,6 +197,8 @@ class StatusBarController(
             field = value
             variationBarView?.onRedoRequested = value
         }
+
+    var onSpacingReverted: (() -> Unit)? = null
 
     var onSoftwareKeyboardKeyPressed: ((Int) -> Unit)? = null
 
@@ -1930,6 +1934,16 @@ class StatusBarController(
         return picker
     }
 
+    private fun backspace(connection: InputConnection?) {
+        if (connection == null) return
+        if (PunctuationSpacing.handleBackspaceUndo(connection)) {
+            onSpacingReverted?.invoke()
+        } else {
+            connection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
+            connection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+        }
+    }
+
     private fun configureSoftwareKeyboard(
         keyboardView: AospKeyboardView,
         snapshot: StatusSnapshot,
@@ -1958,11 +1972,7 @@ class StatusBarController(
                 if (searchTarget != null && searchTarget.handleSearchBackspace()) {
                     return
                 }
-                if (inputConnection != null && rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)) {
-                    return
-                }
-                inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
-                inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                backspace(inputConnection)
             }
 
             override fun onEnter() {
@@ -1998,6 +2008,7 @@ class StatusBarController(
             }
 
             override fun onCursorMove(delta: Int) {
+                PunctuationSpacing.clearUndo()
                 onSoftwareKeyboardNonShiftInteraction?.invoke()
                 val connection = inputConnection ?: return
                 val moved = if (delta < 0) {
@@ -2340,12 +2351,8 @@ class StatusBarController(
                 })
             }
             if (rowIndex == 2) {
-                rowLayout.addView(createSoftwareSymbolControl("", keyHeight, fixedKeyWidth, iconRes = R.drawable.backspace_24) {
-                    if (inputConnection != null && rocks.pkb.plektra.core.PunctuationSpacing.handleBackspaceUndo(inputConnection)) {
-                        return@createSoftwareSymbolControl
-                    }
-                    inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
-                    inputConnection?.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DEL))
+                rowLayout.addView(createSoftwareSymbolControl("", keyHeight, fixedKeyWidth, iconRes = R.drawable.backspace_24, isBackspace = true) {
+                    backspace(inputConnection)
                 }, LinearLayout.LayoutParams(fixedKeyWidth, keyHeight).apply { marginStart = keySpacing })
             }
             container.addView(rowLayout)
@@ -2409,6 +2416,7 @@ class StatusBarController(
         height: Int,
         width: Int,
         iconRes: Int? = null,
+        isBackspace: Boolean = false,
         onClick: () -> Unit
     ): TextView {
         val theme = activeThemeColors(isFullSoftwareKeyboardMode = true)
@@ -2432,7 +2440,10 @@ class StatusBarController(
             }
             isClickable = true
             isFocusable = true
-            setOnClickListener { onClick() }
+            setOnClickListener {
+                if (!isBackspace) PunctuationSpacing.clearUndo()
+                onClick()
+            }
             layoutParams = LinearLayout.LayoutParams(width, height)
         }
     }
@@ -2489,6 +2500,7 @@ class StatusBarController(
                 android.view.MotionEvent.ACTION_UP -> {
                     handler.removeCallbacks(longPressRunnable)
                     if (!moved && !longPressTriggered && kotlin.math.abs(event.x - downX) < step) {
+                        PunctuationSpacing.clearUndo()
                         inputConnection?.commitText(" ", 1)
                     }
                     true
@@ -3062,6 +3074,7 @@ class StatusBarController(
         content: String
     ) {
         val commit = {
+            PunctuationSpacing.clearUndo()
             if (onSoftwareKeyboardBoundaryTextInput?.invoke(content, inputConnection) == true ||
                 inputConnection.commitText(content, 1)) {
                 onSymTextCommitted?.invoke()

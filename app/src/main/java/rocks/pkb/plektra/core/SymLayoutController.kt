@@ -273,6 +273,7 @@ class SymLayoutController(
         record: Boolean = true,
         touch: Boolean = false
     ) {
+        PunctuationSpacing.clearUndo()
         val committed = inputConnection?.commitText(text, 1) == true
         if (committed) {
             if (record) recordTyped(kind, text)
@@ -724,6 +725,7 @@ class SymLayoutController(
         }
 
         if (symChar != null && inputConnection != null) {
+            PunctuationSpacing.clearUndo()
             val committed = handleBoundaryText(symChar, inputConnection) ||
                 (symChar.length == 1 && SettingsManager.shouldApplyFrenchPunctuationSpacing(context) &&
                     rocks.pkb.plektra.core.Punctuation.commitFrenchSpacedPunctuation(inputConnection, symChar[0])) ||
