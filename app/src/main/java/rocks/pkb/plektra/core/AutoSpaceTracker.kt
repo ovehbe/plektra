@@ -69,12 +69,9 @@ object AutoSpaceTracker {
             Log.d(TAG, "Keeping auto-space before opening quote")
             return false
         }
+        if (!inputConnection.getSelectedText(0).isNullOrEmpty()) return false
         autoSpacePending = false
-        PunctuationSpacing.recordFix(inputConnection, beforeTwo.dropLast(1), 1, "$punctuation ", " $punctuation")
-        inputConnection.beginBatchEdit()
-        inputConnection.deleteSurroundingText(1, 0)
-        inputConnection.commitText("$punctuation ", 1)
-        inputConnection.endBatchEdit()
+        PunctuationSpacing.commitFix(inputConnection, beforeTwo.dropLast(1), " ", "$punctuation ", " $punctuation")
         Log.d(TAG, "replaceAutoSpaceWithPunctuation -> '$punctuation '")
         return true
     }

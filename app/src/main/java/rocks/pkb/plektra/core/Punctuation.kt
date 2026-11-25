@@ -59,13 +59,9 @@ object Punctuation {
         }
 
         val applied = "$NARROW_NO_BREAK_SPACE$punctuation"
-        PunctuationSpacing.recordFix(inputConnection, prefix, existingSpaceCount, applied, before.takeLast(existingSpaceCount) + punctuation)
-        inputConnection.beginBatchEdit()
-        if (existingSpaceCount > 0) {
-            inputConnection.deleteSurroundingText(existingSpaceCount, 0)
-        }
-        inputConnection.commitText(applied, 1)
-        inputConnection.endBatchEdit()
+        if (!inputConnection.getSelectedText(0).isNullOrEmpty()) return false
+        val spaces = before.takeLast(existingSpaceCount)
+        PunctuationSpacing.commitFix(inputConnection, prefix, spaces, applied, spaces + punctuation)
         AutoSpaceTracker.clear()
         return true
     }
@@ -77,6 +73,7 @@ object Punctuation {
         if (punctuation != COMMA_SPACE_PUNCTUATION || !PunctuationSpacing.fieldAllowsAutoEdits()) return false
 
         val before = inputConnection.getTextBeforeCursor(16, 0)?.toString().orEmpty()
+        if (!inputConnection.getSelectedText(0).isNullOrEmpty()) return false
         if (before.endsWith("$punctuation ")) {
             AutoSpaceTracker.markAutoSpace()
             return true
@@ -84,17 +81,8 @@ object Punctuation {
         val hasComma = before.endsWith(punctuation)
         val beforeComma = if (hasComma) before.dropLast(1) else before
         val spaces = beforeComma.takeLastWhile { it == ' ' }
-        val removed = spaces.length + if (hasComma) 1 else 0
-        val applied = "$punctuation "
-        PunctuationSpacing.recordFix(inputConnection, beforeComma.dropLast(spaces.length), removed, applied, spaces + punctuation)
-        inputConnection.beginBatchEdit()
-        if (hasComma && spaces.isEmpty()) {
-            inputConnection.commitText(" ", 1)
-        } else {
-            if (removed > 0) inputConnection.deleteSurroundingText(removed, 0)
-            inputConnection.commitText(applied, 1)
-        }
-        inputConnection.endBatchEdit()
+        val removed = if (hasComma) spaces + punctuation else spaces
+        PunctuationSpacing.commitFix(inputConnection, beforeComma.dropLast(spaces.length), removed, "$punctuation ", spaces + punctuation)
         AutoSpaceTracker.markAutoSpace()
         return true
     }

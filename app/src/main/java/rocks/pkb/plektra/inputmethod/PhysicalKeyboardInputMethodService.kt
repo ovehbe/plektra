@@ -368,8 +368,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     private var altModifierLayerLatched: Boolean = false
     private var lastShiftTapUpTime: Long = 0L
     private var lastAltTapUpTime: Long = 0L
-    // Track recent real modifier events to filter synthetic duplicates (deviceId=-1, flags=0, zero-duration)
-    private val recentRealModifierEvents = mutableMapOf<Int, Long>() // keyCode -> eventTime
+    // Last physical Alt, Shift or Backspace event, by key (never update this from an echo).
+    private val recentRealKeyEvents = mutableMapOf<Int, Long>() // keyCode -> eventTime
     private var symTogglePendingOnKeyUp: Boolean = false
     private var symChordUsedSinceKeyDown: Boolean = false
     private var symPhysicallyPressed: Boolean = false
@@ -820,7 +820,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     /**
-     * Filters synthetic duplicate modifier key events that arrive as echoes from the framework.
+     * Filters synthetic Alt, Shift and Backspace events that arrive as echoes of hardware keys.
      * 
      * Root cause: Unknown source (possibly Android framework echoing events back through IME).
      * Synthetic events have: deviceId=-1, flags=0, eventTime==downTime (zero duration),
@@ -828,11 +828,11 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
      * 
      * Returns true if the event should be dropped as a synthetic duplicate.
      */
-    private fun isSyntheticModifierDuplicate(keyCode: Int, event: KeyEvent?): Boolean {
+    private fun isSyntheticKeyDuplicate(keyCode: Int, event: KeyEvent?): Boolean {
         if (event == null) return false
         
-        // Only filter Alt and Shift (Ctrl works correctly without filtering)
-        if (keyCode != KeyEvent.KEYCODE_ALT_LEFT && keyCode != KeyEvent.KEYCODE_ALT_RIGHT &&
+        if (keyCode != KeyEvent.KEYCODE_DEL &&
+            keyCode != KeyEvent.KEYCODE_ALT_LEFT && keyCode != KeyEvent.KEYCODE_ALT_RIGHT &&
             keyCode != KeyEvent.KEYCODE_SHIFT_LEFT && keyCode != KeyEvent.KEYCODE_SHIFT_RIGHT) {
             return false
         }
@@ -842,13 +842,13 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         
         if (isRealEvent) {
             // Track real events for duplicate detection
-            recentRealModifierEvents[keyCode] = event.eventTime
+            recentRealKeyEvents[keyCode] = event.eventTime
             return false
         }
         
         if (isSyntheticEvent) {
             // Check if this is a duplicate of a recent real event
-            val lastRealEventTime = recentRealModifierEvents[keyCode]
+            val lastRealEventTime = recentRealKeyEvents[keyCode]
             if (lastRealEventTime != null) {
                 val timeSinceReal = Math.abs(event.eventTime - lastRealEventTime)
                 if (timeSinceReal <= SYNTHETIC_DUPLICATE_WINDOW_MS) {
@@ -4948,9 +4948,9 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     ) {
         val perfStart = ImePerfLogger.mark()
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        if (newSelStart != oldSelStart || newSelEnd != oldSelEnd || newSelStart != newSelEnd) {
+        val cursorPositionChanged = oldSelStart != newSelStart || oldSelEnd != newSelEnd
+        val spacingAcknowledged = (cursorPositionChanged || newSelStart != newSelEnd) &&
             PunctuationSpacing.onSelectionChanged(oldSelEnd, newSelStart, newSelEnd)
-        }
         liveSpeechEditor?.let { editor ->
             val expected = if (candidatesEnd >= 0) candidatesEnd else editor.expectedCursor
             if ((oldSelStart != newSelStart || oldSelEnd != newSelEnd) &&
@@ -4960,7 +4960,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         
         val state = inputContextState
-        val cursorPositionChanged = (oldSelStart != newSelStart) || (oldSelEnd != newSelEnd)
         val collapsedSelection = newSelStart == newSelEnd
         editorHasActiveSelection = !collapsedSelection
         if (cursorPositionChanged && ::candidatesBarController.isInitialized) {
@@ -4988,7 +4987,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         }
         
         if (cursorPositionChanged && collapsedSelection && !shouldSkipForCommit) {
-            if (!forwardByOne) {
+            if (!forwardByOne && !spacingAcknowledged) {
                 DeferredPunctuationSpaceTracker.clear()
             }
             // Update suggestions on cursor movement (if suggestions enabled)
@@ -5244,8 +5243,6 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
     }
 
     override fun onKeyDown(keyCode_: Int, event_: KeyEvent?): Boolean {
-        if (keyCode_ != KeyEvent.KEYCODE_DEL) PunctuationSpacing.clearUndo()
-        if (keyCode_ == KeyEvent.KEYCODE_SPACE) rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace()
         return withModifierKeyDebug("KEY_DOWN", keyCode_, event_) {
             onKeyDownInternal(keyCode_, event_)
         }
@@ -5285,11 +5282,8 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val keyCode = remapped.keyCode
         val event = remapped.event
         
-        // Filter synthetic duplicate modifier events (deviceId=-1, flags=0, zero-duration echoes)
-        if (isSyntheticModifierDuplicate(keyCode, event)) {
-            return true
-        }
-        
+        if (isSyntheticKeyDuplicate(keyCode, event)) return true
+
         clicksPowerShiftTapFilter.shouldConsumeKeyDown(
             isClicksPowerKeyboard = DeviceSpecific.resolveInputProfile(
                 event,
@@ -5317,6 +5311,10 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
             )
             return true
         }
+
+        // An ignored echo/bounce is not a new interaction with the editor.
+        if (keyCode != KeyEvent.KEYCODE_DEL) PunctuationSpacing.clearUndo()
+        if (keyCode == KeyEvent.KEYCODE_SPACE) rocks.pkb.plektra.core.AutoSpaceTracker.noteManualSpace()
 
         // Check if we have an editable field at the very start
         val info = currentInputEditorInfo
@@ -6314,10 +6312,7 @@ class PhysicalKeyboardInputMethodService : InputMethodService(), ClicksAccessibi
         val keyCode = remapped.keyCode
         val event = remapped.event
         
-        // Filter synthetic duplicate modifier events (deviceId=-1, flags=0, zero-duration echoes)
-        if (isSyntheticModifierDuplicate(keyCode, event)) {
-            return true
-        }
+        if (isSyntheticKeyDuplicate(keyCode, event)) return true
         
         if (keyCode == KeyEvent.KEYCODE_ENTER && consumeAltEnterUntilKeyUp) {
             consumeAltEnterUntilKeyUp = false

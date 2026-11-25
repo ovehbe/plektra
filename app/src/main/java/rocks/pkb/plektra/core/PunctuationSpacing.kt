@@ -19,7 +19,7 @@ object PunctuationSpacing {
     var fieldAllowsAutoEdits: () -> Boolean = { true }
 
     private class Undo(
-        val textBefore: String, val applied: String, val literal: String, val cursorDelta: Int, var cursor: Int?
+        val textBefore: String, val applied: String, val literal: String, var cursorDelta: Int, var cursor: Int?
     )
 
     private fun cursor(ic: InputConnection): Int? =
@@ -27,20 +27,42 @@ object PunctuationSpacing {
             ?.takeIf { it.selectionStart >= 0 && it.selectionStart == it.selectionEnd }
             ?.let { it.startOffset + it.selectionEnd }
 
-    /** Called before editing: [applied] replaces [removed] code units, [literal] is what the user typed. */
-    internal fun recordFix(ic: InputConnection, prefix: String, removed: Int, applied: String, literal: String) {
-        val delta = applied.length - removed
-        undo = if (applied == literal) null else Undo(
+    /** Replace a suffix and publish its undo before the editor acknowledges the batch. */
+    internal fun commitFix(ic: InputConnection, prefix: String, removed: String, applied: String, literal: String) {
+        val delta = applied.length - removed.length
+        val fix = if (applied == literal) null else Undo(
             prefix.takeLast(UNDO_CONTEXT) + applied, applied, literal, delta, cursor(ic)?.plus(delta)
         )
+        // In particular, append just the space when comma-space finds an existing comma.
+        val shared = removed.commonPrefixWith(applied).length
+        undo = null
+        ic.beginBatchEdit()
+        try {
+            // EditableInputConnection deletes *around* a composing span, and commitText
+            // replaces it. Keep the word and edit only the suffix at the actual caret.
+            ic.finishComposingText()
+            if (removed.length > shared && !ic.deleteSurroundingText(removed.length - shared, 0)) {
+                // The existing gap is still present. Type the symbol without duplicating it.
+                ic.commitText(literal.trimStart(), 1)
+            } else if (ic.commitText(applied.substring(shared), 1)) {
+                undo = fix
+            }
+        } finally {
+            ic.endBatchEdit()
+        }
+    }
+
+    /** A long press removed its provisional key in the same (outer) editor batch. */
+    internal fun includeBatchedDeletion(length: Int) {
+        undo?.let { it.cursorDelta -= length }
     }
 
     @Volatile
     private var undo: Undo? = null
 
     /**
-     * Removes the spaces before [mark] when "Remove before" is chosen for it. Returns true when the
-     * mark was committed here (an auto-space moved behind it); otherwise the caller commits the mark.
+     * Returns true when this rule handled the mark. The caller must not run another boundary
+     * edit against the newly exposed word, or commit the mark a second time.
      */
     fun beforeMark(context: Context, inputConnection: InputConnection, mark: Char): Boolean {
         if (mark !in SettingsManager.getAutoSpacePunctuation(context) || !fieldAllowsAutoEdits()) return false
@@ -56,28 +78,26 @@ object PunctuationSpacing {
         if (spaces.isEmpty() || prefix.isEmpty() || prefix.last().isWhitespace()) return false
         if (mark == '"' && !AutoSpaceTracker.closesStraightDoubleQuote(prefix)) return false
 
-        val autoSpace = AutoSpaceTracker.isTrailingSpaceAuto() && spaces.length == 1
+        if (!inputConnection.getSelectedText(0).isNullOrEmpty()) return false
+        val moveSpace = spaces.length == 1 && AutoSpaceTracker.isTrailingSpaceAuto() &&
+            mark !in SettingsManager.getSpaceAfterPunctuation(context)
         AutoSpaceTracker.clear()
-        if (autoSpace && mark !in SettingsManager.getSpaceAfterPunctuation(context)) {
-            recordFix(inputConnection, prefix, spaces.length, "$mark ", spaces + mark)
-            inputConnection.beginBatchEdit()
-            inputConnection.deleteSurroundingText(spaces.length, 0)
-            inputConnection.commitText("$mark ", 1)
-            inputConnection.endBatchEdit()
-            return true
-        }
-        recordFix(inputConnection, prefix, spaces.length, mark.toString(), spaces + mark)
-        inputConnection.deleteSurroundingText(spaces.length, 0)
-        return false
+        commitFix(inputConnection, prefix, spaces, if (moveSpace) "$mark " else mark.toString(), spaces + mark)
+        return true
     }
 
-    /** The editor also reports our own cursor advance. Only a different selection invalidates it. */
-    fun onSelectionChanged(oldEnd: Int, start: Int, end: Int) {
-        val pending = undo ?: return
+    /** True if this selection acknowledges our punctuation edit rather than a cursor move. */
+    fun onSelectionChanged(oldEnd: Int, start: Int, end: Int): Boolean {
+        val pending = undo ?: return false
         // Some editors don't expose ExtractedText. Anchor their first acknowledgement by the
         // size of our edit; subsequent moves must match the absolute position, not just a suffix.
         val expected = pending.cursor ?: (oldEnd + pending.cursorDelta)
-        if (start == end && end == expected) pending.cursor = end else clearUndo()
+        if (start == end && end == expected) {
+            pending.cursor = end
+            return true
+        }
+        clearUndo()
+        return false
     }
 
     /** Backspace consumes at most one fix, leaving the typed punctuation in place. */
@@ -89,9 +109,13 @@ object PunctuationSpacing {
         val before = inputConnection.getTextBeforeCursor(pending.textBefore.length, 0)?.toString()
         if (before != pending.textBefore) return false
         inputConnection.beginBatchEdit()
-        inputConnection.deleteSurroundingText(pending.applied.length, 0)
-        inputConnection.commitText(pending.literal, 1)
-        inputConnection.endBatchEdit()
+        try {
+            inputConnection.finishComposingText()
+            if (!inputConnection.deleteSurroundingText(pending.applied.length, 0)) return false
+            inputConnection.commitText(pending.literal, 1)
+        } finally {
+            inputConnection.endBatchEdit()
+        }
         AutoSpaceTracker.clear()
         DeferredPunctuationSpaceTracker.clear()
         return true

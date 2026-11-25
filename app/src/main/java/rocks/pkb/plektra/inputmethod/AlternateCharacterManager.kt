@@ -791,7 +791,9 @@ class AlternateCharacterManager(
         inputConnection.beginBatchEdit()
         try {
             if (!inputConnection.deleteSurroundingText(length, 0)) return ReplacementOutcome.UNCHANGED
-            return if (commitAtCursor()) ReplacementOutcome.REPLACED else ReplacementOutcome.REMOVED
+            if (!commitAtCursor()) return ReplacementOutcome.REMOVED
+            PunctuationSpacing.includeBatchedDeletion(length)
+            return ReplacementOutcome.REPLACED
         } finally {
             inputConnection.endBatchEdit()
         }
